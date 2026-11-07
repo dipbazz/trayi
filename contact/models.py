@@ -1,7 +1,9 @@
+import datetime
 import logging
 
 from django.db import models
 from django.http import HttpResponseRedirect
+from django.utils.formats import date_format
 from modelcluster.fields import ParentalKey
 from wagtail.admin.mail import send_mail
 from wagtail.admin.panels import (
@@ -61,6 +63,38 @@ class EmailFormPage(HoneypotFormMixin, PublishGuardMixin, AbstractEmailForm):
         from contact.views import FormSubmissionsListView  # admin views need the models loaded
 
         return FormSubmissionsListView
+
+    def data_field_names(self):
+        return {name for name, label in self.get_data_fields()}
+
+    def process_form_submission(self, form):
+        """Save and email only the data fields (get_data_fields), so a field that only helps
+        fill in another, like the phone's country, is neither kept nor sent (#321)."""
+        names = self.data_field_names()
+        submission = self.get_submission_class().objects.create(
+            form_data={name: value for name, value in form.cleaned_data.items() if name in names},
+            page=self,
+        )
+        if self.to_address:
+            self.send_mail(form)
+        return submission
+
+    def render_email(self, form):
+        """Each data field's label and answer, one per line, as Wagtail writes them."""
+        names = self.data_field_names()
+        content = []
+        for field in form:
+            if field.name not in names or field.name not in form.cleaned_data:
+                continue
+            value = form.cleaned_data[field.name]
+            if isinstance(value, list):
+                value = ", ".join(value)
+            elif isinstance(value, datetime.datetime):
+                value = date_format(value, "SHORT_DATETIME_FORMAT")
+            elif isinstance(value, datetime.date):
+                value = date_format(value, "SHORT_DATE_FORMAT")
+            content.append(f"{field.label}: {value}")
+        return "\n".join(content)
 
     def reply_to_address(self, form):
         """The sender's address for Reply-To, or None: the first email field they filled in."""
