@@ -89,7 +89,7 @@ class PhoneWithCountryMixin:
                 self.add_error("phone", error)
 
 
-def _parse(number, region):
+def parse_phone(number, region):
     """Return the valid number `number` names, or None.
 
     A number typed with its own +country code keeps it; otherwise `region` supplies it.
@@ -105,7 +105,7 @@ def _parse(number, region):
 
 def normalise_phone(number, region):
     """Return any valid phone number in E.164 (+97714567890), or raise ValidationError."""
-    parsed = _parse(number, region)
+    parsed = parse_phone(number, region)
     if parsed is None:
         example = phonenumbers.example_number(region)
         raise ValidationError(
@@ -118,7 +118,7 @@ def normalise_phone(number, region):
 
 def normalise_mobile(number, region):
     """Return a mobile number in E.164 (+9779841234567), or raise ValidationError."""
-    parsed = _parse(number, region)
+    parsed = parse_phone(number, region)
     if parsed is None or phonenumbers.number_type(parsed) not in MESSAGEABLE_TYPES:
         example = phonenumbers.example_number_for_type(region, PhoneNumberType.MOBILE)
         raise ValidationError(
