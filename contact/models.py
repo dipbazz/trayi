@@ -285,8 +285,16 @@ class ContactPage(EmailFormPage):
     subpage_types = []
     max_count_per_parent = 1
 
+    def serve(self, request, *args, **kwargs):
+        # The request's Site settings, which the page reads anyway, so the form costs no query.
+        self.site_settings = SiteSettings.for_request(request)
+        return super().serve(request, *args, **kwargs)
+
     def get_form_parameters(self):
-        phone_country = default_phone_country(SiteSettings.for_site(self.get_site()))
+        site_settings = getattr(self, "site_settings", None)
+        if site_settings is None:  # a form made outside a request
+            site_settings = SiteSettings.for_site(self.get_site())
+        phone_country = default_phone_country(site_settings)
         return {**super().get_form_parameters(), "phone_country": phone_country}
 
     def get_data_fields(self):

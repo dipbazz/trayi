@@ -32,6 +32,8 @@ pytestmark = pytest.mark.django_db
 # banner's message in each language (#117).
 # A page with a testimonial spends one finding its translation, and a partners block one finding
 # the partners (#117): the home page in both languages.
+# A form page spends one on its questions: /volunteer/ and /contact/, whose phone country comes
+# from the Site settings the page reads anyway (#167).
 BUDGETS = {
     "/": 20,
     "/appeals/": 17,
@@ -40,6 +42,7 @@ BUDGETS = {
     "/stories/feed/": 11,
     "/about/": 13,
     "/volunteer/": 14,
+    "/contact/": 14,
     "/donate/": 17,
     "/donate/?appeal=flood-relief&amount=2500": 18,
     "/search/?query=water": 22,
@@ -48,6 +51,7 @@ BUDGETS = {
     "/ne/appeals/": 18,
     "/ne/appeals/flood-relief/": 18,
     "/ne/stories/": 21,
+    "/ne/contact/": 15,
 }
 
 
@@ -68,10 +72,11 @@ def test_the_still_to_write_panel_stays_within_its_query_budget(
     # It reads a fixed list of standard pages in each language, so this doesn't grow with the site.
     # One more reads Site settings' text in each language, for the registration line (#172). The
     # pages chosen in Site settings (Donate, the privacy notice and the menu's sections, #171) are
-    # read in one query.
+    # read in one query. Each standard page costs six across both languages: the Contact page
+    # added them (#321).
     user = django_user_model.objects.create_superuser("budget", password="pw")
 
-    with django_assert_max_num_queries(30):
+    with django_assert_max_num_queries(36):
         still_to_write(user, demo_site)
 
 
