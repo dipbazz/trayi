@@ -13,7 +13,8 @@ def chosen_pages(request):
     `privacy_page` is the privacy notice for the footer and forms (#105) and `donate_page_link` the
     header's Donate button: each None until a page is chosen and published. `banner_link_page` is
     the announcement banner's link (#117). `menu_sections` are the menu's sections that have a
-    published, public page, in the standard's order (#171). Each page is its published translation
+    published, public page, in the standard's order (#171), and `contact_page_link` the footer's
+    Contact link, their Contact page or None (#167). Each page is its published translation
     in the language being read, else the chosen page.
 
     Looked up only when a template uses one, and then all together in one query: the chosen pages
@@ -40,6 +41,9 @@ def chosen_pages(request):
             for section in menu_sections(site_settings, in_menu, links)
             if section.status == SHOWN
         ]
+        found["contact_page_link"] = next(
+            (s.page for s in found["menu_sections"] if s.section.setting == "contact_page"), None
+        )
         return found
 
     def find_in_reading_language(chosen):
@@ -74,5 +78,11 @@ def chosen_pages(request):
         return found, by_id
 
     pages = SimpleLazyObject(find)
-    names = ("privacy_page", "donate_page_link", "banner_link_page", "menu_sections")
+    names = (
+        "privacy_page",
+        "donate_page_link",
+        "banner_link_page",
+        "menu_sections",
+        "contact_page_link",
+    )
     return {name: SimpleLazyObject(lambda name=name: pages[name]) for name in names}

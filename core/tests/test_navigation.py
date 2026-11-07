@@ -185,6 +185,60 @@ class TestMenuSections:
         assert [text for text, _href, _current in menu_links(client, "/ne/")] == ["सम्पर्क"]
 
 
+def footer_links(client, path="/"):
+    footer = BeautifulSoup(client.get(path).content, "html.parser").select_one(".site-footer")
+    return [(a.get_text(), a["href"]) for a in footer.select("li a")]
+
+
+class TestFooterContactLink:
+    """The footer links to the menu's Contact page, after the privacy notice, once it's live and
+    public (#167)."""
+
+    def test_comes_after_the_privacy_notice(self, client, site, home_page, privacy_notice):
+        contact = add_page(home_page, "Reach us", page_class=ContactPage)
+        choose(site, contact_page=contact)
+
+        assert footer_links(client)[-2:] == [
+            ("Privacy notice", privacy_notice.url),
+            ("Contact", contact.url),
+        ]
+
+    def test_none_until_a_contact_page_is_chosen(self, client, home_page):
+        assert "Contact" not in [text for text, href in footer_links(client)]
+
+    def test_none_while_it_isnt_published(self, client, site, home_page):
+        draft = add_page(home_page, "Reach us", live=False, page_class=ContactPage)
+        choose(site, contact_page=draft)
+
+        assert "Contact" not in [text for text, href in footer_links(client)]
+
+    def test_none_while_it_is_behind_a_login(self, client, site, home_page):
+        contact = add_page(home_page, "Reach us", page_class=ContactPage)
+        PageViewRestriction.objects.create(page=contact, restriction_type=PageViewRestriction.LOGIN)
+        choose(site, contact_page=contact)
+
+        assert "Contact" not in [text for text, href in footer_links(client)]
+
+    def test_nepali_readers_get_its_nepali_translation(
+        self, client, site, home_page, nepali_home_page, privacy_notice
+    ):
+        contact = add_page(home_page, "Reach us", page_class=ContactPage)
+        choose(site, contact_page=contact)
+        nepali = contact.copy_for_translation(nepali_home_page.locale)
+        nepali.to_address = "hello@brightwell.example"
+        nepali.save_revision().publish()
+
+        assert ("सम्पर्क", nepali.url) in footer_links(client, "/ne/")
+
+    def test_without_a_translation_nepali_readers_get_the_chosen_page(
+        self, client, site, home_page, nepali_home_page
+    ):
+        contact = add_page(home_page, "Reach us", page_class=ContactPage)
+        choose(site, contact_page=contact)
+
+        assert ("सम्पर्क", contact.url) in footer_links(client, "/ne/")
+
+
 def test_the_sections_are_the_standards_in_its_order_and_names():
     """The menu drifts from `docs/site/standard.md`'s table of sections only if this fails."""
     standard = (ROOT / "docs" / "site" / "standard.md").read_text(encoding="utf-8")
