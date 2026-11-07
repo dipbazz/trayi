@@ -94,6 +94,7 @@ class TestTheCommandsDrafts:
             "Appeals",
             "Stories",
             "Volunteer with us",
+            "Contact",
         ]
         assert second.language == "नेपाली"
         assert {row.status for row in second.rows} == {"Translate after publishing"}
@@ -112,7 +113,7 @@ class TestTheCommandsDrafts:
 
         result = panel(admin, site)
 
-        assert (result.left, result.total) == (12, 12)
+        assert (result.left, result.total) == (14, 14)
 
     def test_the_privacy_notice_and_donate_say_why_they_come_first(self, home_page, admin):
         rows = panel(admin, built_site(home_page)).groups[0].rows
@@ -175,7 +176,7 @@ class TestStatuses:
 
         row = result.groups[1].rows[0]
         assert (row.title, row.status) == ("Privacy notice", "Translate after publishing")
-        assert (result.left, result.total) == (12, 12)
+        assert (result.left, result.total) == (14, 14)
 
 
 class TestWhoCanFollowTheLinks:
@@ -263,8 +264,9 @@ class TestWhenEveryPageIsDone:
 
         # 40 when the done check looked each translation up again; one more since the
         # registration line is read from each language's row (#172), one fewer since the pages
-        # chosen in Site settings are read in one query (#171).
-        with django_assert_max_num_queries(34):
+        # chosen in Site settings are read in one query (#171). Each standard page's two
+        # translations cost six: the Contact page added them (#321).
+        with django_assert_max_num_queries(40):
             panel(admin, site)
 
     def test_the_line_goes_seven_days_after_the_last_page_went_live(self, home_page, admin):
@@ -323,7 +325,7 @@ class TestOnTheDashboard:
 
         html = client.get(reverse("wagtailadmin_home")).content.decode()
 
-        assert "Pages still to write: 12 of 12" in html
+        assert "Pages still to write: 14 of 14" in html
         assert html.index("Pages still to write") < html.index("Fundraising overview")
 
     def test_its_text_lines_up_with_wagtails_dashboard_tables(self, home_page, admin, client):

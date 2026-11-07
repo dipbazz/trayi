@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy
 
 from campaigns.forms import PledgeForm
 from campaigns.models import CampaignIndexPage, DonatePage
-from contact.models import FormField, FormPage
+from contact.models import ContactPage, FormField, FormPage
 from core.menu import SECTIONS
 from home.models import StandardPage
 from news.models import NewsIndexPage
@@ -158,6 +158,17 @@ def volunteer_form():
     return form
 
 
+def contact():
+    """No "to" address: the charity says which inbox someone actually reads before it goes live.
+    No questions of its own either: every Contact page asks the core fields."""
+    return ContactPage(
+        title=_("Contact"),
+        slug="contact",
+        intro=_("<p>[Write: one sentence on who reads your messages.]</p>"),
+        subject=_("New message from the website"),
+    )
+
+
 # The one list of them, in the dashboard panel's order: the pages with a `why` first, then the menu
 # sections in the standard's order. #167, #168, #169 and #170 each add theirs.
 STANDARD_PAGES = (
@@ -179,4 +190,5 @@ STANDARD_PAGES = (
     StandardPageEntry(gettext_lazy("Appeals"), "appeals", appeals, setting="appeals_page"),
     StandardPageEntry(gettext_lazy("Stories"), "stories", stories, setting="stories_page"),
     StandardPageEntry(gettext_lazy("Volunteer with us"), "volunteer", volunteer_form),
+    StandardPageEntry(gettext_lazy("Contact"), "contact", contact, setting="contact_page"),
 )

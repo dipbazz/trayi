@@ -14,7 +14,7 @@ from pytest_django.asserts import assertContains, assertNotContains
 from wagtail.models import Locale, Page, Site
 
 from campaigns.models import CampaignIndexPage, DonatePage
-from contact.models import FormPage
+from contact.models import ContactPage, FormPage
 from core.models import SiteSettings
 from core.publishing import (
     ADD_RECIPIENT,
@@ -40,6 +40,7 @@ BUILT = {
     "appeals": ("Appeals", CampaignIndexPage),
     "stories": ("Stories", NewsIndexPage),
     "volunteer": ("Volunteer with us", FormPage),
+    "contact": ("Contact", ContactPage),
     "donate": ("Donate", DonatePage),
     "privacy": ("Privacy notice", StandardPage),
 }
@@ -47,7 +48,6 @@ BUILT = {
 NOT_BUILT_YET = {
     "reports and accounts": "#170",
     "get involved": "#168",
-    "contact": "#167",
     "accessibility statement": "#167",
 }
 
@@ -203,6 +203,15 @@ class TestThePlaceholders:
         assert ADD_RECIPIENT in reasons
         assert PUBLISH_PRIVACY_NOTICE in reasons
 
+    def test_the_contact_page_has_no_recipient_or_questions_of_its_own(self, home_page):
+        """The charity says which inbox someone reads; the core fields are already asked."""
+        new_site()
+
+        contact = pages_under(home_page)["contact"]
+        assert contact.to_address == ""
+        assert not contact.form_fields.exists()
+        assert ADD_RECIPIENT in reasons_not_to_publish(contact)
+
 
 class TestSiteSettings:
     def test_gets_the_names_and_the_contact_details_given(self, site):
@@ -228,6 +237,7 @@ class TestSiteSettings:
         assert settings_.about_page_id == pages["about"].pk
         assert settings_.appeals_page_id == pages["appeals"].pk
         assert settings_.stories_page_id == pages["stories"].pk
+        assert settings_.contact_page_id == pages["contact"].pk
 
     def test_its_choices_are_ones_site_settings_accept(self, site):
         new_site()
@@ -433,9 +443,11 @@ class TestWhatItPrints:
         printed = new_site()
 
         assert (
-            "Get involved and Contact: write a page for each, then choose it in Site settings → "
-            "Menu."
+            "Get involved: write a page for it, then choose it in Site settings → Menu."
         ) in printed
+        assert "About us, Appeals, Stories and Contact: each joins the menu once it's live." in (
+            printed
+        )
 
     def test_says_to_restart_the_site_first(self):
         printed = new_site()
