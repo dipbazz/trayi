@@ -1,6 +1,22 @@
 import pytest
 
-from contact.models import FormField, FormPage
+from contact.models import ContactPage, FormField, FormPage
+
+
+@pytest.fixture
+def contact_page(home_page, privacy_notice):
+    """A published Contact page under the home page, with no extra questions."""
+    page = ContactPage(
+        title="Contact us",
+        slug="contact",
+        intro="<p>We'd love to hear from you.</p>",
+        to_address="hello@brightwell.example",
+        from_address="website@brightwell.example",
+        subject="New message from the website",
+    )
+    home_page.add_child(instance=page)
+    page.save_revision().publish()
+    return page
 
 
 @pytest.fixture
