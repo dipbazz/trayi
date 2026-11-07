@@ -9,6 +9,7 @@ from contact.models import FormPage
 # Imported via the module: a name starting with "Test" would be collected by pytest.
 from core import models as core_models
 from core.models import AnnouncementBanner, Partner, SiteSettings
+from core.publishing import reasons_not_to_publish
 from news.models import NewsPage
 
 pytestmark = pytest.mark.django_db
@@ -36,8 +37,19 @@ def test_configures_site_settings_and_menu(seeded, client):
     assert AnnouncementBanner.for_site(seeded).enabled
     settings.clean()
     menu = client.get("/").content.decode().split('<nav class="main-nav"')[1].split("</nav>")[0]
-    for name in ("About us", "Appeals", "Stories", "Get involved"):
+    for name in ("About us", "Appeals", "Stories", "Get involved", "Contact"):
         assert f">{name}</a>" in menu
+
+
+def test_has_a_contact_page_in_both_languages_that_emails_the_team(seeded, client):
+    contact = SiteSettings.for_site(seeded).contact_page.specific
+
+    assert contact.live and contact.to_address
+    assert reasons_not_to_publish(contact) == []
+    assert client.get(contact.url).status_code == 200
+    nepali = contact.get_translation(Locale.objects.get(language_code="ne"))
+    assert nepali.live and nepali.specific.to_address
+    assert "हाम्रो बारेमा कसरी थाहा पाउनुभयो" in client.get(nepali.url).content.decode()
 
 
 def test_gives_the_charity_a_logo_in_the_header(seeded, client):

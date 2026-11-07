@@ -23,7 +23,7 @@ from campaigns.models import (
     QRCode,
     QRCodeName,
 )
-from contact.models import FormField, FormPage
+from contact.models import ContactFormField, ContactPage, FormField, FormPage
 from core.models import (
     AnnouncementBanner,
     AnnouncementBannerText,
@@ -550,6 +550,22 @@ class Command(BaseCommand):
         ]
         publish(home, volunteer)
 
+        # The core fields come with every Contact page; one question of its own shows an editor's.
+        contact = ContactPage(
+            title="Contact us",
+            slug="contact",
+            intro="<p>Questions about an appeal, a gift or volunteering? Write to us here.</p>",
+            to_address="hello@brightwell.example",
+            from_address="website@brightwell.example",
+            subject="New message from the website",
+        )
+        contact.form_fields = [
+            ContactFormField(
+                label="How did you hear about us?", field_type="singleline", required=False
+            ),
+        ]
+        publish(home, contact)
+
         for order, (name, colour, shape) in enumerate(PARTNERS):
             Partner.objects.create(
                 name=name,
@@ -604,12 +620,12 @@ class Command(BaseCommand):
         settings.phone = "0123 456 7890"
         settings.takes_gifts_in_person = True
         settings.donate_page = donate
-        # The menu's sections. The volunteer form stands in for Get involved until #168 builds it;
-        # the demo has no Contact page yet (#167), so the menu leaves it out.
+        # The menu's sections. The volunteer form stands in for Get involved until #168 builds it.
         settings.about_page = about
         settings.appeals_page = campaigns
         settings.stories_page = news
         settings.get_involved_page = volunteer
+        settings.contact_page = contact
         settings.logo = make_charity_logo()
         settings.currency = "NPR"
         settings.phone_country = "NP"
@@ -627,7 +643,9 @@ class Command(BaseCommand):
         banner.link_page = flood
         banner.save()
 
-        self.add_nepali_pages(home, donate, campaigns, flood, news, flood_story, testimonial)
+        self.add_nepali_pages(
+            home, donate, campaigns, flood, news, flood_story, testimonial, contact
+        )
         self.add_nepali_snippets(banner, testimonial, [successes, updates])
         self.add_qr_code()
         self.add_shared_gift(donate, kisumu)
@@ -635,8 +653,11 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Created demo content for {SITE_NAME}."))
         self.stdout.write(f"About page: {about.url}")
 
-    def add_nepali_pages(self, home, donate, campaigns, flood, news, flood_story, testimonial):
-        """Translate the home page, the Donate page, the flood appeal and its story, under /ne/.
+    def add_nepali_pages(
+        self, home, donate, campaigns, flood, news, flood_story, testimonial, contact
+    ):
+        """Translate the home page, the Donate page, the flood appeal and its story, and the
+        Contact page with its own question, under /ne/.
 
         The rest of the site stays English only, as most of a real charity's site would be at
         first, and one news story is in Nepali only, as an editor who writes in Nepali would
@@ -765,6 +786,15 @@ class Command(BaseCommand):
                 ],
             ),
         )
+        # Its own question is the page's to word, so the editor writes it in Nepali; the core
+        # fields come translated.
+        nepali_contact = contact.copy_for_translation(nepali)
+        nepali_contact.title = "सम्पर्क गर्नुहोस्"
+        nepali_contact.intro = "<p>कुनै अपिल, दान वा स्वयंसेवाबारे प्रश्न छ? यहाँ हामीलाई लेख्नुहोस्।</p>"
+        (question,) = nepali_contact.form_fields.all()
+        question.label = "तपाईंले हाम्रो बारेमा कसरी थाहा पाउनुभयो?"
+        nepali_contact.form_fields = [question]
+        nepali_contact.save_revision().publish()
 
     def add_qr_code(self):
         """One QR code to scan, a drawing that can't be scanned, with its name in both
