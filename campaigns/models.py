@@ -62,6 +62,7 @@ from core.models import (
     TextInEachLanguageMixin,
 )
 from core.money import CURRENCY_CHOICES, format_money
+from core.phone import default_phone_country
 from core.publishing import PublishGuardMixin
 from nepal_payments import (
     PaymentError,
@@ -419,7 +420,7 @@ class DonatePage(PublishGuardMixin, RoutablePageMixin, SocialMetaMixin, Page):
             *args,
             page=self,
             currency=site_settings.currency,
-            phone_country=site_settings.phone_country,
+            phone_country=default_phone_country(site_settings),
             **kwargs,
         )
 

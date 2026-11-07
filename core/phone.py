@@ -1,7 +1,9 @@
 import re
 
 import phonenumbers
+from django import forms
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxLengthValidator
 from django.utils.translation import gettext_lazy
 from phonenumbers import PhoneNumberFormat, PhoneNumberType
 
@@ -30,6 +32,10 @@ MESSAGEABLE_TYPES = {PhoneNumberType.MOBILE, PhoneNumberType.FIXED_LINE_OR_MOBIL
 
 PHONE_CHARACTERS = re.compile(r"^[\d\s()+.-]+$")
 
+# What the phone box takes as typed. A number is saved in E.164 (at most 16 characters), but
+# people type spaces, dashes and brackets, so the box allows more; the form normalises it.
+PHONE_BOX_LENGTH = 30
+
 
 def phone_country_choices():
     choices = []
@@ -37,6 +43,50 @@ def phone_country_choices():
         calling_code = phonenumbers.country_code_for_region(code)
         choices.append((code, f"{name} (+{calling_code})"))
     return choices
+
+
+def default_phone_country(site_settings):
+    """The country a form's phone picker starts on: Site settings' phone country. #274 may later
+    take the registration country instead, here alone."""
+    return site_settings.phone_country
+
+
+class PhoneWithCountryMixin:
+    """A form's `phone` field with its country picker, the same on every form that asks for a
+    number (Donate, Contact), rendered by includes/phone_field.html.
+
+    It adds a `phone_country` field just before `phone`, starting on `phone_country` (pass
+    default_phone_country(site_settings)), and makes `phone` a tel box. The form's clean() calls
+    normalise_phone_field with the normaliser it needs, once it knows whether to keep the number.
+    """
+
+    def __init__(self, *args, phone_country, **kwargs):
+        super().__init__(*args, **kwargs)
+        country = forms.ChoiceField(
+            choices=phone_country_choices, label=gettext_lazy("Country"), initial=phone_country
+        )
+        fields = {}
+        for name, field in self.fields.items():
+            if name == "phone":
+                fields["phone_country"] = country
+            fields[name] = field
+        self.fields = fields
+        phone = self.fields["phone"]
+        phone.max_length = PHONE_BOX_LENGTH
+        phone.validators = [MaxLengthValidator(PHONE_BOX_LENGTH)]
+        phone.widget.attrs.update(
+            {"type": "tel", "autocomplete": "tel-national", "maxlength": str(PHONE_BOX_LENGTH)}
+        )
+
+    def normalise_phone_field(self, cleaned_data, normalise):
+        """Put the typed number in E.164 with `normalise` (normalise_phone or normalise_mobile),
+        or add its error to the phone field."""
+        phone = cleaned_data.get("phone", "").strip()
+        if phone and cleaned_data.get("phone_country"):
+            try:
+                cleaned_data["phone"] = normalise(phone, cleaned_data["phone_country"])
+            except ValidationError as error:
+                self.add_error("phone", error)
 
 
 def _parse(number, region):

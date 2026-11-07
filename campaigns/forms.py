@@ -3,7 +3,6 @@ from dataclasses import dataclass
 
 from django import forms
 from django.core.exceptions import ValidationError
-from django.core.validators import MaxLengthValidator
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.translation import gettext, gettext_lazy
@@ -12,7 +11,7 @@ from campaigns.models import RECEIPT_MAX_PIXELS, RECEIPT_WIDTH, Frequency, Payme
 from core.images import clean_image
 from core.money import CURRENCIES, format_money
 from core.number_fields import WholeNumberField
-from core.phone import normalise_mobile, phone_country_choices
+from core.phone import PhoneWithCountryMixin, normalise_mobile
 
 NEEDED_MOST = gettext_lazy("Wherever it's needed most")
 CHOOSE_AN_AMOUNT = gettext_lazy("Choose an amount or enter your own.")
@@ -58,11 +57,12 @@ class TextareaField(forms.CharField):
         return super().to_python(value).replace("\r\n", "\n")
 
 
-class PledgeForm(forms.ModelForm):
+class PledgeForm(PhoneWithCountryMixin, forms.ModelForm):
     """A pledge to give, saved as a Pledge. No payment is taken.
 
     Fields and choices come from the Pledge model; this form adds how the page asks for them: the
-    amount cards, the supporter's own amount and the phone country. Everything a supporter reads
+    amount cards, the supporter's own amount and the phone country (the mixin's, shared with the
+    Contact form). Everything a supporter reads
     is worded here, in the language they're reading, so the model's English stays for the admin.
     """
 
@@ -81,7 +81,6 @@ class PledgeForm(forms.ModelForm):
         max_value=MAX_AMOUNT,
         widget=forms.TextInput(attrs={"inputmode": "numeric", "autocomplete": "off"}),
     )
-    phone_country = forms.ChoiceField(choices=phone_country_choices, label=gettext_lazy("Country"))
     # A one-time ID for this copy of the form: sending the same copy again updates its pledge
     # instead of adding a second one. Going back from the thank-you page can reload the page with
     # a new ID, so donate.js puts back the ID that was sent.
@@ -121,7 +120,6 @@ class PledgeForm(forms.ModelForm):
         ]
         widgets = {
             "frequency": forms.RadioSelect,
-            "phone": forms.TextInput(attrs={"type": "tel", "autocomplete": "tel-national"}),
             "name": forms.TextInput(attrs={"autocomplete": "name"}),
             "email": forms.EmailInput(attrs={"autocomplete": "email"}),
             "address": forms.Textarea(attrs={"rows": 3, "autocomplete": "street-address"}),
@@ -178,9 +176,10 @@ class PledgeForm(forms.ModelForm):
             "email": {"required": gettext_lazy("Enter your email address.")},
         }
 
-    def __init__(self, *args, page, currency, phone_country, link=None, **kwargs):
+    def __init__(self, *args, page, currency, link=None, **kwargs):
         """`page` is the Donate page (its suggested amounts and appeals), and `link` the query
-        string of the link that brought the visitor here (?amount=&appeal=).
+        string of the link that brought the visitor here (?amount=&appeal=). The mixin takes
+        `phone_country`.
         """
         kwargs.setdefault("label_suffix", "")  # "Your name", not "Your name:"
         super().__init__(*args, **kwargs)
@@ -210,14 +209,6 @@ class PledgeForm(forms.ModelForm):
         if self.initial.get("appeal") is None:
             self.initial["appeal"] = ""  # renders "Wherever it's needed most" as chosen
 
-        # The column holds the cleaned-up number (E.164, at most 16 characters), but people type
-        # spaces, dashes and brackets, so allow more here; clean() normalises it.
-        phone = self.fields["phone"]
-        phone.max_length = 30
-        phone.validators = [MaxLengthValidator(30)]
-        phone.widget.attrs["maxlength"] = "30"
-
-        self.fields["phone_country"].initial = phone_country
         # Not every optional field: the appeal has a default, and the mobile number's legend
         # already says it's optional.
         for name in ("message", "address", "postcode"):
@@ -275,12 +266,7 @@ class PledgeForm(forms.ModelForm):
         # The number is only for the monthly reminder, so a one-off gift doesn't keep it.
         if cleaned_data.get("frequency") != Frequency.MONTHLY:
             cleaned_data["phone"] = ""
-        phone = cleaned_data.get("phone", "").strip()
-        if phone and cleaned_data.get("phone_country"):
-            try:
-                cleaned_data["phone"] = normalise_mobile(phone, cleaned_data["phone_country"])
-            except ValidationError as error:
-                self.add_error("phone", error)
+        self.normalise_phone_field(cleaned_data, normalise_mobile)
 
         return cleaned_data
 

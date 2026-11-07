@@ -1,11 +1,80 @@
 import pytest
+from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import translation
 
 from core.models import SiteSettings
-from core.phone import normalise_mobile, normalise_phone, phone_country_choices
+from core.phone import (
+    PhoneWithCountryMixin,
+    default_phone_country,
+    normalise_mobile,
+    normalise_phone,
+    phone_country_choices,
+)
 
 pytestmark = pytest.mark.django_db
+
+
+class CallbackForm(PhoneWithCountryMixin, forms.Form):
+    name = forms.CharField()
+    phone = forms.CharField(required=False)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        self.normalise_phone_field(cleaned_data, normalise_phone)
+        return cleaned_data
+
+
+class TestPhoneWithCountryMixin:
+    def test_the_country_comes_just_before_the_number(self):
+        assert list(CallbackForm(phone_country="NP").fields) == ["name", "phone_country", "phone"]
+
+    def test_the_country_starts_on_the_one_given(self):
+        assert CallbackForm(phone_country="GB")["phone_country"].initial == "GB"
+
+    def test_the_number_is_a_tel_box_with_room_for_spaces_and_dashes(self):
+        attrs = CallbackForm(phone_country="NP").fields["phone"].widget.attrs
+
+        assert attrs["type"] == "tel"
+        assert attrs["autocomplete"] == "tel-national"
+        assert attrs["maxlength"] == "30"
+
+    def test_a_number_longer_than_the_box_is_refused(self):
+        form = CallbackForm(
+            {"name": "Asha", "phone_country": "NP", "phone": "1" * 31}, phone_country="NP"
+        )
+
+        assert "phone" in form.errors
+
+    def test_the_number_is_normalised_in_the_chosen_country(self):
+        form = CallbackForm(
+            {"name": "Asha", "phone_country": "GB", "phone": "0121 234 5678"}, phone_country="NP"
+        )
+
+        assert form.is_valid()
+        assert form.cleaned_data["phone"] == "+441212345678"
+
+    def test_a_number_that_isnt_one_is_an_error_on_the_number(self):
+        form = CallbackForm(
+            {"name": "Asha", "phone_country": "NP", "phone": "FLOWERS"}, phone_country="NP"
+        )
+
+        assert form.errors["phone"] == ["Enter a phone number, like 01-4567890."]
+
+    def test_no_number_is_left_empty(self):
+        form = CallbackForm(
+            {"name": "Asha", "phone_country": "NP", "phone": ""}, phone_country="NP"
+        )
+
+        assert form.is_valid()
+        assert form.cleaned_data["phone"] == ""
+
+
+def test_forms_start_on_the_site_settings_phone_country(site):
+    settings = SiteSettings.for_site(site)
+    settings.phone_country = "GB"
+
+    assert default_phone_country(settings) == "GB"
 
 
 class TestNormalisePhone:

@@ -888,6 +888,30 @@ fieldset {
     padding-left: 2rem;
 }
 
+/* A phone number with its country (includes/phone_field.html), on Donate and Contact. */
+.form-page main .phone-field legend {
+    font-weight: 600;
+}
+
+.phone-field .helptext {
+    margin: 0 0 0.75rem;
+}
+
+/* Country code and number share a row when there's room, and stack on a phone. */
+.phone-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1rem;
+}
+
+.phone-country {
+    flex: 1 1 12rem;
+}
+
+.phone-number {
+    flex: 2 1 14rem;
+}
+
 /* Pagination */
 .pagination {
     display: flex;

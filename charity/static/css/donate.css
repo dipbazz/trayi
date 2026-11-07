@@ -100,32 +100,9 @@
     max-width: 14rem;
 }
 
-.form-page main .phone-field legend {
-    font-weight: 600;
-}
-
-.phone-field .helptext {
-    margin: 0 0 0.75rem;
-}
-
 /* The mobile number is only for monthly reminders, so it appears once Monthly is chosen. */
 .giving-frequency:not(:has(input[value="monthly"]:checked)) .phone-field {
     display: none;
-}
-
-/* Country code and number share a row when there's room, and stack on a phone. */
-.phone-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 1rem;
-}
-
-.phone-country {
-    flex: 1 1 12rem;
-}
-
-.phone-number {
-    flex: 2 1 14rem;
 }
 
 .pledge-form + * {
