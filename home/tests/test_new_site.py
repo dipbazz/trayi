@@ -203,6 +203,15 @@ class TestThePlaceholders:
         assert ADD_RECIPIENT in reasons
         assert PUBLISH_PRIVACY_NOTICE in reasons
 
+    def test_the_privacy_notice_names_contact_messages(self, home_page):
+        new_site()
+
+        notice = str(pages_under(home_page)["privacy"].body)
+        assert (
+            "When you send us a message, we keep your name, the email or phone number you give "
+            "and your message."
+        ) in notice
+
     def test_the_contact_page_has_no_recipient_or_questions_of_its_own(self, home_page):
         """The charity says which inbox someone reads; the core fields are already asked."""
         new_site()

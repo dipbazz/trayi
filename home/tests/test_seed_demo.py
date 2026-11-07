@@ -41,6 +41,15 @@ def test_configures_site_settings_and_menu(seeded, client):
         assert f">{name}</a>" in menu
 
 
+def test_the_privacy_notice_names_contact_messages(seeded, client):
+    privacy = SiteSettings.for_site(seeded).privacy_page
+
+    assert (
+        "When you send us a message, we keep your name, the email or phone number you give and "
+        "your message."
+    ) in client.get(privacy.url).content.decode()
+
+
 def test_has_a_contact_page_in_both_languages_that_emails_the_team(seeded, client):
     contact = SiteSettings.for_site(seeded).contact_page.specific
 

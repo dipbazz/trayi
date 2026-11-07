@@ -297,7 +297,8 @@ class Command(BaseCommand):
                         "For a monthly gift you can also give a mobile number. If you pay by "
                         "scanning our QR code, you can send us a screenshot of your app's receipt. "
                         "When you sign up to volunteer, we keep the answers you give on the "
-                        "form.</p>",
+                        "form.</p><p>When you send us a message, we keep your name, the email or "
+                        "phone number you give and your message.</p>",
                     ),
                     ("heading", {"heading_text": "What we use it for", "size": "h2"}),
                     (

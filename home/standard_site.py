@@ -53,6 +53,10 @@ def privacy_notice_body():
                 "you can also give a mobile number. If you pay by scanning our QR code, you can "
                 "send us a screenshot of your app's receipt. When you sign up to volunteer, we "
                 "keep the answers you give on the form.</p>"
+            )
+            + _(
+                "<p>When you send us a message, we keep your name, the email or phone number you "
+                "give and your message.</p>"
             ),
         ),
         *section(
