@@ -10,6 +10,7 @@ from wagtail.test.utils.form_data import nested_form_data
 
 from campaigns.models import CampaignIndexPage
 from campaigns.tests.factories import DonatePageFactory
+from contact.models import ContactPage
 from core.brand import DEFAULT_LOGO_SIZE
 from core.menu import SECTIONS
 from core.models import SiteSettings
@@ -57,7 +58,7 @@ def every_section(site, home_page):
         "appeals_page": add_page(home_page, "Give to a cause", page_class=CampaignIndexPage),
         "stories_page": add_page(home_page, "Latest news", page_class=NewsIndexPage),
         "get_involved_page": add_page(home_page, "Help out"),
-        "contact_page": add_page(home_page, "Reach us"),
+        "contact_page": add_page(home_page, "Reach us", page_class=ContactPage),
     }
     choose(site, **pages)
     return pages
@@ -230,7 +231,7 @@ class TestMenuInTheAdmin:
             "appeals_page": add_page(home_page, "Appeals", page_class=CampaignIndexPage),
             "stories_page": add_page(home_page, "Stories", page_class=NewsIndexPage),
             "get_involved_page": add_page(home_page, "Help out"),
-            "contact_page": add_page(home_page, "Reach us"),
+            "contact_page": add_page(home_page, "Reach us", page_class=ContactPage),
         }
 
         response = self.save(client, moderator, site, **pages)
@@ -242,7 +243,7 @@ class TestMenuInTheAdmin:
         }
 
     def test_the_same_page_cant_be_two_sections(self, client, moderator, site, home_page):
-        page = add_page(home_page, "Who we are")
+        page = add_page(home_page, "Reach us", page_class=ContactPage)
 
         response = self.save(client, moderator, site, about_page=page, contact_page=page)
 
@@ -256,7 +257,7 @@ class TestMenuInTheAdmin:
         assert self.errors(response)["contact_page"] == wanted
 
     def test_a_page_in_three_sections_names_all_three(self, client, moderator, site, home_page):
-        page = add_page(home_page, "Who we are")
+        page = add_page(home_page, "Reach us", page_class=ContactPage)
 
         response = self.save(
             client, moderator, site, about_page=page, get_involved_page=page, contact_page=page
@@ -275,7 +276,7 @@ class TestMenuInTheAdmin:
     ):
         """Production opens in Nepali, but the admin stays in English (`languages.md`)."""
         settings.LANGUAGE_CODE = "ne"
-        page = add_page(home_page, "Who we are")
+        page = add_page(home_page, "Reach us", page_class=ContactPage)
 
         response = self.save(client, moderator, site, about_page=page, contact_page=page)
 
@@ -320,9 +321,10 @@ class TestMenuInTheAdmin:
             ("appeals_page", "Choose the appeals page: Appeals lists its appeals."),
             ("stories_page", "Choose the stories page: Stories lists its stories."),
             ("donate_page", "Choose the Donate page: it holds the pledge form."),
+            ("contact_page", "Choose the Contact page: it holds the message form."),
         ],
     )
-    def test_appeals_stories_and_donate_take_only_their_own_kind_of_page(
+    def test_appeals_stories_donate_and_contact_take_only_their_own_kind_of_page(
         self, client, moderator, site, home_page, field, wanted
     ):
         response = self.save(client, moderator, site, **{field: add_page(home_page, "Other")})
@@ -344,6 +346,7 @@ class TestMenuInTheAdmin:
         assert offered("appeals_page") == ["campaigns.campaignindexpage"]
         assert offered("stories_page") == ["news.newsindexpage"]
         assert offered("donate_page") == ["campaigns.donatepage"]
+        assert offered("contact_page") == ["contact.contactpage"]
         assert offered("about_page") == ["wagtailcore.page"]
 
     def menu_tab(self, client, moderator, site):

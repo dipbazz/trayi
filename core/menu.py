@@ -55,7 +55,12 @@ SECTIONS = (
         "Choose the stories page: Stories lists its stories.",
     ),
     Section("get_involved_page", _("Get involved")),
-    Section("contact_page", _("Contact")),
+    Section(
+        "contact_page",
+        _("Contact"),
+        "contact.contactpage",
+        "Choose the Contact page: it holds the message form.",
+    ),
 )
 
 # The other chooser that takes one kind of page: the header's Donate button.
