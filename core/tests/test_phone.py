@@ -3,9 +3,29 @@ from django.core.exceptions import ValidationError
 from django.utils import translation
 
 from core.models import SiteSettings
-from core.phone import normalise_mobile, phone_country_choices
+from core.phone import normalise_mobile, normalise_phone, phone_country_choices
 
 pytestmark = pytest.mark.django_db
+
+
+class TestNormalisePhone:
+    def test_a_kathmandu_landline_is_accepted(self):
+        assert normalise_phone("01-4567890", "NP") == "+97714567890"
+
+    def test_a_nepali_mobile_is_accepted(self):
+        assert normalise_phone("984-1234567", "NP") == "+9779841234567"
+
+    def test_a_number_typed_with_its_own_country_code_wins_over_the_chosen_country(self):
+        assert normalise_phone("+44 121 234 5678", "NP") == "+441212345678"
+
+    @pytest.mark.parametrize("number", ["984123", "98abc12345", "FLOWERS"])
+    def test_rejects_what_is_not_a_phone_number(self, number):
+        with pytest.raises(ValidationError, match="Enter a phone number, like 01-4567890"):
+            normalise_phone(number, "NP")
+
+    def test_the_example_is_for_the_chosen_country(self):
+        with pytest.raises(ValidationError, match="like 0121 234 5678"):
+            normalise_phone("123", "GB")
 
 
 class TestNormaliseMobile:

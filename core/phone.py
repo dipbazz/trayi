@@ -39,22 +39,37 @@ def phone_country_choices():
     return choices
 
 
-def normalise_mobile(number, region):
-    """Return a mobile number in E.164 (+9779841234567), or raise ValidationError.
+def _parse(number, region):
+    """Return the valid number `number` names, or None.
 
     A number typed with its own +country code keeps it; otherwise `region` supplies it.
     """
+    if not PHONE_CHARACTERS.match(number):
+        return None
     try:
-        if not PHONE_CHARACTERS.match(number):
-            raise phonenumbers.NumberParseException(0, "Not a phone number")
         parsed = phonenumbers.parse(number, region)
     except phonenumbers.NumberParseException:
-        parsed = None
-    if (
-        parsed is None
-        or not phonenumbers.is_valid_number(parsed)
-        or phonenumbers.number_type(parsed) not in MESSAGEABLE_TYPES
-    ):
+        return None
+    return parsed if phonenumbers.is_valid_number(parsed) else None
+
+
+def normalise_phone(number, region):
+    """Return any valid phone number in E.164 (+97714567890), or raise ValidationError."""
+    parsed = _parse(number, region)
+    if parsed is None:
+        example = phonenumbers.example_number(region)
+        raise ValidationError(
+            gettext_lazy("Enter a phone number, like %(example)s."),
+            code="invalid_phone",
+            params={"example": phonenumbers.format_number(example, PhoneNumberFormat.NATIONAL)},
+        )
+    return phonenumbers.format_number(parsed, PhoneNumberFormat.E164)
+
+
+def normalise_mobile(number, region):
+    """Return a mobile number in E.164 (+9779841234567), or raise ValidationError."""
+    parsed = _parse(number, region)
+    if parsed is None or phonenumbers.number_type(parsed) not in MESSAGEABLE_TYPES:
         example = phonenumbers.example_number_for_type(region, PhoneNumberType.MOBILE)
         raise ValidationError(
             gettext_lazy("Enter a mobile number, like %(example)s."),
