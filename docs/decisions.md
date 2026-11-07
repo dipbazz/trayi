@@ -266,8 +266,9 @@ dependency, but it would accept numbers that can't exist.
 
 - A third runtime dependency (after Wagtail and WhiteNoise), with country data that changes
   several times a year. Keep it up to date with the other dependencies.
-- `core.phone.normalise_mobile()` is the one place numbers are checked; anything that stores a
-  phone number uses it.
+- `core.phone.parse_phone()` is the one place numbers are read; anything that stores a phone
+  number uses `normalise_mobile()` (Donate's monthly reminder) or `normalise_phone()`, which also
+  takes landlines: the Contact form (#167), where the team calls back rather than messages.
 
 ## Browser tests with Playwright
 

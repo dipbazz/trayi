@@ -2,7 +2,8 @@
 
 `manage.py seed_demo` builds the demo site that development, the tests, CI's Lighthouse job and
 the live demo all use: the home page, About, the Donate page with suggested amounts, four appeals
-(one closed), three news stories with categories, a volunteer form, partners with logos it draws
+(one closed), three news stories with categories, a volunteer form, a Contact page (emailing
+`hello@brightwell.example`, with one question of its own), partners with logos it draws
 itself, a testimonial, the privacy notice, the site settings (with **We take gifts at our office** ticked, so paying in person is offered)
 and the announcement banner, plus the
 Nepali content below. It's safe to re-run: if appeals already exist it adds nothing (but still points
@@ -42,7 +43,8 @@ the Site at `SITE_URL`). It refuses a Nepali-first site, because the demo is Eng
 ## Nepali content
 
 The home page, the Donate page, the appeals and Stories index pages, the flood appeal and its
-story have Nepali translations under `/ne/`. One story, about volunteers repairing a village tap,
+story, and the Contact page (its own question worded in Nepali) have Nepali translations under
+`/ne/`. One story, about volunteers repairing a village tap,
 is in Nepali only: `/ne/stories/village-tap-repair/`. Everything else is English only, as most
 of a real charity's site would be at first, so QA has pages in both languages and pages in one.
 The Nepali appeal is as honest as the English one: Brightwell takes no donations, and it links to
