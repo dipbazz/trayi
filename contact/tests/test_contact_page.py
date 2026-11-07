@@ -279,6 +279,41 @@ class TestThePage:
         assert page.select_one(".error-summary h2").get_text() == "Please check your message"
 
 
+class TestInNepali:
+    @pytest.fixture
+    def nepali_contact(self, contact_page, nepali_home_page):
+        page = contact_page.copy_for_translation(nepali_home_page.locale)
+        page.title = "सम्पर्क गर्नुहोस्"
+        page.form_fields = [
+            ContactFormField(label="कुन विद्यालय?", field_type="singleline", required=False)
+        ]
+        page.save_revision().publish()
+        return page
+
+    def test_the_core_is_translated_and_the_question_is_its_own(self, client, nepali_contact):
+        page = soup(client.get(nepali_contact.url))
+
+        labels = [label.get_text(" ", strip=True) for label in page.select(".contact-form label")]
+        assert labels[:2] == ["तपाईंको पुरा नाम", "इमेल (वैकल्पिक)"]
+        message = labels.index("तपाईंको सन्देश")
+        assert labels[message + 1] == "कुन विद्यालय?"
+        assert page.select_one("#send-a-message").get_text() == "हामीलाई सन्देश पठाउनुहोस्"
+
+    def test_keeps_its_own_messages_under_the_core_names(self, client, nepali_contact):
+        client.post(nepali_contact.url, SENT)
+
+        form_data = FormSubmission.objects.get(page=nepali_contact).form_data
+        assert form_data["name"] == "Sam"
+        assert not FormSubmission.objects.exclude(page=nepali_contact).exists()
+
+    def test_says_email_or_phone_in_nepali(self, client, nepali_contact):
+        page = soup(client.post(nepali_contact.url, {**SENT, "email": ""}))
+
+        assert page.select_one(".error-summary li").get_text(strip=True) == (
+            "हामीले जवाफ दिन सकौं भनेर इमेल वा फोन नम्बर दिनुहोस्।"
+        )
+
+
 class TestTheThankYou:
     def test_the_defaults(self, client, contact_page, details):
         page = soup(client.get(f"{contact_page.url}?sent"))

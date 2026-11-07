@@ -21,7 +21,7 @@
         {% if site_settings.phone %}
             <p>{% blocktranslate with phone=site_settings.phone href=site_settings.phone|tel_href:site_settings.phone_country %}If it's urgent, call us on <a href="{{ href }}">{{ phone }}</a>.{% endblocktranslate %}</p>
         {% endif %}
-        <p><a href="{% pageurl page.get_parent.specific %}">{% translate "Go to the home page" %}</a></p>
+        <p><a href="{% pageurl page.get_parent.specific %}">{% translate "Back to the home page" %}</a></p>
     </div>
     {% endwith %}
 {% endblock %}

@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: trayi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 22:28+0000\n"
+"POT-Creation-Date: 2026-11-07 23:03+0000\n"
 "PO-Revision-Date: 2026-10-08 00:00+0000\n"
 "Last-Translator: Trayi\n"
 "Language-Team: Nepali\n"
@@ -26,9 +26,6 @@ msgstr "मेरो दान यस वेबसाइटमा देखा�
 
 msgid "Once you've told us you've paid, we'll show your name, the appeal and the date on a page you can share, and in our list of recent supporters; the amount once your gift reaches us. Nothing else about you is shown."
 msgstr "तपाईंले भुक्तानी गरेको कुरा हामीलाई बताएपछि, हामी तपाईंको नाम, अपिल र मिति तपाईंले साझा गर्न सक्ने एउटा पृष्ठमा र हालका सहयोगीहरूको सूचीमा देखाउनेछौं; रकम भने तपाईंको दान हामीले पाएपछि मात्र देखाइनेछ। तपाईंको अरू कुनै जानकारी देखाइने छैन।"
-
-msgid "Country"
-msgstr "देश"
 
 #, python-brace-format
 msgid "{typed}/{limit} characters"
@@ -240,9 +237,6 @@ msgstr "तपाईं कति दान दिन चाहनुहुन�
 msgid "Mobile number"
 msgstr "मोबाइल नम्बर"
 
-msgid "optional"
-msgstr "वैकल्पिक"
-
 msgid "Your details"
 msgstr "तपाईंको विवरण"
 
@@ -279,6 +273,9 @@ msgstr "%(provider)s खोल्दै…"
 #, python-format
 msgid "Continue to %(provider)s"
 msgstr "%(provider)s मा जानुहोस्"
+
+msgid "optional"
+msgstr "वैकल्पिक"
 
 msgid "Test gift: no money was taken"
 msgstr "परीक्षण दान: कुनै पैसा लिइएन"
@@ -750,6 +747,9 @@ msgstr "मुख्य सामग्रीमा जानुहोस्"
 msgid "Privacy notice"
 msgstr "गोपनीयता सूचना"
 
+msgid "Contact"
+msgstr "सम्पर्क"
+
 msgid "Announcement"
 msgstr "घोषणा"
 
@@ -787,11 +787,49 @@ msgstr "अर्को"
 msgid "How we use your details"
 msgstr "हामी तपाईंको विवरण कसरी प्रयोग गर्छौं"
 
-msgid "Please check your answers"
-msgstr "कृपया आफ्ना उत्तरहरू जाँच्नुहोस्"
+msgid "Give us an email or phone number so we can reply."
+msgstr "हामीले जवाफ दिन सकौं भनेर इमेल वा फोन नम्बर दिनुहोस्।"
+
+msgid "Email"
+msgstr "इमेल"
+
+msgid "Phone"
+msgstr "फोन"
+
+msgid "Your message"
+msgstr "तपाईंको सन्देश"
+
+msgid "Enter your message."
+msgstr "आफ्नो सन्देश लेख्नुहोस्।"
+
+#, python-format
+msgid "To send photos, email them to <a href=\"mailto:%(email)s\">%(email)s</a>."
+msgstr "फोटो पठाउन <a href=\"mailto:%(email)s\">%(email)s</a> मा इमेल गर्नुहोस्।"
+
+msgid "General enquiries"
+msgstr "सामान्य सोधपुछ"
+
+msgid "Send us a message"
+msgstr "हामीलाई सन्देश पठाउनुहोस्"
+
+msgid "Please check your message"
+msgstr "कृपया आफ्नो सन्देश जाँच्नुहोस्"
 
 msgid "Send"
 msgstr "पठाउनुहोस्"
+
+msgid "Thank you, we've got your message"
+msgstr "धन्यवाद, हामीले तपाईंको सन्देश पायौं"
+
+msgid "We'll reply by email or phone, using the details you gave."
+msgstr "तपाईंले दिनुभएको विवरण प्रयोग गरेर हामी इमेल वा फोनबाट जवाफ दिनेछौं।"
+
+#, python-format
+msgid "If it's urgent, call us on <a href=\"%(href)s\">%(phone)s</a>."
+msgstr "अत्यावश्यक भए हामीलाई <a href=\"%(href)s\">%(phone)s</a> मा फोन गर्नुहोस्।"
+
+msgid "Please check your answers"
+msgstr "कृपया आफ्ना उत्तरहरू जाँच्नुहोस्"
 
 msgid "Thank you, we have received your message."
 msgstr "धन्यवाद, हामीले तपाईंको सन्देश प्राप्त गर्‍यौं।"
@@ -814,8 +852,12 @@ msgstr "कथाहरू"
 msgid "Get involved"
 msgstr "सहभागी हुनुहोस्"
 
-msgid "Contact"
-msgstr "सम्पर्क"
+msgid "Country"
+msgstr "देश"
+
+#, python-format
+msgid "Enter a phone number, like %(example)s."
+msgstr "फोन नम्बर लेख्नुहोस्, जस्तै %(example)s।"
 
 #, python-format
 msgid "Enter a mobile number, like %(example)s."
@@ -826,6 +868,9 @@ msgstr "हामी के राख्छौं"
 
 msgid "<p>When you pledge a gift, we keep your name, email address and the message you write, and your home address and postcode if you give them. For a monthly gift you can also give a mobile number. If you pay by scanning our QR code, you can send us a screenshot of your app's receipt. When you sign up to volunteer, we keep the answers you give on the form.</p>"
 msgstr "<p>तपाईंले दान गर्ने वचन दिँदा हामी तपाईंको नाम, इमेल ठेगाना र तपाईंले लेखेको सन्देश राख्छौं; तपाईंले दिनुभयो भने घरको ठेगाना र पोस्टकोड पनि राख्छौं। मासिक दानका लागि तपाईं मोबाइल नम्बर पनि दिन सक्नुहुन्छ। हाम्रो QR कोड स्क्यान गरेर भुक्तानी गर्नुभयो भने तपाईं आफ्नो एपको रसिदको स्क्रिनसट पठाउन सक्नुहुन्छ। स्वयंसेवक बन्न दर्ता गर्दा तपाईंले फाराममा दिएका जवाफ हामी राख्छौं।</p>"
+
+msgid "<p>When you send us a message, we keep your name, the email or phone number you give and your message.</p>"
+msgstr "<p>तपाईंले हामीलाई सन्देश पठाउँदा हामी तपाईंको नाम, तपाईंले दिनुभएको इमेल वा फोन नम्बर र सन्देश राख्छौं।</p>"
 
 msgid "What we use it for"
 msgstr "हामी यसलाई केका लागि प्रयोग गर्छौं"
@@ -890,6 +935,12 @@ msgstr "तपाईं कहिले फुर्सदमा हुनुह
 
 msgid "How would you like to help?"
 msgstr "तपाईं कसरी सहयोग गर्न चाहनुहुन्छ?"
+
+msgid "<p>[Write: one sentence on who reads your messages.]</p>"
+msgstr "<p>[लेख्नुहोस्: तपाईंका सन्देश कसले पढ्छ, एक वाक्यमा।]</p>"
+
+msgid "New message from the website"
+msgstr "वेबसाइटबाट नयाँ सन्देश"
 
 msgid "needed before any form goes live"
 msgstr "कुनै पनि फारम प्रकाशित गर्नुअघि चाहिन्छ"
