@@ -114,7 +114,7 @@ class TestTheForm:
 
         assert response.status_code == 422
         assert response.context["form"].errors["phone"] == [
-            "Enter a phone number, like 01-4567890."
+            "Enter a phone number, like 01-4567890 or 984-1234567."
         ]
 
     def test_the_team_is_emailed_with_reply_to_the_sender(self, client, contact_page):

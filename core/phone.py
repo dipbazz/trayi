@@ -109,13 +109,28 @@ def normalise_phone(number, region):
     """Return any valid phone number in E.164 (+97714567890), or raise ValidationError."""
     parsed = parse_phone(number, region)
     if parsed is None:
-        example = phonenumbers.example_number(region)
+        # A landline and a mobile example, so a mobile typed a digit short isn't read as
+        # "landlines only". Countries that don't tell them apart (the US) have one example.
+        landline = national_example(phonenumbers.example_number(region))
+        mobile = national_example(
+            phonenumbers.example_number_for_type(region, PhoneNumberType.MOBILE)
+        )
+        if landline == mobile:
+            raise ValidationError(
+                gettext_lazy("Enter a phone number, like %(example)s."),
+                code="invalid_phone",
+                params={"example": landline},
+            )
         raise ValidationError(
-            gettext_lazy("Enter a phone number, like %(example)s."),
+            gettext_lazy("Enter a phone number, like %(landline)s or %(mobile)s."),
             code="invalid_phone",
-            params={"example": phonenumbers.format_number(example, PhoneNumberFormat.NATIONAL)},
+            params={"landline": landline, "mobile": mobile},
         )
     return phonenumbers.format_number(parsed, PhoneNumberFormat.E164)
+
+
+def national_example(example):
+    return phonenumbers.format_number(example, PhoneNumberFormat.NATIONAL)
 
 
 def normalise_mobile(number, region):

@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: trayi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-08 02:00+0000\n"
+"POT-Creation-Date: 2026-11-08 12:24+0000\n"
 "PO-Revision-Date: 2026-10-08 00:00+0000\n"
 "Last-Translator: Trayi\n"
 "Language-Team: Nepali\n"
@@ -26,18 +26,6 @@ msgstr "मेरो दान यस वेबसाइटमा देखा�
 
 msgid "Once you've told us you've paid, we'll show your name, the appeal and the date on a page you can share, and in our list of recent supporters; the amount once your gift reaches us. Nothing else about you is shown."
 msgstr "तपाईंले भुक्तानी गरेको कुरा हामीलाई बताएपछि, हामी तपाईंको नाम, अपिल र मिति तपाईंले साझा गर्न सक्ने एउटा पृष्ठमा र हालका सहयोगीहरूको सूचीमा देखाउनेछौं; रकम भने तपाईंको दान हामीले पाएपछि मात्र देखाइनेछ। तपाईंको अरू कुनै जानकारी देखाइने छैन।"
-
-#, python-brace-format
-msgid "{typed}/{limit} characters"
-msgstr "{typed}/{limit} अक्षर"
-
-#, python-brace-format
-msgid "You have {left} characters left."
-msgstr "तपाईंसँग {left} अक्षर बाँकी छन्।"
-
-#, python-brace-format
-msgid "You've reached the limit of {limit} characters."
-msgstr "तपाईं {limit} अक्षरको सीमामा पुग्नुभयो।"
 
 msgid "How often"
 msgstr "कति पटक"
@@ -864,8 +852,24 @@ msgid "Enter a phone number, like %(example)s."
 msgstr "फोन नम्बर लेख्नुहोस्, जस्तै %(example)s।"
 
 #, python-format
+msgid "Enter a phone number, like %(landline)s or %(mobile)s."
+msgstr "फोन नम्बर लेख्नुहोस्, जस्तै %(landline)s वा %(mobile)s।"
+
+#, python-format
 msgid "Enter a mobile number, like %(example)s."
 msgstr "मोबाइल नम्बर लेख्नुहोस्, जस्तै %(example)s।"
+
+#, python-brace-format
+msgid "{typed}/{limit} characters"
+msgstr "{typed}/{limit} अक्षर"
+
+#, python-brace-format
+msgid "You have {left} characters left."
+msgstr "तपाईंसँग {left} अक्षर बाँकी छन्।"
+
+#, python-brace-format
+msgid "You've reached the limit of {limit} characters."
+msgstr "तपाईं {limit} अक्षरको सीमामा पुग्नुभयो।"
 
 msgid "What we collect"
 msgstr "हामी के राख्छौं"

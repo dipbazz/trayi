@@ -62,7 +62,7 @@ class TestPhoneWithCountryMixin:
             {"name": "Asha", "phone_country": "NP", "phone": "FLOWERS"}, phone_country="NP"
         )
 
-        assert form.errors["phone"] == ["Enter a phone number, like 01-4567890."]
+        assert form.errors["phone"] == ["Enter a phone number, like 01-4567890 or 984-1234567."]
 
     def test_no_number_is_left_empty(self):
         form = CallbackForm(
@@ -92,12 +92,27 @@ class TestNormalisePhone:
 
     @pytest.mark.parametrize("number", ["984123", "98abc12345", "FLOWERS"])
     def test_rejects_what_is_not_a_phone_number(self, number):
-        with pytest.raises(ValidationError, match="Enter a phone number, like 01-4567890"):
+        with pytest.raises(
+            ValidationError, match="Enter a phone number, like 01-4567890 or 984-1234567"
+        ):
             normalise_phone(number, "NP")
 
-    def test_the_example_is_for_the_chosen_country(self):
-        with pytest.raises(ValidationError, match="like 0121 234 5678"):
+    # Regression: a mobile typed a digit short was told "like 01-4567890" alone, which reads as
+    # if only landlines were taken. Found in review of #323 on 2026-11-08.
+    def test_a_mobile_a_digit_short_is_shown_a_mobile_example_too(self):
+        with pytest.raises(ValidationError, match="like 01-4567890 or 984-1234567"):
+            normalise_phone("984-123456", "NP")
+
+    def test_the_examples_are_for_the_chosen_country(self):
+        with pytest.raises(ValidationError, match="like 0121 234 5678 or 07400 123456"):
             normalise_phone("123", "GB")
+
+    def test_a_country_whose_example_numbers_are_the_same_shows_one(self):
+        """The US and Canada don't tell mobiles from landlines, so phonenumbers has one example."""
+        with pytest.raises(ValidationError) as raised:
+            normalise_phone("123", "US")
+
+        assert raised.value.messages == ["Enter a phone number, like (201) 555-0123."]
 
 
 class TestNormaliseMobile:
