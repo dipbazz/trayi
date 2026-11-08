@@ -315,6 +315,14 @@ class TestInNepali:
         assert form_data["name"] == "Sam"
         assert not FormSubmission.objects.exclude(page=nepali_contact).exists()
 
+    def test_emails_the_team_in_the_sites_main_language(self, client, nepali_contact):
+        client.post(nepali_contact.url, {**SENT, "phone": "984-1234567"})
+
+        body = mail.outbox[0].body
+        assert "Your name: Sam" in body
+        assert "Phone: +9779841234567" in body
+        assert "Your message: Can I visit the school?" in body
+
     def test_says_email_or_phone_in_nepali(self, client, nepali_contact):
         page = soup(client.post(nepali_contact.url, {**SENT, "email": ""}))
 

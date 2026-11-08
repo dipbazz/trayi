@@ -4,6 +4,7 @@ import logging
 from django import forms
 from django.db import models
 from django.http import HttpResponseRedirect
+from django.utils import translation
 from django.utils.formats import date_format
 from django.utils.translation import gettext_lazy
 from modelcluster.fields import ParentalKey
@@ -20,6 +21,7 @@ from wagtail.contrib.forms.panels import FormSubmissionsPanel
 from wagtail.fields import RichTextField
 
 from core.honeypot import HoneypotFormMixin
+from core.languages import main_language
 from core.models import SiteSettings
 from core.phone import PhoneWithCountryMixin, default_phone_country, normalise_phone
 from core.publishing import FormPageForm, PublishGuardMixin
@@ -86,7 +88,12 @@ class EmailFormPage(HoneypotFormMixin, PublishGuardMixin, AbstractEmailForm):
 
     def render_email(self, form):
         """Each data field's label and answer, one per line, as Wagtail writes them. The labels
-        are the submissions list's, so the Contact page's number reads "Phone", not "Number"."""
+        are the submissions list's, so the Contact page's number reads "Phone", not "Number",
+        in the site's main language, which the team reads, whichever one the sender wrote in."""
+        with translation.override(main_language()):
+            return self._render_email(form)
+
+    def _render_email(self, form):
         content = []
         for name, label in self.get_data_fields():
             if name not in form.cleaned_data:
