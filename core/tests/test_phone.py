@@ -33,11 +33,14 @@ class TestPhoneWithCountryMixin:
         assert CallbackForm(phone_country="GB")["phone_country"].initial == "GB"
 
     def test_the_number_is_a_tel_box_with_room_for_spaces_and_dashes(self):
-        attrs = CallbackForm(phone_country="NP").fields["phone"].widget.attrs
+        # The rendered box, not the widget's attrs: browsers take the first `type` they meet,
+        # so a second one leaves phones on the letter keyboard.
+        box = str(CallbackForm(phone_country="NP")["phone"])
 
-        assert attrs["type"] == "tel"
-        assert attrs["autocomplete"] == "tel-national"
-        assert attrs["maxlength"] == "30"
+        assert box.count("type=") == 1
+        assert 'type="tel"' in box
+        assert 'autocomplete="tel-national"' in box
+        assert 'maxlength="30"' in box
 
     def test_a_number_longer_than_the_box_is_refused(self):
         form = CallbackForm(

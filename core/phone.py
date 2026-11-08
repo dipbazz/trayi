@@ -74,8 +74,10 @@ class PhoneWithCountryMixin:
         phone = self.fields["phone"]
         phone.max_length = PHONE_BOX_LENGTH
         phone.validators = [MaxLengthValidator(PHONE_BOX_LENGTH)]
+        # Django renders the type from input_type; a "type" in attrs would be a second one.
+        phone.widget.input_type = "tel"
         phone.widget.attrs.update(
-            {"type": "tel", "autocomplete": "tel-national", "maxlength": str(PHONE_BOX_LENGTH)}
+            {"autocomplete": "tel-national", "maxlength": str(PHONE_BOX_LENGTH)}
         )
 
     def normalise_phone_field(self, cleaned_data, normalise):
