@@ -10,6 +10,12 @@ class TestTelHref:
     def test_a_number_with_its_own_country_code_keeps_it(self):
         assert tel_href("+44 121 234 5678", "NP") == "tel:+441212345678"
 
+    def test_of_several_numbers_the_first_is_linked(self):
+        assert tel_href("01-4123456, 9841234567", "NP") == "tel:+97714123456"
+
+    def test_a_number_with_an_extension_links_the_number(self):
+        assert tel_href("+977 1 4123456 ext 12", "NP") == "tel:+97714123456"
+
     def test_a_number_that_cant_be_read_keeps_only_its_digits_and_a_leading_plus(self):
         assert tel_href("+977 (1) 4567 ext. 12", "NP") == "tel:+9771456712"
 
