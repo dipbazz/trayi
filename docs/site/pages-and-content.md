@@ -199,7 +199,9 @@ and declares what the base can't: its own field model (a `ParentalKey` with
   redirect), which shows the thank-you message. Reloading it can't send the message twice, and
   opening `?sent` directly saves and sends nothing. The thank-you carries `noindex`, so search
   engines list only the form.
-- The email's **Reply-To** is the sender's email field, so the team can answer directly.
+- The email's **Reply-To** is the sender's email field, so the team can answer directly. The
+  email is written in the site's main language, which the team reads, whichever language the
+  sender wrote in.
 - If the email can't be sent, the error is logged and the visitor still sees the thank-you page:
   the submission is already saved, and the team reads and exports submissions (CSV or Excel) in the admin. Anything a visitor typed
   that a spreadsheet would run as a formula is exported as text.
