@@ -19,7 +19,7 @@
                     <section class="contact-details" aria-labelledby="general-enquiries">
                         <h2 id="general-enquiries">{% translate "General enquiries" %}</h2>
                         <ul class="contact-list">
-                            {% if site_settings.phone %}<li><a href="{{ site_settings.phone|tel_href:site_settings.phone_country }}">{{ site_settings.phone }}</a></li>{% endif %}
+                            {% if site_settings.phone %}{% with href=site_settings.phone|tel_href:site_settings.phone_country %}<li>{% if href %}<a href="{{ href }}">{{ site_settings.phone }}</a>{% else %}{{ site_settings.phone }}{% endif %}</li>{% endwith %}{% endif %}
                             {% if site_settings.contact_email %}<li><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></li>{% endif %}
                         </ul>
                         {% if site_settings.address %}<address>{{ site_settings.address|linebreaksbr }}</address>{% endif %}

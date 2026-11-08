@@ -259,6 +259,15 @@ class TestThePage:
         assert not section.select("a[href^='tel:']")
         assert not section.address
 
+    def test_a_number_that_cant_be_read_is_shown_without_a_link(self, client, contact_page, site):
+        settings = SiteSettings.for_site(site)
+        settings.phone = "0123 456 7890"
+        settings.save()
+
+        section = soup(client.get(contact_page.url)).select_one("#general-enquiries").parent
+        assert "0123 456 7890" in section.get_text()
+        assert not section.select("a[href^='tel:']")
+
     def test_without_any_details_the_form_still_works(self, client, contact_page):
         page = soup(client.get(contact_page.url))
 
@@ -324,6 +333,15 @@ class TestTheThankYou:
         urgent = page.select_one("main a[href='tel:+97714567890']")
         assert urgent.parent.get_text(strip=True) == "If it's urgent, call us on01-4567890."
         assert page.select_one("main a[href='/']")
+
+    def test_a_number_that_cant_be_read_is_given_without_a_link(self, client, contact_page, site):
+        settings = SiteSettings.for_site(site)
+        settings.phone = "0123 456 7890"
+        settings.save()
+
+        page = soup(client.get(f"{contact_page.url}?sent"))
+        assert "If it's urgent, call us on 0123 456 7890." in page.main.get_text(" ", strip=True)
+        assert not page.select("main a[href^='tel:']")
 
     def test_no_urgent_line_without_a_phone(self, client, contact_page):
         page = soup(client.get(f"{contact_page.url}?sent"))
