@@ -1,11 +1,9 @@
-import datetime
 import logging
 
 from django import forms
 from django.db import models
 from django.http import HttpResponseRedirect
 from django.utils import translation
-from django.utils.formats import date_format
 from django.utils.translation import gettext_lazy
 from modelcluster.fields import ParentalKey
 from wagtail.admin.mail import send_mail
@@ -71,42 +69,27 @@ class EmailFormPage(HoneypotFormMixin, PublishGuardMixin, AbstractEmailForm):
 
         return FormSubmissionsListView
 
-    def data_field_names(self):
-        return {name for name, label in self.get_data_fields()}
+    # A field's label in the email when it isn't the form's, by name. A type sets its own.
+    email_labels = {}
 
     def process_form_submission(self, form):
         """Save and email only the data fields (get_data_fields), so a field that only helps
-        fill in another, like the phone's country, is neither kept nor sent (#321)."""
-        names = self.data_field_names()
-        submission = self.get_submission_class().objects.create(
-            form_data={name: value for name, value in form.cleaned_data.items() if name in names},
-            page=self,
-        )
-        if self.to_address:
-            self.send_mail(form)
-        return submission
+        fill in another, like the phone's country, is neither kept nor sent (#321). Wagtail
+        saves and emails the form's answers, so the others are dropped from them first."""
+        names = {name for name, label in self.get_data_fields()}
+        for name in form.cleaned_data.keys() - names:
+            del form.cleaned_data[name]
+        return super().process_form_submission(form)
 
     def render_email(self, form):
-        """Each data field's label and answer, one per line, as Wagtail writes them. The labels
-        are the submissions list's, so the Contact page's number reads "Phone", not "Number",
-        in the site's main language, which the team reads, whichever one the sender wrote in."""
+        """Wagtail's email, with each field under its `email_labels` label (the Contact page's
+        number reads "Phone", not "Number"), in the site's main language, which the team reads,
+        whichever one the sender wrote in."""
+        for name, label in self.email_labels.items():
+            if name in form.fields:
+                form[name].label = label
         with translation.override(main_language()):
-            return self._render_email(form)
-
-    def _render_email(self, form):
-        content = []
-        for name, label in self.get_data_fields():
-            if name not in form.cleaned_data:
-                continue
-            value = form.cleaned_data[name]
-            if isinstance(value, list):
-                value = ", ".join(value)
-            elif isinstance(value, datetime.datetime):
-                value = date_format(value, "SHORT_DATETIME_FORMAT")
-            elif isinstance(value, datetime.date):
-                value = date_format(value, "SHORT_DATE_FORMAT")
-            content.append(f"{label}: {value}")
-        return "\n".join(content)
+            return super().render_email(form)
 
     def reply_to_address(self, form):
         """The sender's address for Reply-To, or None: the first email field they filled in."""
@@ -291,6 +274,7 @@ class ContactPage(EmailFormPage):
     parent_page_types = ["home.HomePage"]
     subpage_types = []
     max_count_per_parent = 1
+    email_labels = CORE_FIELDS
 
     def serve(self, request, *args, **kwargs):
         # The request's Site settings, which the page reads anyway, so the form costs no query.
