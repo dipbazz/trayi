@@ -124,7 +124,8 @@ A form that asks a visitor to get in touch (Contact is the first) has a **fixed 
 questions, then the charity's **extra questions**:
 
 - **The core is fixed in code and translated.** Contact's is Your name (required), Email,
-  Phone (its country picker starts on the site's phone country) and Your message (required).
+  Phone (its country picker starts on the site's phone country) and Your message (required, at
+  most 2,000 characters, with a count below the box).
   Email or phone must be filled in so the charity can reply; with neither, the error says so once,
   at the top of the error summary and under Email. An editor can't rename, remove or
   move a core question, or add one of their own with the same name.

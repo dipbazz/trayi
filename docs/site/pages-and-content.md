@@ -216,7 +216,9 @@ under each home page, chosen for the menu's Contact section, which takes no othe
 The footer links to it once it's live and public, after the privacy notice. Its form starts with
 a **fixed core** (`ContactForm`): Your name, Email, Phone with its country (the shared picker in
 `core/phone.py`, `includes/phone_field.html`) and Your message, saved as `name`, `email`, `phone`
-and `message` in every language, the phone in E.164 (+977…). Email or phone is required. The
+and `message` in every language, the phone in E.164 (+977…). Email or phone is required. A
+message is at most 2,000 characters, with the same count below the box as Donate's message
+(`core/textarea.py`). The
 editor's **extra questions** follow; one named like a core field (or `submit_time`) is refused in
 the admin. Each language's page keeps its own messages and its own extra questions.
 

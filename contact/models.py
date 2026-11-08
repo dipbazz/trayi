@@ -23,6 +23,7 @@ from core.languages import main_language
 from core.models import SiteSettings
 from core.phone import PhoneWithCountryMixin, default_phone_country, normalise_phone
 from core.publishing import FormPageForm, PublishGuardMixin
+from core.textarea import TextareaField
 
 logger = logging.getLogger(__name__)
 
@@ -177,8 +178,10 @@ class ContactForm(PhoneWithCountryMixin, BaseForm):
     )
     # Under its "Phone (optional)" legend, as on the Donate form.
     phone = forms.CharField(label=gettext_lazy("Number"), required=False)
-    message = forms.CharField(
+    # About a page: room for a real enquiry, short enough for the team to read every one.
+    message = TextareaField(
         label=CORE_FIELDS["message"],
+        max_length=2000,
         widget=forms.Textarea(attrs={"rows": 6}),
         error_messages={"required": gettext_lazy("Enter your message.")},
     )

@@ -132,6 +132,33 @@ class TestTheForm:
         assert mail.outbox[0].reply_to == []
 
 
+class TestMessageLength:
+    """A message is at most 2,000 characters, about a page: room for a real enquiry, short
+    enough for the team to read every one. Asked for in review of #323."""
+
+    def test_a_message_over_2000_characters_is_refused(self, client, contact_page):
+        response = client.post(contact_page.url, {**SENT, "message": "x" * 2001})
+
+        assert response.status_code == 422
+        assert "at most 2000 characters" in response.context["form"].errors["message"][0]
+        assert not FormSubmission.objects.exists()
+
+    def test_a_full_message_with_line_breaks_is_accepted_as_the_box_counts_it(
+        self, client, contact_page
+    ):
+        typed = ("x" * 199 + "\n") * 9 + "x" * 200  # 2000 characters in the box
+        client.post(contact_page.url, {**SENT, "message": typed.replace("\n", "\r\n")})
+
+        assert FormSubmission.objects.get(page=contact_page).form_data["message"] == typed
+
+    def test_the_box_stops_and_counts_at_the_limit(self, client, contact_page):
+        """charity.js adds the count; without JavaScript, maxlength alone stops typing."""
+        box = soup(client.get(contact_page.url)).find("textarea", attrs={"name": "message"})
+
+        assert box["maxlength"] == "2000"
+        assert box.has_attr("data-char-count")
+
+
 class TestEmailOrPhone:
     def test_neither_is_refused_with_one_message_first_in_the_summary(self, client, contact_page):
         response = client.post(contact_page.url, {**SENT, "email": ""})
