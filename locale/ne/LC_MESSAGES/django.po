@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: trayi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-08 12:24+0000\n"
+"POT-Creation-Date: 2026-11-08 12:29+0000\n"
 "PO-Revision-Date: 2026-10-08 00:00+0000\n"
 "Last-Translator: Trayi\n"
 "Language-Team: Nepali\n"
@@ -802,6 +802,9 @@ msgstr "हामीलाई सन्देश पठाउनुहोस्"
 
 msgid "Please check your message"
 msgstr "कृपया आफ्नो सन्देश जाँच्नुहोस्"
+
+msgid "Sending your message…"
+msgstr "तपाईंको सन्देश पठाउँदै…"
 
 msgid "Send"
 msgstr "पठाउनुहोस्"
