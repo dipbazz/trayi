@@ -92,9 +92,10 @@ class EmailFormPage(HoneypotFormMixin, PublishGuardMixin, AbstractEmailForm):
             return super().render_email(form)
 
     def reply_to_address(self, form):
-        """The sender's address for Reply-To, or None: the first email field they filled in."""
+        """The sender's address for Reply-To, or None: the first email field they filled in. The
+        form already holds its fields, so this reads no questions again."""
         email_fields = [
-            field.clean_name for field in self.get_form_fields() if field.field_type == "email"
+            name for name, field in form.fields.items() if isinstance(field, forms.EmailField)
         ]
         filled = [form.cleaned_data[name] for name in email_fields if form.cleaned_data.get(name)]
         return filled[0] if filled else None
