@@ -205,8 +205,7 @@ class ContactForm(PhoneWithCountryMixin, BaseForm):
 
     def extra_fields(self):
         """The editor's own questions, after the core."""
-        core = {*CORE_FIELDS, "phone_country"}
-        return [field for field in self.visible_fields() if field.name not in core]
+        return [field for field in self.visible_fields() if field.name not in RESERVED_NAMES]
 
 
 class ContactFormBuilder(FormBuilder):
