@@ -888,6 +888,56 @@ fieldset {
     padding-left: 2rem;
 }
 
+/* A phone number with its country (includes/phone_field.html), on Donate and Contact. */
+.form-page main .phone-field legend {
+    font-weight: 600;
+}
+
+.phone-field .helptext {
+    margin: 0 0 0.75rem;
+}
+
+/* Country code and number share a row when there's room, and stack on a phone. */
+.phone-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1rem;
+}
+
+.phone-country {
+    flex: 1 1 12rem;
+}
+
+.phone-number {
+    flex: 2 1 14rem;
+}
+
+/* Contact page: General enquiries, then the form, one under another on a phone. */
+.contact-list {
+    margin: 0 0 1rem;
+    padding: 0;
+    list-style: none;
+}
+
+/* A number to call or an address to write to is a 44px tap target. */
+.contact-list a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    overflow-wrap: anywhere;
+}
+
+/* From 60rem the form has room beside the details: they take about a third of the width, on the
+   left, and the reading order stays the same (#167). */
+@media (min-width: 60rem) {
+    .contact-columns.has-details {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+        gap: 3rem;
+        align-items: start;
+    }
+}
+
 /* Pagination */
 .pagination {
     display: flex;

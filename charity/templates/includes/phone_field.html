@@ -1,0 +1,14 @@
+{% load i18n %}
+{# A phone number with its country picker (core.phone.PhoneWithCountryMixin), the same on every form: Donate, Contact. form: the form; legend: its words, such as "Mobile number"; optional: adds "(optional)"; describedby: more ids for the group's aria-describedby, such as a form-wide error's. #}
+<fieldset class="phone-field"{% if form.phone.help_text or describedby %} aria-describedby="{% if form.phone.help_text %}{{ form.phone.auto_id }}_helptext{% endif %}{% if form.phone.help_text and describedby %} {% endif %}{{ describedby|default:"" }}"{% endif %}>
+    <legend>{{ legend }}{% if optional %} <span class="optional">({% translate "optional" %})</span>{% endif %}</legend>
+    {% if form.phone.help_text %}<p class="helptext" id="{{ form.phone.auto_id }}_helptext">{{ form.phone.help_text }}</p>{% endif %}
+    <div class="phone-row">
+        <div class="field phone-country">{{ form.phone_country.as_field_group }}</div>
+        <div class="field phone-number">
+            {{ form.phone.label_tag }}
+            {{ form.phone.errors }}
+            {{ form.phone }}
+        </div>
+    </div>
+</fieldset>

@@ -42,8 +42,9 @@ def still_to_do():
         unbuilt = [str(section.name) for section in SECTIONS if section.setting not in built]
         in_menu = [f"{get_text_list(menu, 'and')}: each joins the menu once it's live."]
         if unbuilt:
+            each = "each" if len(unbuilt) > 1 else "it"
             in_menu.append(
-                f"{get_text_list(unbuilt, 'and')}: write a page for each, then choose it in Site "
+                f"{get_text_list(unbuilt, 'and')}: write a page for {each}, then choose it in Site "
                 "settings → Menu."
             )
     return [

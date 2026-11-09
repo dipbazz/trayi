@@ -1,7 +1,9 @@
 import re
 
 import phonenumbers
+from django import forms
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxLengthValidator
 from django.utils.translation import gettext_lazy
 from phonenumbers import PhoneNumberFormat, PhoneNumberType
 
@@ -30,6 +32,10 @@ MESSAGEABLE_TYPES = {PhoneNumberType.MOBILE, PhoneNumberType.FIXED_LINE_OR_MOBIL
 
 PHONE_CHARACTERS = re.compile(r"^[\d\s()+.-]+$")
 
+# What the phone box takes as typed. A number is saved in E.164 (at most 16 characters), but
+# people type spaces, dashes and brackets, so the box allows more; the form normalises it.
+PHONE_BOX_LENGTH = 30
+
 
 def phone_country_choices():
     choices = []
@@ -39,22 +45,98 @@ def phone_country_choices():
     return choices
 
 
-def normalise_mobile(number, region):
-    """Return a mobile number in E.164 (+9779841234567), or raise ValidationError.
+def default_phone_country(site_settings):
+    """The country a form's phone picker starts on: Site settings' phone country. #274 may later
+    take the registration country instead, here alone."""
+    return site_settings.phone_country
+
+
+class PhoneWithCountryMixin:
+    """A form's `phone` field with its country picker, the same on every form that asks for a
+    number (Donate, Contact), rendered by includes/phone_field.html.
+
+    It adds a `phone_country` field just before `phone`, starting on `phone_country` (pass
+    default_phone_country(site_settings)), and makes `phone` a tel box. The form's clean() calls
+    normalise_phone_field with the normaliser it needs, once it knows whether to keep the number.
+    """
+
+    def __init__(self, *args, phone_country, **kwargs):
+        super().__init__(*args, **kwargs)
+        country = forms.ChoiceField(
+            choices=phone_country_choices, label=gettext_lazy("Country"), initial=phone_country
+        )
+        fields = {}
+        for name, field in self.fields.items():
+            if name == "phone":
+                fields["phone_country"] = country
+            fields[name] = field
+        self.fields = fields
+        phone = self.fields["phone"]
+        phone.max_length = PHONE_BOX_LENGTH
+        phone.validators = [MaxLengthValidator(PHONE_BOX_LENGTH)]
+        # Django renders the type from input_type; a "type" in attrs would be a second one.
+        phone.widget.input_type = "tel"
+        phone.widget.attrs.update(
+            {"autocomplete": "tel-national", "maxlength": str(PHONE_BOX_LENGTH)}
+        )
+
+    def normalise_phone_field(self, cleaned_data, normalise):
+        """Put the typed number in E.164 with `normalise` (normalise_phone or normalise_mobile),
+        or add its error to the phone field."""
+        phone = cleaned_data.get("phone", "").strip()
+        if phone and cleaned_data.get("phone_country"):
+            try:
+                cleaned_data["phone"] = normalise(phone, cleaned_data["phone_country"])
+            except ValidationError as error:
+                self.add_error("phone", error)
+
+
+def parse_phone(number, region):
+    """Return the valid number `number` names, or None.
 
     A number typed with its own +country code keeps it; otherwise `region` supplies it.
     """
+    if not PHONE_CHARACTERS.match(number):
+        return None
     try:
-        if not PHONE_CHARACTERS.match(number):
-            raise phonenumbers.NumberParseException(0, "Not a phone number")
         parsed = phonenumbers.parse(number, region)
     except phonenumbers.NumberParseException:
-        parsed = None
-    if (
-        parsed is None
-        or not phonenumbers.is_valid_number(parsed)
-        or phonenumbers.number_type(parsed) not in MESSAGEABLE_TYPES
-    ):
+        return None
+    return parsed if phonenumbers.is_valid_number(parsed) else None
+
+
+def normalise_phone(number, region):
+    """Return any valid phone number in E.164 (+97714567890), or raise ValidationError."""
+    parsed = parse_phone(number, region)
+    if parsed is None:
+        # A landline and a mobile example, so a mobile typed a digit short isn't read as
+        # "landlines only". Countries that don't tell them apart (the US) have one example.
+        landline = national_example(phonenumbers.example_number(region))
+        mobile = national_example(
+            phonenumbers.example_number_for_type(region, PhoneNumberType.MOBILE)
+        )
+        if landline == mobile:
+            raise ValidationError(
+                gettext_lazy("Enter a phone number, like %(example)s."),
+                code="invalid_phone",
+                params={"example": landline},
+            )
+        raise ValidationError(
+            gettext_lazy("Enter a phone number, like %(landline)s or %(mobile)s."),
+            code="invalid_phone",
+            params={"landline": landline, "mobile": mobile},
+        )
+    return phonenumbers.format_number(parsed, PhoneNumberFormat.E164)
+
+
+def national_example(example):
+    return phonenumbers.format_number(example, PhoneNumberFormat.NATIONAL)
+
+
+def normalise_mobile(number, region):
+    """Return a mobile number in E.164 (+9779841234567), or raise ValidationError."""
+    parsed = parse_phone(number, region)
+    if parsed is None or phonenumbers.number_type(parsed) not in MESSAGEABLE_TYPES:
         example = phonenumbers.example_number_for_type(region, PhoneNumberType.MOBILE)
         raise ValidationError(
             gettext_lazy("Enter a mobile number, like %(example)s."),

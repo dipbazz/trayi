@@ -1,11 +1,118 @@
 import pytest
+from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import translation
 
 from core.models import SiteSettings
-from core.phone import normalise_mobile, phone_country_choices
+from core.phone import (
+    PhoneWithCountryMixin,
+    default_phone_country,
+    normalise_mobile,
+    normalise_phone,
+    phone_country_choices,
+)
 
 pytestmark = pytest.mark.django_db
+
+
+class CallbackForm(PhoneWithCountryMixin, forms.Form):
+    name = forms.CharField()
+    phone = forms.CharField(required=False)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        self.normalise_phone_field(cleaned_data, normalise_phone)
+        return cleaned_data
+
+
+class TestPhoneWithCountryMixin:
+    def test_the_country_comes_just_before_the_number(self):
+        assert list(CallbackForm(phone_country="NP").fields) == ["name", "phone_country", "phone"]
+
+    def test_the_country_starts_on_the_one_given(self):
+        assert CallbackForm(phone_country="GB")["phone_country"].initial == "GB"
+
+    def test_the_number_is_a_tel_box_with_room_for_spaces_and_dashes(self):
+        # The rendered box, not the widget's attrs: browsers take the first `type` they meet,
+        # so a second one leaves phones on the letter keyboard.
+        box = str(CallbackForm(phone_country="NP")["phone"])
+
+        assert box.count("type=") == 1
+        assert 'type="tel"' in box
+        assert 'autocomplete="tel-national"' in box
+        assert 'maxlength="30"' in box
+
+    def test_a_number_longer_than_the_box_is_refused(self):
+        form = CallbackForm(
+            {"name": "Asha", "phone_country": "NP", "phone": "1" * 31}, phone_country="NP"
+        )
+
+        assert "phone" in form.errors
+
+    def test_the_number_is_normalised_in_the_chosen_country(self):
+        form = CallbackForm(
+            {"name": "Asha", "phone_country": "GB", "phone": "0121 234 5678"}, phone_country="NP"
+        )
+
+        assert form.is_valid()
+        assert form.cleaned_data["phone"] == "+441212345678"
+
+    def test_a_number_that_isnt_one_is_an_error_on_the_number(self):
+        form = CallbackForm(
+            {"name": "Asha", "phone_country": "NP", "phone": "FLOWERS"}, phone_country="NP"
+        )
+
+        assert form.errors["phone"] == ["Enter a phone number, like 01-4567890 or 984-1234567."]
+
+    def test_no_number_is_left_empty(self):
+        form = CallbackForm(
+            {"name": "Asha", "phone_country": "NP", "phone": ""}, phone_country="NP"
+        )
+
+        assert form.is_valid()
+        assert form.cleaned_data["phone"] == ""
+
+
+def test_forms_start_on_the_site_settings_phone_country(site):
+    settings = SiteSettings.for_site(site)
+    settings.phone_country = "GB"
+
+    assert default_phone_country(settings) == "GB"
+
+
+class TestNormalisePhone:
+    def test_a_kathmandu_landline_is_accepted(self):
+        assert normalise_phone("01-4567890", "NP") == "+97714567890"
+
+    def test_a_nepali_mobile_is_accepted(self):
+        assert normalise_phone("984-1234567", "NP") == "+9779841234567"
+
+    def test_a_number_typed_with_its_own_country_code_wins_over_the_chosen_country(self):
+        assert normalise_phone("+44 121 234 5678", "NP") == "+441212345678"
+
+    @pytest.mark.parametrize("number", ["984123", "98abc12345", "FLOWERS"])
+    def test_rejects_what_is_not_a_phone_number(self, number):
+        with pytest.raises(
+            ValidationError, match="Enter a phone number, like 01-4567890 or 984-1234567"
+        ):
+            normalise_phone(number, "NP")
+
+    # Regression: a mobile typed a digit short was told "like 01-4567890" alone, which reads as
+    # if only landlines were taken. Found in review of #323 on 2026-11-08.
+    def test_a_mobile_a_digit_short_is_shown_a_mobile_example_too(self):
+        with pytest.raises(ValidationError, match="like 01-4567890 or 984-1234567"):
+            normalise_phone("984-123456", "NP")
+
+    def test_the_examples_are_for_the_chosen_country(self):
+        with pytest.raises(ValidationError, match="like 0121 234 5678 or 07400 123456"):
+            normalise_phone("123", "GB")
+
+    def test_a_country_whose_example_numbers_are_the_same_shows_one(self):
+        """The US and Canada don't tell mobiles from landlines, so phonenumbers has one example."""
+        with pytest.raises(ValidationError) as raised:
+            normalise_phone("123", "US")
+
+        assert raised.value.messages == ["Enter a phone number, like (201) 555-0123."]
 
 
 class TestNormaliseMobile:

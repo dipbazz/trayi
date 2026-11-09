@@ -23,45 +23,6 @@ if (pledgeForm) {
     }
 }
 
-// Pay buttons (the pay page's, and "Continue to eSewa"): the provider's page can take seconds on a
-// slow connection, so the pressed button says it's opening, all of them stop taking taps (a second
-// tap would start a second payment), and a status line tells screen readers. A page restored from
-// the browser's cache, by Back from the provider, gets working buttons again. Without JavaScript,
-// the buttons just send their form. A button with a logo has its words in [data-busy-label], and
-// only those change, so the logo stays.
-const busyButtons = [...document.querySelectorAll("button[data-busy-text]")];
-if (busyButtons.length) {
-    const status = document.querySelector("[data-busy-status]");
-    const groups = new Set(busyButtons.map((button) => button.closest(".payment-options")));
-    const labelOf = (button) => button.querySelector("[data-busy-label]") ?? button;
-    const labels = new Map(busyButtons.map((button) => [button, labelOf(button).textContent]));
-    let busy = false;
-    for (const button of busyButtons) {
-        button.form.addEventListener("submit", (event) => {
-            if (busy) {
-                event.preventDefault();
-                return;
-            }
-            busy = true;
-            const pressed = event.submitter ?? button;
-            labelOf(pressed).textContent = pressed.dataset.busyText;
-            if (status) status.textContent = pressed.dataset.busyText;
-            groups.forEach((group) => group?.setAttribute("aria-busy", "true"));
-            busyButtons.forEach((other) => (other.disabled = true));
-        });
-    }
-    window.addEventListener("pageshow", (event) => {
-        if (!event.persisted) return;
-        busy = false;
-        for (const [button, label] of labels) {
-            labelOf(button).textContent = label;
-            button.disabled = false;
-        }
-        groups.forEach((group) => group?.removeAttribute("aria-busy"));
-        if (status) status.textContent = "";
-    });
-}
-
 // One try too many (#226): what's left of the wait, counted down in minutes and seconds from what
 // the server said as the page was made. Each second is hidden from screen readers; the end is
 // said once, by the status line. Without JavaScript, the words give the minutes.

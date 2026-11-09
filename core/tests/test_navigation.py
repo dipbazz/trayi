@@ -10,6 +10,7 @@ from wagtail.test.utils.form_data import nested_form_data
 
 from campaigns.models import CampaignIndexPage
 from campaigns.tests.factories import DonatePageFactory
+from contact.models import ContactPage
 from core.brand import DEFAULT_LOGO_SIZE
 from core.menu import SECTIONS
 from core.models import SiteSettings
@@ -57,7 +58,7 @@ def every_section(site, home_page):
         "appeals_page": add_page(home_page, "Give to a cause", page_class=CampaignIndexPage),
         "stories_page": add_page(home_page, "Latest news", page_class=NewsIndexPage),
         "get_involved_page": add_page(home_page, "Help out"),
-        "contact_page": add_page(home_page, "Reach us"),
+        "contact_page": add_page(home_page, "Reach us", page_class=ContactPage),
     }
     choose(site, **pages)
     return pages
@@ -184,6 +185,60 @@ class TestMenuSections:
         assert [text for text, _href, _current in menu_links(client, "/ne/")] == ["सम्पर्क"]
 
 
+def footer_links(client, path="/"):
+    footer = BeautifulSoup(client.get(path).content, "html.parser").select_one(".site-footer")
+    return [(a.get_text(), a["href"]) for a in footer.select("li a")]
+
+
+class TestFooterContactLink:
+    """The footer links to the menu's Contact page, after the privacy notice, once it's live and
+    public (#167)."""
+
+    def test_comes_after_the_privacy_notice(self, client, site, home_page, privacy_notice):
+        contact = add_page(home_page, "Reach us", page_class=ContactPage)
+        choose(site, contact_page=contact)
+
+        assert footer_links(client)[-2:] == [
+            ("Privacy notice", privacy_notice.url),
+            ("Contact", contact.url),
+        ]
+
+    def test_none_until_a_contact_page_is_chosen(self, client, home_page):
+        assert "Contact" not in [text for text, href in footer_links(client)]
+
+    def test_none_while_it_isnt_published(self, client, site, home_page):
+        draft = add_page(home_page, "Reach us", live=False, page_class=ContactPage)
+        choose(site, contact_page=draft)
+
+        assert "Contact" not in [text for text, href in footer_links(client)]
+
+    def test_none_while_it_is_behind_a_login(self, client, site, home_page):
+        contact = add_page(home_page, "Reach us", page_class=ContactPage)
+        PageViewRestriction.objects.create(page=contact, restriction_type=PageViewRestriction.LOGIN)
+        choose(site, contact_page=contact)
+
+        assert "Contact" not in [text for text, href in footer_links(client)]
+
+    def test_nepali_readers_get_its_nepali_translation(
+        self, client, site, home_page, nepali_home_page, privacy_notice
+    ):
+        contact = add_page(home_page, "Reach us", page_class=ContactPage)
+        choose(site, contact_page=contact)
+        nepali = contact.copy_for_translation(nepali_home_page.locale)
+        nepali.to_address = "hello@brightwell.example"
+        nepali.save_revision().publish()
+
+        assert ("सम्पर्क", nepali.url) in footer_links(client, "/ne/")
+
+    def test_without_a_translation_nepali_readers_get_the_chosen_page(
+        self, client, site, home_page, nepali_home_page
+    ):
+        contact = add_page(home_page, "Reach us", page_class=ContactPage)
+        choose(site, contact_page=contact)
+
+        assert ("सम्पर्क", contact.url) in footer_links(client, "/ne/")
+
+
 def test_the_sections_are_the_standards_in_its_order_and_names():
     """The menu drifts from `docs/site/standard.md`'s table of sections only if this fails."""
     standard = (ROOT / "docs" / "site" / "standard.md").read_text(encoding="utf-8")
@@ -230,7 +285,7 @@ class TestMenuInTheAdmin:
             "appeals_page": add_page(home_page, "Appeals", page_class=CampaignIndexPage),
             "stories_page": add_page(home_page, "Stories", page_class=NewsIndexPage),
             "get_involved_page": add_page(home_page, "Help out"),
-            "contact_page": add_page(home_page, "Reach us"),
+            "contact_page": add_page(home_page, "Reach us", page_class=ContactPage),
         }
 
         response = self.save(client, moderator, site, **pages)
@@ -242,7 +297,7 @@ class TestMenuInTheAdmin:
         }
 
     def test_the_same_page_cant_be_two_sections(self, client, moderator, site, home_page):
-        page = add_page(home_page, "Who we are")
+        page = add_page(home_page, "Reach us", page_class=ContactPage)
 
         response = self.save(client, moderator, site, about_page=page, contact_page=page)
 
@@ -256,7 +311,7 @@ class TestMenuInTheAdmin:
         assert self.errors(response)["contact_page"] == wanted
 
     def test_a_page_in_three_sections_names_all_three(self, client, moderator, site, home_page):
-        page = add_page(home_page, "Who we are")
+        page = add_page(home_page, "Reach us", page_class=ContactPage)
 
         response = self.save(
             client, moderator, site, about_page=page, get_involved_page=page, contact_page=page
@@ -275,7 +330,7 @@ class TestMenuInTheAdmin:
     ):
         """Production opens in Nepali, but the admin stays in English (`languages.md`)."""
         settings.LANGUAGE_CODE = "ne"
-        page = add_page(home_page, "Who we are")
+        page = add_page(home_page, "Reach us", page_class=ContactPage)
 
         response = self.save(client, moderator, site, about_page=page, contact_page=page)
 
@@ -320,9 +375,10 @@ class TestMenuInTheAdmin:
             ("appeals_page", "Choose the appeals page: Appeals lists its appeals."),
             ("stories_page", "Choose the stories page: Stories lists its stories."),
             ("donate_page", "Choose the Donate page: it holds the pledge form."),
+            ("contact_page", "Choose the Contact page: it holds the message form."),
         ],
     )
-    def test_appeals_stories_and_donate_take_only_their_own_kind_of_page(
+    def test_appeals_stories_donate_and_contact_take_only_their_own_kind_of_page(
         self, client, moderator, site, home_page, field, wanted
     ):
         response = self.save(client, moderator, site, **{field: add_page(home_page, "Other")})
@@ -344,6 +400,7 @@ class TestMenuInTheAdmin:
         assert offered("appeals_page") == ["campaigns.campaignindexpage"]
         assert offered("stories_page") == ["news.newsindexpage"]
         assert offered("donate_page") == ["campaigns.donatepage"]
+        assert offered("contact_page") == ["contact.contactpage"]
         assert offered("about_page") == ["wagtailcore.page"]
 
     def menu_tab(self, client, moderator, site):

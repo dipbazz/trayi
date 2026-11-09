@@ -50,8 +50,8 @@ standard page with a page type today once per language. Rows are grouped by lang
 language first: the privacy notice, Donate, the menu sections in the standard's order. Each is the
 page's title, linked to edit it if you may, and one status: **Not set**, **Draft**, **Has [Write:
 …] text**, **Not translated yet** with a Translate link, or **Translate after publishing** while
-the main page isn't set or live. The privacy notice, Donate, About us, Appeals and Stories are the
-pages chosen in Site settings (Not set links there); the volunteer form is found by its address
+the main page isn't set or live. The privacy notice, Donate, About us, Appeals, Stories and Contact
+are the pages chosen in Site settings (Not set links there); the volunteer form is found by its address
 under the home page until it has a chooser of its own. A line above the list asks for the registration details while Site
 settings' registration line is blank in any language.
 
@@ -167,7 +167,8 @@ Settings that apply to every page, under **Settings** in the admin (`core/models
   language (the registration line in every language before the settings can be saved, though a
   preview works without it; the address and refund policy in every language or none); contact email and phone (shown in the footer); **We take gifts at our office**, which offers paying in person after a pledge, with that address and phone ([Appeals and giving](appeals-and-giving.md#paying-a-pledge)); the **Donate page** the header's button goes to; the **privacy notice** ([Appeals and giving](appeals-and-giving.md#privacy-notice));
   the **currency** every amount is shown in ([Money](appeals-and-giving.md#money)); the
-  **default phone country** for mobile numbers on forms; Facebook, Instagram and LinkedIn
+  **default phone country**, where the Donate and Contact forms' country picker starts and how
+  the Contact page dials a number written the local way; Facebook, Instagram and LinkedIn
   links (each shown in the footer only when set); and, on the **Brand** tab, the charity's
   [logo](look-and-feel.md#the-logo), shown beside its name in the header, at a size it chooses,
   its main and accent
@@ -186,23 +187,50 @@ form, and links to chosen pages go to their translation in the language being re
 
 ## Forms
 
-Editors build forms themselves, such as volunteer sign-up or an enquiry form, with Wagtail's form
-builder (`contact/models.py`, `FormPage`): an introduction, the fields, a thank-you message, and
-who is emailed about each submission. What every form page does lives once in the abstract
-`EmailFormPage`, which `FormPage` inherits; a new form page type inherits it too, and declares
-what the base can't: its own field model (a `ParentalKey` with `related_name="form_fields"`) and
-its own form and thank-you templates. `contact/tests/test_form_page.py` fails for a type without
-them.
+Editors build forms themselves, such as volunteer sign-up, with Wagtail's form builder
+(`contact/models.py`, `FormPage`): an introduction, the fields, a thank-you message, and who is
+emailed about each submission. What every form page does lives once in the abstract
+`EmailFormPage`, which `FormPage` and `ContactPage` inherit; a new form page type inherits it too,
+and declares what the base can't: its own field model (a `ParentalKey` with
+`related_name="form_fields"`) and its own form and thank-you templates.
+`contact/tests/test_form_page.py` fails for a type without them.
 
 - After a send, the page goes on to `?sent` at the address the form was sent to (a 303
   redirect), which shows the thank-you message. Reloading it can't send the message twice, and
   opening `?sent` directly saves and sends nothing. The thank-you carries `noindex`, so search
   engines list only the form.
-- The email's **Reply-To** is the sender's email field, so the team can answer directly.
+- The email's **Reply-To** is the sender's email field, so the team can answer directly. The
+  email is written in the site's main language, which the team reads, whichever language the
+  sender wrote in.
 - If the email can't be sent, the error is logged and the visitor still sees the thank-you page:
   the submission is already saved, and the team reads and exports submissions (CSV or Excel) in the admin. Anything a visitor typed
   that a spreadsheet would run as a formula is exported as text.
 - "How we use your details" links to the privacy notice just before the Send button.
+- Only the page's data fields (`get_data_fields()`) are saved, emailed and exported, so a field
+  that only helps fill in another, like the phone's country, never reaches a submission.
+
+### The Contact page
+
+`ContactPage` is the standard's Contact page ([Standard](standard.md#the-contact-page)): one
+under each home page, chosen for the menu's Contact section, which takes no other kind of page.
+The footer links to it once it's live and public, after the privacy notice. Its form starts with
+a **fixed core** (`ContactForm`): Your name, Email, Phone with its country (the shared picker in
+`core/phone.py`, `includes/phone_field.html`) and Your message, saved as `name`, `email`, `phone`
+and `message` in every language, the phone in E.164 (+977…). Email or phone is required. A
+message is at most 2,000 characters, with the same count below the box as Donate's message
+(`core/textarea.py`). The
+editor's **extra questions** follow; one named like a core field (or `submit_time`) is refused in
+the admin. Each language's page keeps its own messages and its own extra questions.
+
+- **General enquiries** come from Site settings: the phone, linked with `tel_href`
+  (`core/templatetags/phone_tags.py`), which adds the site's phone country to a number written
+  the local way and links the first of several; text with no number it can read is shown
+  without a link. Then the email and the address.
+- The thank-you page has the standard's default text, which the page's own thank-you text
+  replaces.
+- Reply-To is the core Email, and the admin's list and export show the core fields first.
+- It can't go live without an address to send each message to, like any form page
+  ([What stops a page going live](#what-stops-a-page-going-live)).
 
 ## News
 

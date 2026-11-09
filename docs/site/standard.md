@@ -45,7 +45,8 @@ Nepali names are still to be checked with charities.
 - The names come from the standard and are translated in `locale/ne`, not taken from page titles,
   so an editor can't rename, reorder or add a section.
 - **Which page each section links to** is chosen in **Site settings → Menu**. Appeals takes only
-  the appeals page and Stories only the stories page; one page can't be two sections, and the home
+  the appeals page, Stories only the stories page and Contact only the Contact page; one page
+  can't be two sections, and the home
   page can't be one, since the site's name links to it. A section
   with no page chosen, or whose page isn't published or is behind a password or login, is left
   out, and the others keep their order. The Menu tab names each one left out, and why.
@@ -100,13 +101,31 @@ organisation the Inland Revenue Department has approved can be deducted from the
 income, up to Rs 1,00,000 or 5% of it (Income Tax Act 2058, section 12); in the UK, Gift Aid. It
 links to Reports and accounts.
 
+## The Contact page
+
+One per home page, so one in each language, at `/contact/`. In this order, as plain lists:
+
+1. The title and the charity's introduction; when the site has an email, the introduction ends
+   with "To send photos, email them to …", since the form takes no uploads.
+2. **General enquiries:** the phone (to call), the email and the address from Site settings, the
+   same contact the footer shows. Left out when all three are empty.
+3. **Other contacts,** only when there are any: each team's name, with its email or phone.
+4. **Send us a message:** the form ([Forms](#forms)), the privacy link and Send.
+
+On a phone they're one column; from 60rem the details sit on the left, about a third of the width,
+beside the form, in the same reading order. After a send the page says "Thank you, we've got your
+message", then the charity's own text or "We'll reply by email or phone, using the details you
+gave.", then "If it's urgent, call us on …" when the site has a phone, and a link home. It
+promises no reply time. It can't go live without an address to send each message to.
+
 ## Forms
 
 A form that asks a visitor to get in touch (Contact is the first) has a **fixed core** of
 questions, then the charity's **extra questions**:
 
 - **The core is fixed in code and translated.** Contact's is Your name (required), Email,
-  Phone (its country picker starts on the site's phone country) and Your message (required).
+  Phone (its country picker starts on the site's phone country) and Your message (required, at
+  most 2,000 characters, with a count below the box).
   Email or phone must be filled in so the charity can reply; with neither, the error says so once,
   at the top of the error summary and under Email. An editor can't rename, remove or
   move a core question, or add one of their own with the same name.
@@ -146,15 +165,16 @@ Delete this section once [#191](https://github.com/dipbazz/trayi/issues/191) is 
 |---|---|---|
 | Header | The name on a row of its own above the controls row; it scrolls away | [#176](https://github.com/dipbazz/trayi/issues/176), [#139](https://github.com/dipbazz/trayi/issues/139) |
 | Menu | The five sections, each linking to the page chosen in Site settings → Menu; no lists under About us or Get involved yet | [#171](https://github.com/dipbazz/trayi/issues/171) |
-| Footer | Name, the registration line the charity types, address, contact details, social links and privacy link | [#172](https://github.com/dipbazz/trayi/issues/172), [#167](https://github.com/dipbazz/trayi/issues/167), [#170](https://github.com/dipbazz/trayi/issues/170) |
+| Footer | Name, the registration line the charity types, address, contact details, social links, privacy link and Contact | [#172](https://github.com/dipbazz/trayi/issues/172), [#167](https://github.com/dipbazz/trayi/issues/167), [#170](https://github.com/dipbazz/trayi/issues/170) |
 | About us | A standard page, written freely | [#169](https://github.com/dipbazz/trayi/issues/169), [#170](https://github.com/dipbazz/trayi/issues/170) |
 | Appeals and Stories | Built | |
 | Get involved | A volunteer form at `/volunteer/` | [#168](https://github.com/dipbazz/trayi/issues/168) |
-| Forms | Every question is the editor's; no fixed core yet. Mistakes, the redirect after a send and the Reply-To work as described | [#167](https://github.com/dipbazz/trayi/issues/167) |
-| Contact and accessibility statement | Missing | [#167](https://github.com/dipbazz/trayi/issues/167) |
+| Forms | Built: Contact has the fixed core; the volunteer form is all the editor's questions | |
+| Contact | Built, without Other contacts and the address's map link | [#322](https://github.com/dipbazz/trayi/issues/322) |
+| Accessibility statement | Missing | [#167](https://github.com/dipbazz/trayi/issues/167) |
 | Home page | Banner, current appeals, then any blocks | [#173](https://github.com/dipbazz/trayi/issues/173) |
 | Donate page | Introduction, payment notice, pledge form, then any blocks | [#174](https://github.com/dipbazz/trayi/issues/174) |
-| A new site's pages | `new_site` builds the pages that have a page type today: Home, About us, Appeals, Stories, the volunteer form at `/volunteer/`, Donate and the privacy notice. Contact, the accessibility statement, Get involved and Reports and accounts join it with their own issues. A page with placeholder text can't go live | [#175](https://github.com/dipbazz/trayi/issues/175) |
+| A new site's pages | `new_site` builds the pages that have a page type today: Home, About us, Appeals, Stories, the volunteer form at `/volunteer/`, Contact, Donate and the privacy notice. The accessibility statement, Get involved and Reports and accounts join it with their own issues. A page with placeholder text can't go live | [#175](https://github.com/dipbazz/trayi/issues/175) |
 
 ## Where the code is
 

@@ -544,7 +544,9 @@ stores the currency it was sent in. Templates never write a symbol themselves.
 ## Personal data and consent
 
 Pledges hold names, email addresses, optional home addresses and, for monthly gifts, mobile
-numbers; volunteer sign-ups hold whatever their form asks. Editors and moderators can read and
+numbers; volunteer sign-ups hold whatever their form asks; Contact messages hold a name, the email
+or phone number given, the message and the answers to the page's own questions, and the privacy
+notice a new site starts with says so. Editors and moderators can read and
 export pledges, and anyone who can edit a form page can read and export its submissions. Give
 admin access only to people who may see supporters' details, and don't leave exported files in
 shared folders.

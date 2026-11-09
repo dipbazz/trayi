@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load i18n phone_tags wagtailcore_tags %}
+
+{% block extra_meta %}
+    {# ?sent is the form's address again: only the form belongs in search results. #}
+    <meta name="robots" content="noindex">
+{% endblock %}
+
+{% block body_class %}template-contactpage{% endblock %}
+
+{% block content %}
+    {# The thank-you (#167): the editor's text replaces the middle line; no reply time is promised. #}
+    {% with site_settings=settings.core.SiteSettings %}
+    <div class="container narrow">
+        <h1>{% translate "Thank you, we've got your message" %}</h1>
+        {% if page.thank_you_text %}
+            {{ page.thank_you_text|richtext }}
+        {% else %}
+            <p>{% translate "We'll reply by email or phone, using the details you gave." %}</p>
+        {% endif %}
+        {% if site_settings.phone %}
+            {% with phone=site_settings.phone href=site_settings.phone|tel_href:site_settings.phone_country %}
+            {% if href %}
+                <p>{% blocktranslate %}If it's urgent, call us on <a href="{{ href }}">{{ phone }}</a>.{% endblocktranslate %}</p>
+            {% else %}
+                <p>{% blocktranslate %}If it's urgent, call us on {{ phone }}.{% endblocktranslate %}</p>
+            {% endif %}
+            {% endwith %}
+        {% endif %}
+        <p><a href="{% pageurl page.get_parent.specific %}">{% translate "Back to the home page" %}</a></p>
+    </div>
+    {% endwith %}
+{% endblock %}

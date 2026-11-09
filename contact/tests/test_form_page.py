@@ -93,6 +93,19 @@ class TestFormPage:
         assert message.reply_to == ["sam@example.com"]
         assert "Your name: Sam" in message.body
 
+    def test_a_send_reads_the_questions_to_build_the_form_and_to_save_it(
+        self, client, volunteer_form
+    ):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        with CaptureQueriesContext(connection) as queries:
+            client.post(volunteer_form.url, VALID_DATA)
+
+        table = FormField._meta.db_table
+        reads = [query for query in queries if f'FROM "{table}"' in query["sql"]]
+        assert len(reads) == 2
+
     def test_submission_is_kept_and_thanked_when_the_mail_server_is_down(
         self, client, volunteer_form, monkeypatch, caplog
     ):
@@ -277,6 +290,36 @@ class TestTheHiddenBox:
 
         assert FormSubmission.objects.filter(page=volunteer_form).exists()
         assert len(mail.outbox) == 1
+
+
+class TestOnlyTheDataFieldsAreKept:
+    """A form can carry a field that helps fill in another, like the phone's country: the number
+    is saved in full, so the helper is neither kept nor emailed (#321)."""
+
+    @pytest.fixture
+    def with_a_helper_field(self, monkeypatch):
+        from django import forms
+
+        built = FormPage.get_form_class
+
+        def get_form_class(page):
+            return type("WithHelper", (built(page),), {"helper": forms.CharField(label="Helper")})
+
+        monkeypatch.setattr(FormPage, "get_form_class", get_form_class)
+
+    def test_the_helper_is_not_saved(self, client, volunteer_form, with_a_helper_field):
+        client.post(volunteer_form.url, {**VALID_DATA, "helper": "NP"})
+
+        form_data = FormSubmission.objects.get(page=volunteer_form).form_data
+        assert "helper" not in form_data
+        assert form_data["your_name"] == "Sam"
+
+    def test_the_helper_is_not_emailed(self, client, volunteer_form, with_a_helper_field):
+        client.post(volunteer_form.url, {**VALID_DATA, "helper": "NP"})
+
+        body = mail.outbox[0].body
+        assert "Helper" not in body
+        assert "Your name: Sam" in body
 
 
 class TestSubmissionsInTheAdmin:
