@@ -260,8 +260,13 @@ class ContactTeam(Orderable):
     class Meta(Orderable.Meta):
         verbose_name = "team"
 
-    def clean(self):
-        super().clean()
+    def clean_fields(self, exclude=None):
+        """Email or phone, checked here rather than in clean() because only this sees which
+        fields the form already rejected: a mistyped email then gets Django's message alone,
+        not also this one telling the editor to add the email they typed."""
+        super().clean_fields(exclude=exclude)
+        if {"email", "phone"} & set(exclude or ()):
+            return
         if not self.email and not self.phone:
             raise ValidationError({"email": TEAM_CONTACT_NEEDED})
 

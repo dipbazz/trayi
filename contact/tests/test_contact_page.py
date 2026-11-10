@@ -423,6 +423,15 @@ class TestOtherContacts:
         assert errors == {"email": [TEAM_CONTACT_NEEDED]}
         assert not ContactPage.objects.exists()
 
+    def test_a_mistyped_team_email_gets_one_message(self, client, editor, home_page):
+        team = {"name": "Finance", "email": "finance@"}
+
+        response = add_contact_page(client, editor, home_page, teams=[team])
+
+        assert response.status_code == 200
+        errors = response.context["form"].formsets["teams"].forms[0].errors
+        assert errors == {"email": ["Enter a valid email address."]}
+
     def test_a_team_needs_a_name_to_publish(self, client, moderator, home_page, privacy_notice):
         team = {"name": "", "email": "finance@brightwell.example"}
 
