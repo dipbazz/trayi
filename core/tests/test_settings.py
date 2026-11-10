@@ -1342,13 +1342,20 @@ class TestMapLink:
         "pasted", ["http://maps.example/brightwell", "Ward 4, Lalitpur", "ftp://maps.example/x"]
     )
     def test_only_an_https_link_can_be_saved(self, client, moderator, site, pasted):
+        # A link saved before, so the test doesn't hang on what an earlier test left (the demo's
+        # link, once a test in this module has used `demo_content`).
+        saved = "https://maps.example/saved"
+        settings = SiteSettings.for_site(site)
+        settings.map_url = saved
+        settings.save(update_fields=["map_url"])
+
         response = self.save(client, moderator, site, pasted)
 
         assert response.status_code == 200
         page = BeautifulSoup(response.content, "html.parser")
         errors = [error.get_text(" ", strip=True) for error in page.select(".error-message")]
         assert errors == ["Paste the link that starts with https://"]
-        assert SiteSettings.for_site(site).map_url == ""
+        assert SiteSettings.objects.get(site=site).map_url == saved
 
     def test_it_is_on_the_organisation_tab_and_says_where_it_shows(self, client, moderator, site):
         client.force_login(moderator)
