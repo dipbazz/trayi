@@ -42,6 +42,7 @@ from core.brand import (
     validate_accent_colour,
     validate_main_colour,
 )
+from core.fields import HttpsURLField
 from core.forms import TextInEachLanguageForm
 from core.languages import language_codes, main_language, reading_language
 from core.menu import DONATE, SECTIONS, wrong_choices
@@ -252,6 +253,13 @@ class SiteSettings(TextInEachLanguageMixin, PreviewableMixin, ClusterableModel, 
         default="NP",
         help_text="The country selected by default for phone numbers on forms.",
     )
+    map_url = HttpsURLField(
+        "map link",
+        blank=True,
+        help_text="Shown as “Open in a map” under your address on the Contact page. Open your "
+        "office in Google Maps or OpenStreetMap, choose Share, and paste the link that starts "
+        "with https://.",
+    )
     facebook_url = models.URLField(blank=True)
     instagram_url = models.URLField(blank=True)
     linkedin_url = models.URLField(blank=True)
@@ -315,6 +323,7 @@ class SiteSettings(TextInEachLanguageMixin, PreviewableMixin, ClusterableModel, 
             [
                 FieldPanel("contact_email"),
                 FieldPanel("phone"),
+                FieldPanel("map_url"),
                 FieldPanel("takes_gifts_in_person"),
                 FieldPanel("currency"),
                 FieldPanel("phone_country"),

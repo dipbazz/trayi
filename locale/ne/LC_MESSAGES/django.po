@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: trayi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-08 12:29+0000\n"
+"POT-Creation-Date: 2026-11-10 11:36+0000\n"
 "PO-Revision-Date: 2026-10-08 00:00+0000\n"
 "Last-Translator: Trayi\n"
 "Language-Team: Nepali\n"
@@ -796,6 +796,12 @@ msgstr "फोटो पठाउन <a href=\"mailto:%(email)s\">%(email)s</a> 
 
 msgid "General enquiries"
 msgstr "सामान्य सोधपुछ"
+
+msgid "Open in a map"
+msgstr "नक्सामा हेर्नुहोस्"
+
+msgid "Other contacts"
+msgstr "अन्य सम्पर्कहरू"
 
 msgid "Send us a message"
 msgstr "हामीलाई सन्देश पठाउनुहोस्"

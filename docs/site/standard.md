@@ -107,7 +107,8 @@ One per home page, so one in each language, at `/contact/`. In this order, as pl
 
 1. The title and the charity's introduction; when the site has an email, the introduction ends
    with "To send photos, email them to …", since the form takes no uploads.
-2. **General enquiries:** the phone (to call), the email and the address from Site settings, the
+2. **General enquiries:** the phone (to call), the email and the address from Site settings, with
+   **Open in a map** under the address when Site settings has a map link (https only), the
    same contact the footer shows. Left out when all three are empty.
 3. **Other contacts,** only when there are any: each team's name, with its email or phone.
 4. **Send us a message:** the form ([Forms](#forms)), the privacy link and Send.
@@ -170,7 +171,7 @@ Delete this section once [#191](https://github.com/dipbazz/trayi/issues/191) is 
 | Appeals and Stories | Built | |
 | Get involved | A volunteer form at `/volunteer/` | [#168](https://github.com/dipbazz/trayi/issues/168) |
 | Forms | Built: Contact has the fixed core; the volunteer form is all the editor's questions | |
-| Contact | Built, without Other contacts and the address's map link | [#322](https://github.com/dipbazz/trayi/issues/322) |
+| Contact | Built | |
 | Accessibility statement | Missing | [#167](https://github.com/dipbazz/trayi/issues/167) |
 | Home page | Banner, current appeals, then any blocks | [#173](https://github.com/dipbazz/trayi/issues/173) |
 | Donate page | Introduction, payment notice, pledge form, then any blocks | [#174](https://github.com/dipbazz/trayi/issues/174) |
