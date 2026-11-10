@@ -225,7 +225,15 @@ the admin. Each language's page keeps its own messages and its own extra questio
 - **General enquiries** come from Site settings: the phone, linked with `tel_href`
   (`core/templatetags/phone_tags.py`), which adds the site's phone country to a number written
   the local way and links the first of several; text with no number it can read is shown
-  without a link. Then the email and the address.
+  without a link. Then the email and the address, with **Open in a map** under it when Site
+  settings has a **Map link** (Organisation tab): a link the charity pastes from Google Maps or
+  OpenStreetMap, https only (`HttpsURLField`, `core/fields.py`). There's no embedded map and no
+  link built from the address text, which in Nepal is often too informal for a map search.
+- **Other contacts** are teams such as Finance or Volunteering (`ContactTeam`, the page's
+  **Other contacts** panel): a name and an email or phone, at least one. They're part of the
+  page, so Translate copies them and each language keeps its own. Shown after General
+  enquiries, in the same column, as H2 Other contacts with each team's name as an H3, and left
+  out when there are none.
 - The thank-you page has the standard's default text, which the page's own thank-you text
   replaces.
 - Reply-To is the core Email, and the admin's list and export show the core fields first.

@@ -1,6 +1,7 @@
 import logging
 
 from django import forms
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.http import HttpResponseRedirect
 from django.utils import translation
@@ -17,6 +18,7 @@ from wagtail.contrib.forms.forms import BaseForm, FormBuilder
 from wagtail.contrib.forms.models import AbstractEmailForm, AbstractFormField
 from wagtail.contrib.forms.panels import FormSubmissionsPanel
 from wagtail.fields import RichTextField
+from wagtail.models import Orderable
 
 from core.honeypot import HoneypotFormMixin
 from core.languages import main_language
@@ -240,6 +242,35 @@ class ContactFormField(AbstractFormField):
     page = ParentalKey("ContactPage", on_delete=models.CASCADE, related_name="form_fields")
 
 
+# Editors see it, in the admin's English.
+TEAM_CONTACT_NEEDED = "Give this team an email or a phone number, or both."
+
+
+class ContactTeam(Orderable):
+    """A team listed under Other contacts on the Contact page, such as Finance (#322). It's part
+    of the page, so Translate copies it with the page and each language keeps its own."""
+
+    page = ParentalKey("ContactPage", on_delete=models.CASCADE, related_name="teams")
+    name = models.CharField(max_length=100, help_text="For example, Finance or Volunteering.")
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=30, blank=True)
+
+    panels = [FieldPanel("name"), FieldRowPanel([FieldPanel("email"), FieldPanel("phone")])]
+
+    class Meta(Orderable.Meta):
+        verbose_name = "team"
+
+    def clean_fields(self, exclude=None):
+        """Email or phone, checked here rather than in clean() because only this sees which
+        fields the form already rejected: a mistyped email then gets Django's message alone,
+        not also this one telling the editor to add the email they typed."""
+        super().clean_fields(exclude=exclude)
+        if {"email", "phone"} & set(exclude or ()):
+            return
+        if not self.email and not self.phone:
+            raise ValidationError({"email": TEAM_CONTACT_NEEDED})
+
+
 class ContactPage(EmailFormPage):
     """The standard's Contact page (#167): the intro, General enquiries from Site settings, and
     a message form with a fixed core, then the editor's own questions. One per home page, so
@@ -258,6 +289,13 @@ class ContactPage(EmailFormPage):
     content_panels = AbstractEmailForm.content_panels + [
         FormSubmissionsPanel(),
         FieldPanel("intro"),
+        InlinePanel(
+            "teams",
+            heading="Other contacts",
+            label="Team",
+            help_text="Listed after General enquiries, which come from Site settings. Add a team "
+            "only if people can reach it directly.",
+        ),
         InlinePanel(
             "form_fields",
             label="Extra questions",

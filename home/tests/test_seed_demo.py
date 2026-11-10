@@ -61,6 +61,18 @@ def test_has_a_contact_page_in_both_languages_that_emails_the_team(seeded, clien
     assert "हाम्रो बारेमा कसरी थाहा पाउनुभयो" in client.get(nepali.url).content.decode()
 
 
+def test_contact_page_lists_two_teams_and_a_map_link_in_both_languages(seeded, client):
+    contact = SiteSettings.for_site(seeded).contact_page.specific
+    nepali = contact.get_translation(Locale.objects.get(language_code="ne"))
+
+    html = client.get(contact.url).content.decode()
+    assert "Other contacts" in html and "Finance" in html and "Volunteering" in html
+    assert 'href="https://maps.example/brightwell"' in html
+    nepali_html = client.get(nepali.url).content.decode()
+    assert "आर्थिक शाखा" in nepali_html and "स्वयंसेवा" in nepali_html
+    assert 'href="https://maps.example/brightwell"' in nepali_html
+
+
 def test_gives_the_charity_a_logo_in_the_header(seeded, client):
     logo = SiteSettings.for_site(seeded).logo
 

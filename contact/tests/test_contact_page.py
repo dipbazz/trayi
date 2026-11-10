@@ -3,12 +3,19 @@ import io
 import pytest
 from bs4 import BeautifulSoup
 from django.core import mail
+from django.core.exceptions import ValidationError
 from django.urls import reverse
 from openpyxl import load_workbook
 from wagtail.contrib.forms.models import FormSubmission
 from wagtail.test.utils.form_data import inline_formset, nested_form_data, rich_text
 
-from contact.models import CONTACT_NEEDED, ContactFormField, ContactPage
+from contact.models import (
+    CONTACT_NEEDED,
+    TEAM_CONTACT_NEEDED,
+    ContactFormField,
+    ContactPage,
+    ContactTeam,
+)
 from core.models import SiteSettings
 from core.publishing import ADD_RECIPIENT, reasons_not_to_publish
 from home.models import StandardPage
@@ -188,25 +195,33 @@ class TestEmailOrPhone:
         assert response.status_code == 303
 
 
+def add_contact_page(client, user, home_page, labels=(), teams=(), action="action-save"):
+    """Add a Contact page through the admin, as `user`, with these extra questions and teams:
+    saved as a draft, or with action="action-publish" published, which checks required fields."""
+    client.force_login(user)
+    url = reverse("wagtailadmin_pages:add", args=("contact", "contactpage", home_page.pk))
+    data = nested_form_data(
+        {
+            "title": "Contact us",
+            "slug": "contact",
+            "intro": rich_text(""),
+            "thank_you_text": rich_text(""),
+            "to_address": "hello@brightwell.example",
+            "from_address": "",
+            "subject": "",
+            "teams": inline_formset([{"email": "", "phone": "", **team} for team in teams]),
+            "form_fields": inline_formset(
+                [{"label": label, "field_type": "singleline"} for label in labels]
+            ),
+            action: action,
+        }
+    )
+    return client.post(url, data)
+
+
 class TestReservedNames:
     def add(self, client, user, home_page, labels):
-        client.force_login(user)
-        url = reverse("wagtailadmin_pages:add", args=("contact", "contactpage", home_page.pk))
-        data = nested_form_data(
-            {
-                "title": "Contact us",
-                "slug": "contact",
-                "intro": rich_text(""),
-                "thank_you_text": rich_text(""),
-                "to_address": "hello@brightwell.example",
-                "from_address": "",
-                "subject": "",
-                "form_fields": inline_formset(
-                    [{"label": label, "field_type": "singleline"} for label in labels]
-                ),
-            }
-        )
-        return client.post(url, data)
+        return add_contact_page(client, user, home_page, labels=labels)
 
     @pytest.mark.parametrize("label", ["Email", "Phone", "Name", "Message", "Submit time"])
     def test_a_question_cant_take_a_core_fields_name(self, client, editor, home_page, label):
@@ -295,6 +310,28 @@ class TestThePage:
         assert "0123 456 7890" in section.get_text()
         assert not section.select("a[href^='tel:']")
 
+    def test_the_address_links_to_the_charitys_map(self, client, contact_page, details):
+        details.map_url = "https://maps.example/brightwell"
+        details.save()
+
+        section = soup(client.get(contact_page.url)).select_one("#general-enquiries").parent
+        link = section.find("a", string="Open in a map")
+        assert link["href"] == "https://maps.example/brightwell"
+        assert link.find_previous("address")
+
+    def test_no_map_link_without_one_pasted(self, client, contact_page, details):
+        page = soup(client.get(contact_page.url))
+
+        assert not page.find("a", string="Open in a map")
+
+    def test_no_map_link_without_an_address(self, client, contact_page, site):
+        settings = SiteSettings.for_site(site)
+        settings.contact_email = "hello@brightwell.example"
+        settings.map_url = "https://maps.example/brightwell"
+        settings.save()
+
+        assert not soup(client.get(contact_page.url)).find("a", string="Open in a map")
+
     def test_without_any_details_the_form_still_works(self, client, contact_page):
         page = soup(client.get(contact_page.url))
 
@@ -313,6 +350,111 @@ class TestThePage:
         page = soup(client.post(contact_page.url, {**SENT, "name": ""}))
 
         assert page.select_one(".error-summary h2").get_text() == "Please check your message"
+
+
+class TestOtherContacts:
+    """Teams such as Finance or Volunteering, listed on the page under General enquiries
+    (#322): each a name and an email or phone."""
+
+    @pytest.fixture
+    def with_teams(self, contact_page):
+        contact_page.teams = [
+            ContactTeam(name="Volunteering", email="volunteer@brightwell.example"),
+            ContactTeam(name="Finance", phone="01-5550123"),
+        ]
+        contact_page.save_revision().publish()
+        return contact_page
+
+    def test_each_team_is_listed_under_its_name(self, client, with_teams):
+        page = soup(client.get(with_teams.url))
+
+        section = page.select_one("h2#other-contacts").parent
+        assert section.h2.get_text() == "Other contacts"
+        assert [h3.get_text() for h3 in section.select("h3")] == ["Volunteering", "Finance"]
+        assert section.select_one("a[href='mailto:volunteer@brightwell.example']")
+        assert section.select_one("a[href='tel:+97715550123']").get_text() == "01-5550123"
+
+    def test_they_sit_with_general_enquiries_before_the_form(self, client, with_teams, details):
+        page = soup(client.get(with_teams.url))
+
+        details_column = page.select_one(".contact-columns > .contact-details")
+        headings = [h2["id"] for h2 in details_column.select("h2")]
+        assert headings == ["general-enquiries", "other-contacts"]
+        assert details_column.find_next_sibling(class_="contact-form")
+
+    def test_teams_alone_still_get_the_details_column(self, client, with_teams):
+        page = soup(client.get(with_teams.url))
+
+        assert not page.select("#general-enquiries")
+        assert page.select_one(".contact-columns.has-details #other-contacts")
+
+    def test_no_heading_without_teams(self, client, contact_page, details):
+        page = soup(client.get(contact_page.url))
+
+        assert not page.select("#other-contacts")
+
+    def test_a_team_needs_an_email_or_phone(self):
+        team = ContactTeam(name="Finance")
+
+        with pytest.raises(ValidationError) as raised:
+            team.full_clean(exclude=["page"])
+        assert raised.value.message_dict == {"email": [TEAM_CONTACT_NEEDED]}
+
+    def test_editor_adds_teams_in_the_admin(self, client, editor, home_page):
+        teams = [
+            {"name": "Volunteering", "email": "volunteer@brightwell.example"},
+            {"name": "Finance", "phone": "01-5550123"},
+        ]
+
+        response = add_contact_page(client, editor, home_page, teams=teams)
+
+        assert response.status_code == 302
+        saved = ContactPage.objects.get().teams.order_by("sort_order")
+        assert [(team.name, team.email, team.phone) for team in saved] == [
+            ("Volunteering", "volunteer@brightwell.example", ""),
+            ("Finance", "", "01-5550123"),
+        ]
+
+    def test_a_team_with_neither_cant_be_saved(self, client, editor, home_page):
+        response = add_contact_page(client, editor, home_page, teams=[{"name": "Finance"}])
+
+        assert response.status_code == 200
+        errors = response.context["form"].formsets["teams"].forms[0].errors
+        assert errors == {"email": [TEAM_CONTACT_NEEDED]}
+        assert not ContactPage.objects.exists()
+
+    def test_a_mistyped_team_email_gets_one_message(self, client, editor, home_page):
+        team = {"name": "Finance", "email": "finance@"}
+
+        response = add_contact_page(client, editor, home_page, teams=[team])
+
+        assert response.status_code == 200
+        errors = response.context["form"].formsets["teams"].forms[0].errors
+        assert errors == {"email": ["Enter a valid email address."]}
+
+    def test_a_team_needs_a_name_to_publish(self, client, moderator, home_page, privacy_notice):
+        team = {"name": "", "email": "finance@brightwell.example"}
+
+        response = add_contact_page(
+            client, moderator, home_page, teams=[team], action="action-publish"
+        )
+
+        assert response.status_code == 200
+        assert "name" in response.context["form"].formsets["teams"].forms[0].errors
+
+    def test_translate_copies_the_teams(self, client, with_teams, nepali_home_page):
+        nepali = with_teams.copy_for_translation(nepali_home_page.locale)
+        teams = list(nepali.teams.all())
+        teams[1].name = "आर्थिक"
+        nepali.teams = teams
+        nepali.save_revision().publish()
+
+        page = soup(client.get(nepali.url))
+
+        section = page.select_one("h2#other-contacts").parent
+        assert section.h2.get_text() == "अन्य सम्पर्कहरू"
+        assert [h3.get_text() for h3 in section.select("h3")] == ["Volunteering", "आर्थिक"]
+        assert [team.name for team in with_teams.teams.all()] == ["Volunteering", "Finance"]
 
 
 class TestInNepali:
@@ -349,6 +491,15 @@ class TestInNepali:
         assert "Your name: Sam" in body
         assert "Phone: +9779841234567" in body
         assert "Your message: Can I visit the school?" in body
+
+    def test_the_map_link_is_in_nepali(self, client, nepali_contact, details):
+        details.map_url = "https://maps.example/brightwell"
+        details.save()
+
+        page = soup(client.get(nepali_contact.url))
+
+        link = page.find("a", href="https://maps.example/brightwell")
+        assert link.get_text() == "नक्सामा हेर्नुहोस्"
 
     def test_says_email_or_phone_in_nepali(self, client, nepali_contact):
         page = soup(client.post(nepali_contact.url, {**SENT, "email": ""}))

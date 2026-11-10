@@ -1309,6 +1309,67 @@ def show_banner(site, message, nepali=None, link_page=None):
     banner.save()
 
 
+class TestMapLink:
+    """Site settings → Organisation: a link the charity pastes from a map, for the Contact page's
+    Open in a map (#322). How it shows there: contact/tests/test_contact_page.py."""
+
+    def save(self, client, moderator, site, map_url):
+        client.force_login(moderator)
+        url = reverse("wagtailsettings:edit", args=["core", "sitesettings", site.pk])
+        form = {
+            "currency": "NPR",
+            "phone_country": "NP",
+            "map_url": map_url,
+            "main_colour": DEFAULT_MAIN,
+            "accent_colour": DEFAULT_ACCENT,
+            "name_bar_style": "dark",
+            "logo_size": DEFAULT_LOGO_SIZE,
+            "footer_style": "dark",
+            "font_style": "modern",
+            "texts": registered_texts(site),
+        }
+        return client.post(url, nested_form_data(form))
+
+    def test_moderator_pastes_a_map_link(self, client, moderator, site):
+        link = "https://www.openstreetmap.org/?mlat=27.6710&mlon=85.3240#map=18/27.6710/85.3240"
+
+        response = self.save(client, moderator, site, link)
+
+        assert response.status_code == 302
+        assert SiteSettings.for_site(site).map_url == link
+
+    @pytest.mark.parametrize(
+        "pasted", ["http://maps.example/brightwell", "Ward 4, Lalitpur", "ftp://maps.example/x"]
+    )
+    def test_only_an_https_link_can_be_saved(self, client, moderator, site, pasted):
+        # A link saved before, so the test doesn't hang on what an earlier test left (the demo's
+        # link, once a test in this module has used `demo_content`).
+        saved = "https://maps.example/saved"
+        settings = SiteSettings.for_site(site)
+        settings.map_url = saved
+        settings.save(update_fields=["map_url"])
+
+        response = self.save(client, moderator, site, pasted)
+
+        assert response.status_code == 200
+        page = BeautifulSoup(response.content, "html.parser")
+        errors = [error.get_text(" ", strip=True) for error in page.select(".error-message")]
+        assert errors == ["Paste the link that starts with https://"]
+        assert SiteSettings.objects.get(site=site).map_url == saved
+
+    def test_it_is_on_the_organisation_tab_and_says_where_it_shows(self, client, moderator, site):
+        client.force_login(moderator)
+        url = reverse("wagtailsettings:edit", args=["core", "sitesettings", site.pk])
+
+        page = BeautifulSoup(client.get(url).content, "html.parser")
+
+        organisation = page.select_one("section#tab-organisation")
+        assert organisation.select_one("input[name='map_url']")
+        field = SiteSettings._meta.get_field("map_url")
+        assert field.verbose_name == "map link"
+        assert "Open in a map" in field.help_text
+
+
 def registered_texts(site):
     """Site settings' `texts` with only the registration line, which every save needs (#172)."""
     return texts_in_every_language(site, **REGISTERED)

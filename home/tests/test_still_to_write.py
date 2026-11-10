@@ -265,8 +265,9 @@ class TestWhenEveryPageIsDone:
         # 40 when the done check looked each translation up again; one more since the
         # registration line is read from each language's row (#172), one fewer since the pages
         # chosen in Site settings are read in one query (#171). Each standard page's two
-        # translations cost six: the Contact page added them (#321).
-        with django_assert_max_num_queries(40):
+        # translations cost six: the Contact page added them (#321). Two more since the
+        # placeholder check reads each Contact page translation's other contacts (#322).
+        with django_assert_max_num_queries(42):
             panel(admin, site)
 
     def test_the_line_goes_seven_days_after_the_last_page_went_live(self, home_page, admin):

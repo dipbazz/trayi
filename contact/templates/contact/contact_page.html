@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load honeypot_tags i18n phone_tags wagtailcore_tags %}
+{% load honeypot_tags i18n wagtailcore_tags %}
 
 {% block body_class %}template-contactpage form-page{% endblock %}
 
@@ -13,17 +13,36 @@
             <p>{% blocktranslate with email=site_settings.contact_email %}To send photos, email them to <a href="mailto:{{ email }}">{{ email }}</a>.{% endblocktranslate %}</p>
         {% endif %}
 
-        {% with has_details=site_settings.phone|default:site_settings.contact_email|default:site_settings.address %}
-            <div class="contact-columns{% if has_details %} has-details{% endif %}">
-                {% if has_details %}
-                    <section class="contact-details" aria-labelledby="general-enquiries">
-                        <h2 id="general-enquiries">{% translate "General enquiries" %}</h2>
-                        <ul class="contact-list">
-                            {% if site_settings.phone %}{% with href=site_settings.phone|tel_href:site_settings.phone_country %}<li>{% if href %}<a href="{{ href }}">{{ site_settings.phone }}</a>{% else %}{{ site_settings.phone }}{% endif %}</li>{% endwith %}{% endif %}
-                            {% if site_settings.contact_email %}<li><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></li>{% endif %}
-                        </ul>
-                        {% if site_settings.address %}<address>{{ site_settings.address|linebreaksbr }}</address>{% endif %}
-                    </section>
+        {% with general=site_settings.phone|default:site_settings.contact_email|default:site_settings.address teams=page.teams.all %}
+            <div class="contact-columns{% if general or teams %} has-details{% endif %}">
+                {% if general or teams %}
+                    <div class="contact-details">
+                        {% if general %}
+                            <section aria-labelledby="general-enquiries">
+                                <h2 id="general-enquiries">{% translate "General enquiries" %}</h2>
+                                <ul class="contact-list">
+                                    {% if site_settings.phone %}{% include "contact/includes/phone_item.html" with phone=site_settings.phone %}{% endif %}
+                                    {% if site_settings.contact_email %}<li><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></li>{% endif %}
+                                </ul>
+                                {% if site_settings.address %}
+                                    <address>{{ site_settings.address|linebreaksbr }}</address>
+                                    {% if site_settings.map_url %}<ul class="contact-list"><li><a href="{{ site_settings.map_url }}">{% translate "Open in a map" %}</a></li></ul>{% endif %}
+                                {% endif %}
+                            </section>
+                        {% endif %}
+                        {% if teams %}
+                            <section aria-labelledby="other-contacts">
+                                <h2 id="other-contacts">{% translate "Other contacts" %}</h2>
+                                {% for team in teams %}
+                                    <h3>{{ team.name }}</h3>
+                                    <ul class="contact-list">
+                                        {% if team.phone %}{% include "contact/includes/phone_item.html" with phone=team.phone %}{% endif %}
+                                        {% if team.email %}<li><a href="mailto:{{ team.email }}">{{ team.email }}</a></li>{% endif %}
+                                    </ul>
+                                {% endfor %}
+                            </section>
+                        {% endif %}
+                    </div>
                 {% endif %}
 
                 <section class="contact-form" aria-labelledby="send-a-message">

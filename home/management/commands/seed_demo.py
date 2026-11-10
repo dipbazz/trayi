@@ -23,7 +23,7 @@ from campaigns.models import (
     QRCode,
     QRCodeName,
 )
-from contact.models import ContactFormField, ContactPage, FormField, FormPage
+from contact.models import ContactFormField, ContactPage, ContactTeam, FormField, FormPage
 from core.models import (
     AnnouncementBanner,
     AnnouncementBannerText,
@@ -565,6 +565,11 @@ class Command(BaseCommand):
                 label="How did you hear about us?", field_type="singleline", required=False
             ),
         ]
+        # Two teams under Other contacts: one with both ways to reach it, one with email only.
+        contact.teams = [
+            ContactTeam(name="Finance", email="finance@brightwell.example", phone="0123 456 7891"),
+            ContactTeam(name="Volunteering", email="volunteers@brightwell.example"),
+        ]
         publish(home, contact)
 
         for order, (name, colour, shape) in enumerate(PARTNERS):
@@ -619,6 +624,7 @@ class Command(BaseCommand):
         settings = SiteSettings.for_site(site)
         settings.contact_email = "hello@brightwell.example"
         settings.phone = "0123 456 7890"
+        settings.map_url = "https://maps.example/brightwell"
         settings.takes_gifts_in_person = True
         settings.donate_page = donate
         # The menu's sections. The volunteer form stands in for Get involved until #168 builds it.
@@ -795,6 +801,11 @@ class Command(BaseCommand):
         (question,) = nepali_contact.form_fields.all()
         question.label = "तपाईंले हाम्रो बारेमा कसरी थाहा पाउनुभयो?"
         nepali_contact.form_fields = [question]
+        # Translate copies the teams; their names are the page's to word, like its question.
+        finance, volunteering = nepali_contact.teams.all()
+        finance.name = "आर्थिक शाखा"
+        volunteering.name = "स्वयंसेवा"
+        nepali_contact.teams = [finance, volunteering]
         nepali_contact.save_revision().publish()
 
     def add_qr_code(self):

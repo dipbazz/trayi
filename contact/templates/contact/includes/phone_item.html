@@ -1,0 +1,1 @@
+{% load phone_tags %}{# A number to call, as a list item: linked when tel_href can read it, else as written. #}{% with href=phone|tel_href:site_settings.phone_country %}<li>{% if href %}<a href="{{ href }}">{{ phone }}</a>{% else %}{{ phone }}{% endif %}</li>{% endwith %}
