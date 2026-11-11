@@ -12,7 +12,12 @@
 
         <section aria-labelledby="how-well">
             <h2 id="how-well">{% translate "How well this site works" %}</h2>
-            <p>{% translate "This website partially conforms to the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA. Partially means some parts don't meet the standard yet: they're listed below." %}</p>
+            {# Never "fully": nothing has audited the whole standard (docs/site/standard.md). #}
+            {% if platform.known_problems or page.content_problems %}
+                <p>{% translate "This website partially conforms to the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA. Partially means some parts don't meet the standard yet: they're listed below." %}</p>
+            {% else %}
+                <p>{% translate "This website partially conforms to the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA. Partially means not every part of the standard has been checked yet." %}</p>
+            {% endif %}
             <p>{% translate "Every change to the website is checked before it's released:" %}</p>
             <ul>
                 {% for check in platform.checks %}<li>{{ check }}</li>{% endfor %}

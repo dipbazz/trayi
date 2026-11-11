@@ -99,6 +99,26 @@ class TestPlatformPart:
             " ", strip=True
         )
 
+    def test_with_nothing_listed_doesnt_point_to_a_list(self, client, home_page, monkeypatch):
+        # Still "partially": nothing has audited the whole of WCAG 2.2 AA (standard.md).
+        monkeypatch.setattr(accessibility, "KNOWN_PROBLEMS", ())
+        add_statement(home_page)
+
+        text = section(client, "How well this site works").get_text(" ", strip=True)
+
+        assert "listed below" not in text
+        assert "Partially means not every part of the standard has been checked yet." in text
+
+    def test_points_to_the_charitys_list_when_only_it_has_problems(
+        self, client, home_page, monkeypatch
+    ):
+        monkeypatch.setattr(accessibility, "KNOWN_PROBLEMS", ())
+        add_statement(home_page, content_problems="<ul><li>Our 2024 report is a PDF.</li></ul>")
+
+        text = section(client, "How well this site works").get_text(" ", strip=True)
+
+        assert "they're listed below." in text
+
 
 class TestCharityPart:
     """What the charity writes about its own content."""

@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: trayi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-11 13:03+0000\n"
+"POT-Creation-Date: 2026-11-11 13:08+0000\n"
 "PO-Revision-Date: 2026-10-08 00:00+0000\n"
 "Last-Translator: Trayi\n"
 "Language-Team: Nepali\n"
@@ -997,6 +997,9 @@ msgstr "यो साइट कत्तिको राम्रोसँग �
 
 msgid "This website partially conforms to the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA. Partially means some parts don't meet the standard yet: they're listed below."
 msgstr "यो वेबसाइटले वेब सामग्री पहुँचयोग्यता निर्देशिका (WCAG) २.२ को AA तह आंशिक रूपमा पूरा गर्छ। आंशिक भनेको केही भागले अझै यो मापदण्ड पूरा गर्दैनन्: ती तल दिइएका छन्।"
+
+msgid "This website partially conforms to the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA. Partially means not every part of the standard has been checked yet."
+msgstr "यो वेबसाइटले वेब सामग्री पहुँचयोग्यता निर्देशिका (WCAG) २.२ को AA तह आंशिक रूपमा पूरा गर्छ। आंशिक भनेको मापदण्डका सबै भाग अझै जाँचिएका छैनन्।"
 
 msgid "Every change to the website is checked before it's released:"
 msgstr "वेबसाइटमा हुने हरेक परिवर्तन सार्वजनिक गर्नुअघि जाँचिन्छ:"

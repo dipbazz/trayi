@@ -126,7 +126,8 @@ One per home page, so one in each language, at `/accessibility/`, in W3C's order
 1. The title and the charity's commitment, one line.
 2. **How well this site works:** that the site partially conforms to WCAG 2.2 at level AA, and
    the checks every change gets before it's released. Nothing has audited the whole of WCAG 2.2
-   AA, so the statement doesn't say "meets".
+   AA, so the statement doesn't say "meets". "Partially" points to the problems listed below, or,
+   with none listed, says not every part of the standard has been checked yet.
 3. **What doesn't work yet:** the known problems in the website itself and the day they were last
    reviewed, then the charity's own list for what it has published (PDFs, videos without
    captions, photos without descriptions) and the day it last checked.

@@ -135,7 +135,8 @@ page in the language being read once it's live and public, else to the main lang
 its list, found in the same query as the chosen pages (`core/context_processors.py`).
 
 - **The platform's part is in the code** (`core/accessibility.py`), translated, the same on
-  every site: that the site partially conforms to WCAG 2.2 AA, the checks behind that
+  every site: that the site partially conforms to WCAG 2.2 AA (pointing to the problems listed
+  below, or, with none in either list, saying not every part has been checked), the checks behind that
   (`CHECKS`), the known problems in the website itself (`KNOWN_PROBLEMS`) and the day they were
   last reviewed (`REVIEWED`). A fix to a listed problem takes it off the list in the same pull
   request, and each release checks the list and moves the date
