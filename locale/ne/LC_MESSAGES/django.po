@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: trayi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-11 13:08+0000\n"
+"POT-Creation-Date: 2026-11-11 13:16+0000\n"
 "PO-Revision-Date: 2026-10-08 00:00+0000\n"
 "Last-Translator: Trayi\n"
 "Language-Team: Nepali\n"
@@ -800,9 +800,6 @@ msgstr "फोटो पठाउन <a href=\"mailto:%(email)s\">%(email)s</a> 
 msgid "General enquiries"
 msgstr "सामान्य सोधपुछ"
 
-msgid "Open in a map"
-msgstr "नक्सामा हेर्नुहोस्"
-
 msgid "Other contacts"
 msgstr "अन्य सम्पर्कहरू"
 
@@ -837,6 +834,9 @@ msgstr "कृपया आफ्ना उत्तरहरू जाँच्
 
 msgid "Thank you, we have received your message."
 msgstr "धन्यवाद, हामीले तपाईंको सन्देश प्राप्त गर्‍यौं।"
+
+msgid "Open in a map"
+msgstr "नक्सामा हेर्नुहोस्"
 
 msgid "text and buttons have enough colour contrast, whatever colours the charity chooses"
 msgstr "संस्थाले जुनसुकै रङ रोजे पनि, अक्षर र बटनहरू पृष्ठभूमिबाट प्रस्ट छुट्टिन्छन्"

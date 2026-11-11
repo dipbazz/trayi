@@ -147,8 +147,10 @@ its list, found in the same query as the chosen pages (`core/context_processors.
   last checked its content. The list and the date show only when filled in. A new site's draft
   has a commitment and a placeholder in the list, so it can't go live until the charity writes
   its problems or deletes the line.
-- **Tell us about a problem** shows the phone, email and address from Site settings and a link
-  to the Contact page when it's live and public. It's always shown, so a visitor knows they can
+- **Tell us about a problem** shows the phone, email and address from Site settings, with the
+  address's "Open in a map" link, as the Contact page's General enquiries do (one include,
+  `contact/includes/general_enquiries.html`), and a link to the Contact page when it's live and
+  public. It's always shown, so a visitor knows they can
   ask; while there's none of them, the dashboard's [Pages still to write](#pages-still-to-write)
   says **No contact details** on the live statement.
 

@@ -6,7 +6,7 @@ from wagtail.models import PageViewRestriction
 
 from contact.models import ContactPage
 from core import accessibility
-from core.models import SiteSettings
+from core.models import SiteSettings, SiteSettingsText
 from home.models import AccessibilityStatementPage, StandardPage
 
 pytestmark = pytest.mark.django_db
@@ -169,6 +169,24 @@ class TestTellUs:
         assert [(a.get_text(), a["href"]) for a in part.select("a")] == [
             ("01-4567890", "tel:+97714567890"),
             ("hello@brightwell.example", "mailto:hello@brightwell.example"),
+        ]
+
+    def test_gives_the_address_with_its_map_link_as_the_contact_page_does(
+        self, client, site, home_page
+    ):
+        settings = SiteSettings.for_site(site)
+        settings.map_url = "https://maps.example/brightwell"
+        settings.save()
+        SiteSettingsText.objects.update_or_create(
+            settings=settings, locale=home_page.locale, defaults={"address": "Ward 4, Lalitpur"}
+        )
+        add_statement(home_page)
+
+        part = section(client, self.HEADING)
+
+        assert part.select_one("address").get_text(strip=True) == "Ward 4, Lalitpur"
+        assert [(a.get_text(), a["href"]) for a in part.select("a")] == [
+            ("Open in a map", "https://maps.example/brightwell")
         ]
 
     def test_links_to_the_contact_page_once_it_is_live(
