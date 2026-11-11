@@ -558,7 +558,11 @@ class AnnouncementBanner(TextInEachLanguageMixin, ClusterableModel, BaseSiteSett
         blank=True,
         on_delete=models.SET_NULL,
         related_name="+",
-        help_text="Readers of another language go to its translation, once it's published.",
+        help_text=(
+            "While this page is a draft, unpublished or behind a password or login, the banner "
+            "shows its message without a link. Readers of another language go to its "
+            "translation, once it's published."
+        ),
     )
 
     panels = [

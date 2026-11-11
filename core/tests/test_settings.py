@@ -320,6 +320,12 @@ class TestAnnouncementBanner:
         assert f'href="{appeal.url}"' in html
         assert f'href="{nepali_appeal.url}"' not in html
 
+    def test_the_link_help_text_says_a_draft_or_private_page_gets_no_link(self):
+        help_text = AnnouncementBanner._meta.get_field("link_page").help_text
+
+        assert "draft, unpublished or behind a password or login" in help_text
+        assert "without a link" in help_text
+
     def test_each_site_has_its_own_banner(self, site, home_page):
         other = Site.objects.create(hostname="other.example", root_page=home_page)
         show_banner(site, "Flood relief")
