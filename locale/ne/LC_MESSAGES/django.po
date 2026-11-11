@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: trayi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-11 12:07+0000\n"
+"POT-Creation-Date: 2026-11-11 13:03+0000\n"
 "PO-Revision-Date: 2026-10-08 00:00+0000\n"
 "Last-Translator: Trayi\n"
 "Language-Team: Nepali\n"
@@ -1070,6 +1070,9 @@ msgstr "मस्यौदा"
 
 msgid "Not set"
 msgstr "छानिएको छैन"
+
+msgid "No contact details"
+msgstr "सम्पर्क विवरण छैन"
 
 msgid "Translate after publishing"
 msgstr "प्रकाशित गरेपछि अनुवाद गर्नुहोस्"

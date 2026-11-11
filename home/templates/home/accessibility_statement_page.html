@@ -39,25 +39,22 @@
             {% endif %}
         </section>
 
-        {% with details=site_settings.phone|default:site_settings.contact_email|default:site_settings.address %}
-            {% if details or contact_page_link %}
-                <section aria-labelledby="tell-us">
-                    <h2 id="tell-us">{% translate "Tell us about a problem or ask for another format" %}</h2>
-                    <p>{% translate "If something on this site doesn't work for you, or you need what it says in another format, such as large print or audio, tell us." %}</p>
-                    {% if site_settings.phone or site_settings.contact_email %}
-                        <ul class="contact-list">
-                            {% if site_settings.phone %}{% include "contact/includes/phone_item.html" with phone=site_settings.phone %}{% endif %}
-                            {% if site_settings.contact_email %}<li><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></li>{% endif %}
-                        </ul>
-                    {% endif %}
-                    {% if site_settings.address %}<address>{{ site_settings.address|linebreaksbr }}</address>{% endif %}
-                    {% if contact_page_link %}
-                        {% pageurl contact_page_link as contact_url %}
-                        <p>{% blocktranslate trimmed %}Or send us a message from our <a href="{{ contact_url }}">Contact page</a>.{% endblocktranslate %}</p>
-                    {% endif %}
-                </section>
+        {# Always shown, so a visitor knows they can ask; while the site has no way to reach it, the dashboard's Still to write panel asks for one. #}
+        <section aria-labelledby="tell-us">
+            <h2 id="tell-us">{% translate "Tell us about a problem or ask for another format" %}</h2>
+            <p>{% translate "If something on this site doesn't work for you, or you need what it says in another format, such as large print or audio, tell us." %}</p>
+            {% if site_settings.phone or site_settings.contact_email %}
+                <ul class="contact-list">
+                    {% if site_settings.phone %}{% include "contact/includes/phone_item.html" with phone=site_settings.phone %}{% endif %}
+                    {% if site_settings.contact_email %}<li><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></li>{% endif %}
+                </ul>
             {% endif %}
-        {% endwith %}
+            {% if site_settings.address %}<address>{{ site_settings.address|linebreaksbr }}</address>{% endif %}
+            {% if contact_page_link %}
+                {% pageurl contact_page_link as contact_url %}
+                <p>{% blocktranslate trimmed %}Or send us a message from our <a href="{{ contact_url }}">Contact page</a>.{% endblocktranslate %}</p>
+            {% endif %}
+        </section>
     </div>
     {% endwith %}
 {% endblock %}

@@ -131,7 +131,8 @@ One per home page, so one in each language, at `/accessibility/`, in W3C's order
    reviewed, then the charity's own list for what it has published (PDFs, videos without
    captions, photos without descriptions) and the day it last checked.
 4. **Tell us about a problem or ask for another format:** the phone, email and address from Site
-   settings, and a link to the Contact page. Left out when there's none of them.
+   settings, and a link to the Contact page. Always shown, so a visitor knows they can ask;
+   while there's none of them, the dashboard asks the charity for one.
 
 Parts 2 and 3's platform part are the same on every site and come with each release; the charity
 writes only the commitment and its own content's problems

@@ -54,7 +54,9 @@ page's title, linked to edit it if you may, and one status: **Not set**, **Draft
 the main page isn't set or live. The privacy notice, Donate, About us, Appeals, Stories and Contact
 are the pages chosen in Site settings (Not set links there); the volunteer form is found by its address
 under the home page until it has a chooser of its own, and the accessibility statement by its
-address too, since a home page has only one. A line above the list asks for the registration details while Site
+address too, since a home page has only one. A live statement in the main language says **No
+contact details**, linked to Site settings, while the site has no phone, email, address or live,
+public Contact page for its "Tell us about a problem" section. A line above the list asks for the registration details while Site
 settings' registration line is blank in any language.
 
 Only someone who can change a page or Site settings sees the panel; a pledges-only user can do
@@ -145,7 +147,9 @@ its list, found in the same query as the chosen pages (`core/context_processors.
   has a commitment and a placeholder in the list, so it can't go live until the charity writes
   its problems or deletes the line.
 - **Tell us about a problem** shows the phone, email and address from Site settings and a link
-  to the Contact page when it's live and public; it's left out when there's none of them.
+  to the Contact page when it's live and public. It's always shown, so a visitor knows they can
+  ask; while there's none of them, the dashboard's [Pages still to write](#pages-still-to-write)
+  says **No contact details** on the live statement.
 
 ## Content blocks
 

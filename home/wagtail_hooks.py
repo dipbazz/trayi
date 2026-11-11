@@ -12,6 +12,7 @@ from wagtail.permissions import page_permission_policy
 
 from core.models import SiteSettings
 from core.publishing import has_placeholders
+from home.models import AccessibilityStatementPage
 from home.standard_site import NEW_SITE_BUILT, STANDARD_PAGES
 
 DONE_LINE_DAYS = 7
@@ -75,7 +76,16 @@ def what_is_left(page):
     return None if page.live else _("Draft")
 
 
-def row_for_main_page(standard, page, user, site):
+def can_be_reached(site_settings):
+    """Whether the accessibility statement can say how to report a problem, as its "Tell us"
+    section does: a phone, email or address in Site settings, or a live, public Contact page."""
+    if site_settings.phone or site_settings.contact_email or site_settings.address:
+        return True
+    contact = site_settings.contact_page_id
+    return contact is not None and Page.objects.live().public().filter(pk=contact).exists()
+
+
+def row_for_main_page(standard, page, user, site, site_settings):
     if page is None:
         return Row(
             standard.name,
@@ -84,6 +94,17 @@ def row_for_main_page(standard, page, user, site):
             settings_url=settings_link(user, site) if standard.setting else None,
         )
     status = what_is_left(page)
+    if (
+        status is None
+        and isinstance(page.specific, AccessibilityStatementPage)
+        and not can_be_reached(site_settings)
+    ):
+        return Row(
+            page.title,
+            _("No contact details"),
+            standard.why,
+            settings_url=settings_link(user, site),
+        )
     return status and row_for(standard, page, status, user)
 
 
@@ -119,7 +140,9 @@ def still_to_write(user, site):
     pages = [
         (standard, find_page(standard, site, site_settings, chosen)) for standard in STANDARD_PAGES
     ]
-    main_rows = [row_for_main_page(standard, page, user, site) for standard, page in pages]
+    main_rows = [
+        row_for_main_page(standard, page, user, site, site_settings) for standard, page in pages
+    ]
     groups = [Group(main.get_display_name(), [row for row in main_rows if row])]
     translations = []
     for locale in others:

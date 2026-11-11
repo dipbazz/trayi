@@ -178,9 +178,14 @@ class TestTellUs:
         settings.save()
         add_statement(home_page)
 
-        assert section(client, self.HEADING) is None
+        assert section(client, self.HEADING).select("a") == []
 
-    def test_is_left_out_with_no_way_to_reach_the_charity(self, client, home_page):
+    def test_is_shown_with_no_way_to_reach_the_charity(self, client, home_page):
+        # A visitor who can't use the site still learns they can ask; the dashboard asks the
+        # charity for a way to reach it (test_still_to_write.py).
         add_statement(home_page)
 
-        assert section(client, self.HEADING) is None
+        part = section(client, self.HEADING)
+
+        assert "tell us." in part.get_text(" ", strip=True)
+        assert part.select("a") == []
