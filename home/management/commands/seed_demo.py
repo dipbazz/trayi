@@ -33,7 +33,7 @@ from core.models import (
     SiteSettingsText,
     Testimonial,
 )
-from home.models import StandardPage
+from home.models import AccessibilityStatementPage, StandardPage
 from news.models import NewsCategory, NewsIndexPage, NewsPage
 
 SITE_NAME = "Brightwell Water Trust"
@@ -572,6 +572,18 @@ class Command(BaseCommand):
         ]
         publish(home, contact)
 
+        # One problem of the charity's own, as a real charity's first statement would list.
+        statement = AccessibilityStatementPage(
+            title="Accessibility statement",
+            slug="accessibility",
+            commitment="We want everyone to be able to read about our work and give, however "
+            "they use the web.",
+            content_problems="<ul><li>Our 2024 annual report is a PDF, which some screen readers "
+            "can't read well. Ask us for it as a web page or in large print.</li></ul>",
+            content_checked=TODAY - datetime.timedelta(days=14),
+        )
+        publish(home, statement)
+
         for order, (name, colour, shape) in enumerate(PARTNERS):
             Partner.objects.create(
                 name=name,
@@ -651,7 +663,7 @@ class Command(BaseCommand):
         banner.save()
 
         self.add_nepali_pages(
-            home, donate, campaigns, flood, news, flood_story, testimonial, contact
+            home, donate, campaigns, flood, news, flood_story, testimonial, contact, statement
         )
         self.add_nepali_snippets(banner, testimonial, [successes, updates])
         self.add_qr_code()
@@ -661,10 +673,10 @@ class Command(BaseCommand):
         self.stdout.write(f"About page: {about.url}")
 
     def add_nepali_pages(
-        self, home, donate, campaigns, flood, news, flood_story, testimonial, contact
+        self, home, donate, campaigns, flood, news, flood_story, testimonial, contact, statement
     ):
-        """Translate the home page, the Donate page, the flood appeal and its story, and the
-        Contact page with its own question, under /ne/.
+        """Translate the home page, the Donate page, the flood appeal and its story, the
+        Contact page with its own question, and the accessibility statement, under /ne/.
 
         The rest of the site stays English only, as most of a real charity's site would be at
         first, and one news story is in Nepali only, as an editor who writes in Nepali would
@@ -807,6 +819,16 @@ class Command(BaseCommand):
         volunteering.name = "स्वयंसेवा"
         nepali_contact.teams = [finance, volunteering]
         nepali_contact.save_revision().publish()
+        # The platform's part comes translated; the charity's part is the page's to word.
+        translate(
+            statement,
+            title="पहुँचयोग्यता विवरण",
+            commitment="हामी चाहन्छौं, जुनसुकै तरिकाले वेब प्रयोग गर्ने भए पनि सबैले हाम्रो कामबारे "
+            "पढ्न र दान दिन सकून्।",
+            content_problems="<ul><li>हाम्रो २०२४ को वार्षिक प्रतिवेदन PDF मा छ, जुन केही स्क्रिन "
+            "रिडरले राम्ररी पढ्न सक्दैनन्। यसलाई वेबपेज वा ठूला अक्षरमा चाहिए हामीलाई भन्नुहोस्।"
+            "</li></ul>",
+        )
 
     def add_qr_code(self):
         """One QR code to scan, a drawing that can't be scanned, with its name in both

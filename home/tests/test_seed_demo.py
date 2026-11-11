@@ -10,6 +10,7 @@ from contact.models import FormPage
 from core import models as core_models
 from core.models import AnnouncementBanner, Partner, SiteSettings
 from core.publishing import reasons_not_to_publish
+from home.models import AccessibilityStatementPage
 from news.models import NewsPage
 
 pytestmark = pytest.mark.django_db
@@ -71,6 +72,18 @@ def test_contact_page_lists_two_teams_and_a_map_link_in_both_languages(seeded, c
     nepali_html = client.get(nepali.url).content.decode()
     assert "आर्थिक शाखा" in nepali_html and "स्वयंसेवा" in nepali_html
     assert 'href="https://maps.example/brightwell"' in nepali_html
+
+
+def test_has_an_accessibility_statement_in_both_languages_linked_from_the_footer(seeded, client):
+    statement = AccessibilityStatementPage.objects.get(locale__language_code="en")
+    nepali = statement.get_translation(Locale.objects.get(language_code="ne"))
+
+    assert statement.live and reasons_not_to_publish(statement) == []
+    assert "Our 2024 annual report is a PDF" in str(statement.content_problems)
+    assert statement.content_checked is not None
+    assert f'href="{statement.url}"' in client.get("/").content.decode()
+    assert nepali.live
+    assert f'href="{nepali.url}"' in client.get("/ne/").content.decode()
 
 
 def test_gives_the_charity_a_logo_in_the_header(seeded, client):

@@ -34,7 +34,9 @@ pytestmark = pytest.mark.django_db
 # the partners (#117): the home page in both languages.
 # A form page spends one on its questions: /volunteer/ and /contact/, whose phone country comes
 # from the Site settings the page reads anyway (#167). The Contact page spends one more on its
-# Other contacts, however many teams it lists (#322).
+# Other contacts, however many teams it lists (#322). The accessibility statement spends what
+# /about/ does: its platform part is in the code, and its Contact link one of the chosen pages
+# (#167).
 BUDGETS = {
     "/": 20,
     "/appeals/": 17,
@@ -42,6 +44,7 @@ BUDGETS = {
     "/stories/": 20,
     "/stories/feed/": 11,
     "/about/": 13,
+    "/accessibility/": 13,
     "/volunteer/": 14,
     "/contact/": 15,
     "/donate/": 17,
@@ -53,6 +56,7 @@ BUDGETS = {
     "/ne/appeals/flood-relief/": 18,
     "/ne/stories/": 21,
     "/ne/contact/": 16,
+    "/ne/accessibility/": 14,
 }
 
 
@@ -75,10 +79,11 @@ def test_the_still_to_write_panel_stays_within_its_query_budget(
     # pages chosen in Site settings (Donate, the privacy notice and the menu's sections, #171) are
     # read in one query. Each standard page costs six across both languages: the Contact page
     # added them (#321), and its teams one more in each language (#322). The accessibility
-    # statement, found by its slug rather than a chooser, one more (#167).
+    # statement four (#167): one finding it by its slug rather than a chooser, and three reading
+    # it and its translation.
     user = django_user_model.objects.create_superuser("budget", password="pw")
 
-    with django_assert_max_num_queries(39):
+    with django_assert_max_num_queries(42):
         still_to_write(user, demo_site)
 
 
