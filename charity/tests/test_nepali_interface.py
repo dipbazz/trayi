@@ -4,6 +4,8 @@ Editors' content is a separate matter (#117): these tests read what the template
 appeals and the pledge form are in `campaigns/tests/test_nepali.py`.
 """
 
+import datetime
+
 import pytest
 from bs4 import BeautifulSoup
 from django.core.paginator import Paginator
@@ -11,9 +13,10 @@ from django.template.loader import render_to_string
 from django.test import RequestFactory
 from django.utils import translation
 
+from core import accessibility
 from core.models import SiteSettings
 from core.money import format_money
-from home.models import StandardPage
+from home.models import AccessibilityStatementPage, StandardPage
 from news.tests.factories import NewsIndexPageFactory
 
 pytestmark = pytest.mark.django_db
@@ -70,6 +73,27 @@ class TestPagesInNepali:
         assert "गोपनीयता सूचना" in text
         assert "दर्ता भएको परोपकारी संस्था नम्बर 1234567।" in text
         assert "Registered" not in text
+
+    def test_the_accessibility_statement_in_nepali(
+        self, client, home_page, nepali_home_page, monkeypatch
+    ):
+        """The platform's part is the site's own words; the charity's are the page's (#167)."""
+        monkeypatch.setattr(accessibility, "REVIEWED", datetime.date(2026, 11, 11))
+        statement = AccessibilityStatementPage(title="Accessibility statement")
+        home_page.add_child(instance=statement)
+        statement.save_revision().publish()
+        nepali = translated(statement, nepali_home_page.locale)
+
+        text = visible_text(client.get(nepali.url))
+
+        assert "पहुँचयोग्यता विवरण" in text  # the footer link
+        assert (
+            "यो वेबसाइटले वेब सामग्री पहुँचयोग्यता निर्देशिका (WCAG) २.२ को AA तह आंशिक रूपमा पूरा "
+            "गर्छ। आंशिक भनेको केही भागले अझै यो मापदण्ड पूरा गर्दैनन्: ती तल दिइएका छन्।"
+        ) in text
+        assert "थिच्ने हरेक कुरा कम्तीमा ४४ पिक्सेल अग्लो छ" in text
+        assert "हामीले वेबसाइट आफैँलाई पछिल्लो पटक 11 नभम्वर 2026 मा जाँचेका थियौं।" in text
+        assert "partially" not in text
 
     def test_search_in_nepali(self, client, nepali_home_page):
         response = client.get("/ne/search/", {"query": "नभेटिने"})

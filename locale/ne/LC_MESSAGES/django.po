@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: trayi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-10 11:36+0000\n"
+"POT-Creation-Date: 2026-11-11 12:07+0000\n"
 "PO-Revision-Date: 2026-10-08 00:00+0000\n"
 "Last-Translator: Trayi\n"
 "Language-Team: Nepali\n"
@@ -738,6 +738,9 @@ msgstr "गोपनीयता सूचना"
 msgid "Contact"
 msgstr "सम्पर्क"
 
+msgid "Accessibility statement"
+msgstr "पहुँचयोग्यता विवरण"
+
 msgid "Announcement"
 msgstr "घोषणा"
 
@@ -834,6 +837,24 @@ msgstr "कृपया आफ्ना उत्तरहरू जाँच्
 
 msgid "Thank you, we have received your message."
 msgstr "धन्यवाद, हामीले तपाईंको सन्देश प्राप्त गर्‍यौं।"
+
+msgid "text and buttons have enough colour contrast, whatever colours the charity chooses"
+msgstr "संस्थाले जुनसुकै रङ रोजे पनि, अक्षर र बटनहरू पृष्ठभूमिबाट प्रस्ट छुट्टिन्छन्"
+
+msgid "everything you can reach with the Tab key shows clearly where you are"
+msgstr "Tab कुञ्जीले पुग्न सकिने हरेक कुराले तपाईं कहाँ हुनुहुन्छ भनेर प्रस्ट देखाउँछ"
+
+msgid "everything you tap is at least 44 pixels tall"
+msgstr "थिच्ने हरेक कुरा कम्तीमा ४४ पिक्सेल अग्लो छ"
+
+msgid "every kind of page fits screens from 320 pixels wide without scrolling sideways"
+msgstr "हरेक किसिमको पृष्ठ ३२० पिक्सेल चौडा स्क्रिनदेखि नै छेउतिर सार्नु नपर्ने गरी अटाउँछ"
+
+msgid "a person checks each page the change affects, on a phone and on a wide screen"
+msgstr "परिवर्तनले छुने हरेक पृष्ठ एक जना व्यक्तिले फोन र ठूलो स्क्रिन दुवैमा जाँच्छन्"
+
+msgid "The page that asks for a password, or for you to log in, before you can read a private page doesn't look like the rest of the site, and on a phone its text is small until you zoom in."
+msgstr "निजी पृष्ठ पढ्नुअघि पासवर्ड वा लग इन माग्ने पृष्ठ साइटका अरू पृष्ठजस्तो देखिँदैन, र फोनमा जुम नगरेसम्म त्यसका अक्षर साना हुन्छन्।"
 
 msgid "Upload a JPEG, PNG or WebP image of up to 5 MB."
 msgstr "५ MB सम्मको JPEG, PNG वा WebP तस्बिर अपलोड गर्नुहोस्।"
@@ -959,11 +980,56 @@ msgstr "<p>[लेख्नुहोस्: तपाईंका सन्द�
 msgid "New message from the website"
 msgstr "वेबसाइटबाट नयाँ सन्देश"
 
+msgid "We want everyone to be able to use this website, however they use it."
+msgstr "जसले जुनसुकै तरिकाले प्रयोग गरे पनि, सबैले यो वेबसाइट प्रयोग गर्न सकून् भन्ने हामी चाहन्छौं।"
+
+msgid "<ul><li>[Write: anything you've published that doesn't work for everyone, such as a PDF, a video without captions or a photo without a description. Delete this if there's nothing.]</li></ul>"
+msgstr "<ul><li>[लेख्नुहोस्: तपाईंले प्रकाशित गरेको जुन कुरा सबैका लागि काम गर्दैन, जस्तै PDF, क्याप्सन नभएको भिडियो वा विवरण नभएको फोटो। केही छैन भने यो मेटाउनुहोस्।]</li></ul>"
+
 msgid "needed before any form goes live"
 msgstr "कुनै पनि फारम प्रकाशित गर्नुअघि चाहिन्छ"
 
 msgid "brings back the Donate button"
 msgstr "दान दिनुहोस् बटन फर्काउँछ"
+
+msgid "How well this site works"
+msgstr "यो साइट कत्तिको राम्रोसँग चल्छ"
+
+msgid "This website partially conforms to the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA. Partially means some parts don't meet the standard yet: they're listed below."
+msgstr "यो वेबसाइटले वेब सामग्री पहुँचयोग्यता निर्देशिका (WCAG) २.२ को AA तह आंशिक रूपमा पूरा गर्छ। आंशिक भनेको केही भागले अझै यो मापदण्ड पूरा गर्दैनन्: ती तल दिइएका छन्।"
+
+msgid "Every change to the website is checked before it's released:"
+msgstr "वेबसाइटमा हुने हरेक परिवर्तन सार्वजनिक गर्नुअघि जाँचिन्छ:"
+
+msgid "What doesn't work yet"
+msgstr "अझै के काम गर्दैन"
+
+msgid "In the website itself:"
+msgstr "वेबसाइटमै:"
+
+msgid "We don't know of any problems in the website itself."
+msgstr "वेबसाइटमै कुनै समस्या भएको हामीलाई थाहा छैन।"
+
+#, python-format
+msgid "We last reviewed the website itself on %(date)s."
+msgstr "हामीले वेबसाइट आफैँलाई पछिल्लो पटक %(date)s मा जाँचेका थियौं।"
+
+msgid "In what we've published:"
+msgstr "हामीले प्रकाशित गरेका कुरामा:"
+
+#, python-format
+msgid "We last checked what we've published on %(date)s."
+msgstr "हामीले प्रकाशित गरेका कुरा पछिल्लो पटक %(date)s मा जाँचेका थियौं।"
+
+msgid "Tell us about a problem or ask for another format"
+msgstr "समस्या बताउनुहोस् वा अर्को ढाँचामा माग्नुहोस्"
+
+msgid "If something on this site doesn't work for you, or you need what it says in another format, such as large print or audio, tell us."
+msgstr "यो साइटमा केही कुराले तपाईंका लागि काम गरेन, वा यहाँ लेखिएको कुरा ठूला अक्षर वा अडियोजस्तो अर्को ढाँचामा चाहियो भने हामीलाई भन्नुहोस्।"
+
+#, python-format
+msgid "Or send us a message from our <a href=\"%(contact_url)s\">Contact page</a>."
+msgstr "वा हाम्रो <a href=\"%(contact_url)s\">सम्पर्क पृष्ठ</a> बाट सन्देश पठाउनुहोस्।"
 
 #, python-format
 msgid "Pages still to write: %(left)s of %(total)s"
