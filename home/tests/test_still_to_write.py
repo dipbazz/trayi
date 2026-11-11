@@ -289,6 +289,18 @@ class TestAHandBuiltSite:
 
         assert "Help us" not in titles and "Volunteer with us" not in titles
 
+    def test_finds_the_accessibility_statement_by_its_type_whatever_its_address(
+        self, home_page, admin
+    ):
+        site = built_site(home_page)
+        statement = Page.objects.get(slug="accessibility").specific
+        statement.slug = "access"
+        statement.save()
+
+        assert ("Accessibility statement", "Has [Write: …] text") in statuses(
+            panel(admin, site).groups[0]
+        )
+
     def test_nothing_left_never_claims_the_site_is_done(self, home_page, admin):
         site = built_site(home_page)
         PageLogEntry.objects.filter(action=NEW_SITE_BUILT).delete()

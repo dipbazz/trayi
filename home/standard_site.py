@@ -17,15 +17,17 @@ NEW_SITE_BUILT = "charity.new_site"
 @dataclass(frozen=True)
 class StandardPageEntry:
     """A page every site has. `build` makes `new_site`'s draft of it, in the language being read.
-    `setting` names its chooser in Site settings; without one it's found by its slug under the
-    home page: the volunteer form until #168 adds its chooser, and the accessibility statement,
-    which a home page has only one of (#167)."""
+    `setting` names its chooser in Site settings. Without one it's found under the home page: by
+    `page_type` for the accessibility statement, which a home page has only one of (#167), so
+    renaming it doesn't lose it, else by its slug: the volunteer form until #168 adds its
+    chooser."""
 
     name: str
     slug: str
     build: Callable[[], object]
     setting: str = ""
     why: str = ""
+    page_type: type | None = None
 
     @property
     def in_menu(self):
@@ -213,6 +215,9 @@ STANDARD_PAGES = (
     StandardPageEntry(gettext_lazy("Volunteer with us"), "volunteer", volunteer_form),
     StandardPageEntry(gettext_lazy("Contact"), "contact", contact, setting="contact_page"),
     StandardPageEntry(
-        gettext_lazy("Accessibility statement"), "accessibility", accessibility_statement
+        gettext_lazy("Accessibility statement"),
+        "accessibility",
+        accessibility_statement,
+        page_type=AccessibilityStatementPage,
     ),
 )

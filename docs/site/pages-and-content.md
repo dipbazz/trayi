@@ -54,7 +54,7 @@ page's title, linked to edit it if you may, and one status: **Not set**, **Draft
 the main page isn't set or live. The privacy notice, Donate, About us, Appeals, Stories and Contact
 are the pages chosen in Site settings (Not set links there); the volunteer form is found by its address
 under the home page until it has a chooser of its own, and the accessibility statement by its
-address too, since a home page has only one. A live statement in the main language says **No
+page type, since a home page has only one, so renaming it doesn't lose it. A live statement in the main language says **No
 contact details**, linked to Site settings, while the site has no phone, email, address or live,
 public Contact page for its "Tell us about a problem" section. A line above the list asks for the registration details while Site
 settings' registration line is blank in any language.

@@ -64,7 +64,10 @@ def find_page(standard, site, site_settings, chosen):
     if standard.setting:
         page = chosen.get(getattr(site_settings, f"{standard.setting}_id"))
         return page and page.get_translation_or_none(site.root_page.locale)
-    return site.root_page.get_children().filter(slug=standard.slug).first()
+    children = site.root_page.get_children()
+    if standard.page_type:
+        return children.exact_type(standard.page_type).first()
+    return children.filter(slug=standard.slug).first()
 
 
 def what_is_left(page):
