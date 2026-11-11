@@ -3,7 +3,7 @@ from django.utils.functional import SimpleLazyObject
 from wagtail.models import Page
 
 from core.languages import reading_language
-from core.menu import SECTIONS, SHOWN, menu_sections, with_privacy
+from core.menu import SECTIONS, SHOWN, link_to, menu_sections, with_privacy
 from core.models import AnnouncementBanner, SiteSettings
 
 
@@ -11,11 +11,12 @@ def chosen_pages(request):
     """The pages chosen in settings that every page links to, in the language being read.
 
     `privacy_page` is the privacy notice for the footer and forms (#105) and `donate_page_link` the
-    header's Donate button, and `banner_link_page` the announcement banner's link (#117): each None
-    until a page is chosen and published, so nothing links to a draft (#312). `menu_sections` are
-    the menu's sections that have a published, public page, in the standard's order (#171), and
-    `contact_page_link` the footer's Contact link, their Contact page or None (#167). Each page is
-    its published translation in the language being read, else the chosen page.
+    header's Donate button, and `banner_link_page` the announcement banner's link (#117).
+    `menu_sections` are the menu's sections that have a page, in the standard's order (#171), and
+    `contact_page_link` the footer's Contact link, their Contact page or None (#167). Each links
+    as the menu does (`link_to`): only while the chosen page is published and public, so nothing
+    links to a draft or a page behind a password (#312), and then to its published, public
+    translation in the language being read, else to the chosen page.
 
     Looked up only when a template uses one, and then all together in one query: the chosen pages
     and their published translations in the language being read, each with whether it's behind a
@@ -32,13 +33,14 @@ def chosen_pages(request):
         }
         for section in SECTIONS:
             chosen[section.setting] = getattr(site_settings, f"{section.setting}_id")
-        found, by_id = find_in_reading_language(chosen)
-        sections = [section.setting for section in SECTIONS]
-        in_menu = {name: by_id.get(chosen[name]) for name in sections}
-        links = {name: found.pop(name) for name in sections}
+        pages, translated = find_in_reading_language(chosen)
+        found = {
+            name: link_to(pages[name], translated[name])
+            for name in ("privacy_page", "donate_page_link", "banner_link_page")
+        }
         found["menu_sections"] = [
             section
-            for section in menu_sections(site_settings, in_menu, links)
+            for section in menu_sections(site_settings, pages, translated)
             if section.status == SHOWN
         ]
         found["contact_page_link"] = next(
@@ -47,10 +49,10 @@ def chosen_pages(request):
         return found
 
     def find_in_reading_language(chosen):
-        """Each chosen page in the language being read, and the chosen pages by id."""
+        """Each chosen page, by name, and its published translation in the language being read."""
         ids = {pk for pk in chosen.values() if pk is not None}
         if not ids:
-            return dict.fromkeys(chosen), {}
+            return dict.fromkeys(chosen), dict.fromkeys(chosen)
         language = reading_language()
         pages = with_privacy(
             Page.objects.filter(
@@ -68,12 +70,12 @@ def chosen_pages(request):
             for page in by_id.values()
             if page.locale.language_code == language and page.live
         }
-        found = {}
-        for name, pk in chosen.items():
-            page = by_id.get(pk)
-            page = page and translations.get(page.translation_key, page)
-            found[name] = page if page is not None and page.live else None
-        return found, by_id
+        pages = {name: by_id.get(pk) for name, pk in chosen.items()}
+        translated = {
+            name: translations.get(page.translation_key) if page is not None else None
+            for name, page in pages.items()
+        }
+        return pages, translated
 
     pages = SimpleLazyObject(find)
     names = (

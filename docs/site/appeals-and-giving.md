@@ -578,13 +578,14 @@ footer of every page and, as "How we use your details", just before every form's
 
 - The notice is an ordinary page an editor writes and publishes (a standard page, left out of the
   menu), then chooses in **Site settings → Privacy notice**.
-- Until a *published* page is chosen there are no links, so a draft never leads to a "page not
-  found".
+- Until a *published*, public page is chosen there are no links, so a draft never leads to a
+  "page not found", nor a page behind a password or login to a prompt. Only the chosen page
+  decides, in every language, as it does for the menu.
 - The Donate page and every form can't be published until the notice is, and the notice can't be
   unpublished while any of them is live
   ([Pages and content](pages-and-content.md#what-stops-a-page-going-live)).
-- On a page in the other language, the links go to the notice's translation once it's published,
-  and to the main notice until then.
+- On a page in the other language, the links go to the notice's translation once it's published
+  and public, and to the main notice until then.
 - The demo's notice is example text that describes what the site stores. A charity must replace
   it with its own before going live: only the charity can say who looks after the details, for
   how long and how to ask for them.
