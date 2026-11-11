@@ -3,7 +3,7 @@ from wagtail.contrib.search_promotions.models import Query, SearchPromotion
 from wagtail.models import PageViewRestriction
 
 from campaigns.tests.factories import CampaignIndexPageFactory, CampaignPageFactory
-from home.models import StandardPage
+from home.models import AccessibilityStatementPage, StandardPage
 from news.tests.factories import NewsIndexPageFactory, NewsPageFactory
 
 pytestmark = pytest.mark.django_db
@@ -56,6 +56,21 @@ def test_finds_standard_pages_by_introduction(client, home_page):
     home_page.add_child(instance=StandardPage(title="Safeguarding", introduction="Our policy"))
 
     assert result_titles(search(client, "policy")) == ["Safeguarding"]
+
+
+@pytest.mark.parametrize(
+    "field, text, word",
+    [
+        ("commitment", "Everyone should be able to read about our work.", "everyone"),
+        ("content_problems", "<ul><li>Our 2024 report is a PDF.</li></ul>", "report"),
+    ],
+)
+def test_finds_the_accessibility_statement_by_what_the_charity_writes(
+    client, home_page, field, text, word
+):
+    home_page.add_child(instance=AccessibilityStatementPage(title="Statement", **{field: text}))
+
+    assert result_titles(search(client, word)) == ["Statement"]
 
 
 def test_excludes_unpublished_pages(client, campaign_index):

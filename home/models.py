@@ -146,6 +146,11 @@ class AccessibilityStatementPage(PublishGuardMixin, Page):
     subpage_types = []
     max_count_per_parent = 1
 
+    search_fields = Page.search_fields + [
+        index.SearchField("commitment"),
+        index.SearchField("content_problems"),
+    ]
+
     class Meta:
         verbose_name = "accessibility statement"
 
