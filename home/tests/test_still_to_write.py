@@ -42,6 +42,7 @@ def write_and_publish(page):
         "intro": "<p>Written.</p>",
         "thank_you_text": "<p>Written.</p>",
         "to_address": "team@example.org",
+        "content_problems": "<ul><li>Written.</li></ul>",
     }
     for name, value in written.items():
         if hasattr(page, name):
@@ -95,6 +96,7 @@ class TestTheCommandsDrafts:
             "Stories",
             "Volunteer with us",
             "Contact",
+            "Accessibility statement",
         ]
         assert second.language == "नेपाली"
         assert {row.status for row in second.rows} == {"Translate after publishing"}
@@ -113,7 +115,7 @@ class TestTheCommandsDrafts:
 
         result = panel(admin, site)
 
-        assert (result.left, result.total) == (14, 14)
+        assert (result.left, result.total) == (16, 16)
 
     def test_the_privacy_notice_and_donate_say_why_they_come_first(self, home_page, admin):
         rows = panel(admin, built_site(home_page)).groups[0].rows
@@ -176,7 +178,7 @@ class TestStatuses:
 
         row = result.groups[1].rows[0]
         assert (row.title, row.status) == ("Privacy notice", "Translate after publishing")
-        assert (result.left, result.total) == (14, 14)
+        assert (result.left, result.total) == (16, 16)
 
 
 class TestWhoCanFollowTheLinks:
@@ -266,8 +268,10 @@ class TestWhenEveryPageIsDone:
         # registration line is read from each language's row (#172), one fewer since the pages
         # chosen in Site settings are read in one query (#171). Each standard page's two
         # translations cost six: the Contact page added them (#321). Two more since the
-        # placeholder check reads each Contact page translation's other contacts (#322).
-        with django_assert_max_num_queries(42):
+        # placeholder check reads each Contact page translation's other contacts (#322). Four
+        # more for the accessibility statement (#167): finding it by its slug, and its
+        # translation found and read in the second language.
+        with django_assert_max_num_queries(46):
             panel(admin, site)
 
     def test_the_line_goes_seven_days_after_the_last_page_went_live(self, home_page, admin):
@@ -326,7 +330,7 @@ class TestOnTheDashboard:
 
         html = client.get(reverse("wagtailadmin_home")).content.decode()
 
-        assert "Pages still to write: 14 of 14" in html
+        assert "Pages still to write: 16 of 16" in html
         assert html.index("Pages still to write") < html.index("Fundraising overview")
 
     def test_its_text_lines_up_with_wagtails_dashboard_tables(self, home_page, admin, client):

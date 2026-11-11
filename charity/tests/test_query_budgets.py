@@ -74,10 +74,11 @@ def test_the_still_to_write_panel_stays_within_its_query_budget(
     # One more reads Site settings' text in each language, for the registration line (#172). The
     # pages chosen in Site settings (Donate, the privacy notice and the menu's sections, #171) are
     # read in one query. Each standard page costs six across both languages: the Contact page
-    # added them (#321), and its teams one more in each language (#322).
+    # added them (#321), and its teams one more in each language (#322). The accessibility
+    # statement, found by its slug rather than a chooser, one more (#167).
     user = django_user_model.objects.create_superuser("budget", password="pw")
 
-    with django_assert_max_num_queries(38):
+    with django_assert_max_num_queries(39):
         still_to_write(user, demo_site)
 
 
