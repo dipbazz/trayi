@@ -299,6 +299,21 @@ class TestFooterAccessibilityStatementLink:
 
         assert queries() == without
 
+    def test_finds_it_without_joining_the_content_types(self, client, home_page):
+        # Every page runs this query: the statement's content type comes from Django's cache.
+        add_page(home_page, "Accessibility", page_class=AccessibilityStatementPage)
+        client.get("/")  # fills the caches
+        with CaptureQueriesContext(connection) as captured:
+            client.get("/")
+
+        lookup = [
+            q["sql"]
+            for q in captured
+            if "wagtailcore_pageviewrestriction" in q["sql"] and "language_code" in q["sql"]
+        ]
+        assert len(lookup) == 1
+        assert "django_content_type" not in lookup[0]
+
 
 def test_the_sections_are_the_standards_in_its_order_and_names():
     """The menu drifts from `docs/site/standard.md`'s table of sections only if this fails."""

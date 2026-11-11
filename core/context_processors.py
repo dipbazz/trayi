@@ -1,3 +1,4 @@
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.utils.functional import SimpleLazyObject
 from wagtail.models import Page
@@ -54,10 +55,10 @@ def chosen_pages(request):
         accessibility statement, which has no chooser: a home page has only one."""
         ids = {pk for pk in chosen.values() if pk is not None}
         language, main = reading_language(), main_language()
-        app_label, model = STATEMENT_PAGE_TYPE
+        # Django caches content types, so the statement's id costs no query and no join.
+        statement_type = ContentType.objects.get_by_natural_key(*STATEMENT_PAGE_TYPE).pk
         wanted = Q(
-            content_type__app_label=app_label,
-            content_type__model=model,
+            content_type_id=statement_type,
             locale__language_code__in={language, main},
             live=True,
         )
@@ -67,7 +68,7 @@ def chosen_pages(request):
                 locale__language_code=language,
                 live=True,
             )
-        pages = with_privacy(Page.objects.filter(wanted)).select_related("locale", "content_type")
+        pages = with_privacy(Page.objects.filter(wanted)).select_related("locale")
         by_id = {page.pk: page for page in pages}
         translations = {
             page.translation_key: page
@@ -84,9 +85,7 @@ def chosen_pages(request):
         statements = {
             page.locale.language_code: page
             for page in by_id.values()
-            if page.content_type.natural_key() == STATEMENT_PAGE_TYPE
-            and page.live
-            and not page.private
+            if page.content_type_id == statement_type and page.live and not page.private
         }
         found["accessibility_page"] = statements.get(language) or statements.get(main)
         return found, by_id
