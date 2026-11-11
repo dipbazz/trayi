@@ -11,11 +11,11 @@ def chosen_pages(request):
     """The pages chosen in settings that every page links to, in the language being read.
 
     `privacy_page` is the privacy notice for the footer and forms (#105) and `donate_page_link` the
-    header's Donate button: each None until a page is chosen and published. `banner_link_page` is
-    the announcement banner's link (#117). `menu_sections` are the menu's sections that have a
-    published, public page, in the standard's order (#171), and `contact_page_link` the footer's
-    Contact link, their Contact page or None (#167). Each page is its published translation
-    in the language being read, else the chosen page.
+    header's Donate button, and `banner_link_page` the announcement banner's link (#117): each None
+    until a page is chosen and published, so nothing links to a draft (#312). `menu_sections` are
+    the menu's sections that have a published, public page, in the standard's order (#171), and
+    `contact_page_link` the footer's Contact link, their Contact page or None (#167). Each page is
+    its published translation in the language being read, else the chosen page.
 
     Looked up only when a template uses one, and then all together in one query: the chosen pages
     and their published translations in the language being read, each with whether it's behind a
@@ -71,10 +71,8 @@ def chosen_pages(request):
         found = {}
         for name, pk in chosen.items():
             page = by_id.get(pk)
-            found[name] = page and translations.get(page.translation_key, page)
-        for name in ("privacy_page", "donate_page_link"):
-            if found[name] is not None and not found[name].live:
-                found[name] = None
+            page = page and translations.get(page.translation_key, page)
+            found[name] = page if page is not None and page.live else None
         return found, by_id
 
     pages = SimpleLazyObject(find)

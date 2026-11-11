@@ -255,6 +255,28 @@ class TestAnnouncementBanner:
 
         assert f'href="{appeal.url}"' in client.get("/ne/").content.decode()
 
+    def test_shows_its_message_without_a_link_while_its_page_is_a_draft(self, client, home_page):
+        appeal = StandardPage(title="Flood relief", slug="flood-relief", live=False)
+        home_page.add_child(instance=appeal)
+        show_banner(home_page.get_site(), "Flood relief", link_page=appeal)
+
+        html = client.get("/").content.decode()
+
+        assert "Flood relief" in html
+        assert f'href="{appeal.url}"' not in html
+
+    def test_shows_its_message_without_a_link_once_its_page_is_unpublished(
+        self, client, home_page, nepali_home_page
+    ):
+        appeal = add_page(home_page, title="Flood relief", slug="flood-relief")
+        appeal.unpublish()
+        show_banner(home_page.get_site(), "Flood relief", link_page=appeal)
+
+        for path in ("/", "/ne/"):
+            html = client.get(path).content.decode()
+            assert "Flood relief" in html
+            assert f'href="{appeal.url}"' not in html
+
     def test_each_site_has_its_own_banner(self, site, home_page):
         other = Site.objects.create(hostname="other.example", root_page=home_page)
         show_banner(site, "Flood relief")
