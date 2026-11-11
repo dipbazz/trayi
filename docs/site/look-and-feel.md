@@ -309,7 +309,10 @@ Every page works without JavaScript:
 
 ## Accessibility
 
-A requirement, not a polish step. Every page has:
+A requirement, not a polish step. Every site's accessibility statement says what's checked and
+what doesn't work yet ([Pages and content](pages-and-content.md#the-accessibility-statement)):
+a change to what's checked, or a fix to a listed problem, changes `core/accessibility.py` in the
+same pull request. Every page has:
 
 - a skip link to the main content;
 - `aria-current` on the menu item for the current page or section, and on the selected filter;
