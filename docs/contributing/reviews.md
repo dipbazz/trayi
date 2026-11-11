@@ -75,6 +75,11 @@ with the person's QA check last.
 
 ## When a review is done
 
+**A pull request's review starts from green CI.** Before posting its result, run
+`gh pr checks <n>`. If a check other than `Reviews` (which fails while a `needs:` label is left)
+is red on the head commit, fix it, or name the red check and why in the review's comment, so the
+person merging is never told a change is ready when CI says it isn't.
+
 **The result goes where the label is,** as one comment, so nothing lives only in a local report.
 Then the label comes off the same place.
 
