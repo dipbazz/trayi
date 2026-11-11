@@ -172,9 +172,9 @@ AA's 24px. Wagtail's own controls keep their size, so the page matches the rest 
 **A person checks what only eyes catch**: wording, whether a page looks right, whether a flow
 makes sense. Each pull request's **Check before merging** section has one `- [ ]` box per page
 and width, with what to look for, so the person can tick each on GitHub, or says nothing needs
-checking (a backend or admin-only change). The
-`mobile-first` skill's checks are the checklist: no sideways scrolling, nothing overlapping or cut
-off, a visible focus outline, and a page that still reads in order with CSS off. A pull request
+checking (a backend or admin-only change). The `mobile-first` skill's checks are the checklist:
+no sideways scrolling, nothing overlapping or cut off, a visible focus outline, and a page that
+still reads in order with CSS off. A pull request
 labelled `needs: qa` also gets a `/qa-only` pass first, which reports without changing code
 ([Reviews](reviews.md)).
 
