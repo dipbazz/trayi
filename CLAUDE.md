@@ -53,5 +53,5 @@ reviewing any CSS or layout markup.
 Run only the tests you wrote or changed and those for the code you touched
 (`docs/contributing/testing.md`, "Running the tests"); CI runs the whole suite, including the
 layout checks at six widths. Fix each bug test-first, one bug per commit; if pytest can't catch
-it, say so in the pull request. The pull request's "Check before merging" section names the
-pages, widths and what to look for in the browser, or says nothing needs checking.
+it, say so in the pull request. The pull request's "Check before merging" section has a `- [ ]`
+box per page and width with what to look for, or says nothing needs checking.

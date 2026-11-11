@@ -43,12 +43,15 @@ work becomes a GitHub issue), and keep the full report in `~/.gstack`.
 
 ## Finishing a review
 
-1. Post the result as one comment where the label is: the issue for an issue's review, the pull
+1. On a pull request, `gh pr checks <n> --watch` first: fix a red check or name it and why in
+   the comment; `reviews` red for this review's own label alone is expected (`reviews.md`, "When
+   a review is done").
+2. Post the result as one comment where the label is: the issue for an issue's review, the pull
    request for a pull request's, in the format in `reviews.md` ("When a review is done").
-2. Remove the label from that same place. If an open pull request closes the issue, re-run its
+3. Remove the label from that same place. If an open pull request closes the issue, re-run its
    `Reviews` check (`gh run rerun` on its latest `Reviews` run), since removing an issue's label
    doesn't.
-3. Suggest `/clear` before the next review or building: one review per session, and the comment
+4. Suggest `/clear` before the next review or building: one review per session, and the comment
    carries the decisions.
 
 ## Opening a pull request

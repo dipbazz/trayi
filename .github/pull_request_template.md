@@ -6,8 +6,10 @@ Closes #
 
 ## Check before merging
 
-<!-- The pages and widths to look at in the browser, and what to look for. Or: "Nothing in the
-     browser: no templates or CSS changed." -->
+<!-- One box per page and width to look at in the browser, and what to look for, so whoever
+     checks can tick each one, for example:
+     - [ ] /contact/ at 320px: Other contacts under the form, no sideways scroll
+     Or: "Nothing in the browser: no templates or CSS changed." -->
 
 ## Notes
 
