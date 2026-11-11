@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load i18n wagtailcore_tags %}
+
+{% block body_class %}template-accessibilitystatementpage{% endblock %}
+
+{% block content %}
+    {# W3C's statement order (#167): the platform's part comes from core/accessibility.py, the same on every site; the charity writes only its commitment and its own content's problems. #}
+    {% with site_settings=settings.core.SiteSettings %}
+    <div class="container narrow">
+        <h1>{{ page.title }}</h1>
+        {% if page.commitment %}<p class="lead">{{ page.commitment }}</p>{% endif %}
+
+        <section aria-labelledby="how-well">
+            <h2 id="how-well">{% translate "How well this site works" %}</h2>
+            <p>{% translate "This website partially conforms to the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA. Partially means some parts don't meet the standard yet: they're listed below." %}</p>
+            <p>{% translate "Every change to the website is checked before it's released:" %}</p>
+            <ul>
+                {% for check in platform.checks %}<li>{{ check }}</li>{% endfor %}
+            </ul>
+        </section>
+
+        <section aria-labelledby="not-yet">
+            <h2 id="not-yet">{% translate "What doesn't work yet" %}</h2>
+            {% if platform.known_problems %}
+                <p>{% translate "In the website itself:" %}</p>
+                <ul>
+                    {% for problem in platform.known_problems %}<li>{{ problem }}</li>{% endfor %}
+                </ul>
+            {% else %}
+                <p>{% translate "We don't know of any problems in the website itself." %}</p>
+            {% endif %}
+            <p>{% blocktranslate trimmed with date=platform.reviewed|date:"j F Y" %}We last reviewed the website itself on {{ date }}.{% endblocktranslate %}</p>
+            {% if page.content_problems %}
+                <p>{% translate "In what we've published:" %}</p>
+                {{ page.content_problems|richtext }}
+            {% endif %}
+            {% if page.content_checked %}
+                <p>{% blocktranslate trimmed with date=page.content_checked|date:"j F Y" %}We last checked what we've published on {{ date }}.{% endblocktranslate %}</p>
+            {% endif %}
+        </section>
+
+        {% with details=site_settings.phone|default:site_settings.contact_email|default:site_settings.address %}
+            {% if details or contact_page_link %}
+                <section aria-labelledby="tell-us">
+                    <h2 id="tell-us">{% translate "Tell us about a problem or ask for another format" %}</h2>
+                    <p>{% translate "If something on this site doesn't work for you, or you need what it says in another format, such as large print or audio, tell us." %}</p>
+                    {% if site_settings.phone or site_settings.contact_email %}
+                        <ul class="contact-list">
+                            {% if site_settings.phone %}{% include "contact/includes/phone_item.html" with phone=site_settings.phone %}{% endif %}
+                            {% if site_settings.contact_email %}<li><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></li>{% endif %}
+                        </ul>
+                    {% endif %}
+                    {% if site_settings.address %}<address>{{ site_settings.address|linebreaksbr }}</address>{% endif %}
+                    {% if contact_page_link %}
+                        {% pageurl contact_page_link as contact_url %}
+                        <p>{% blocktranslate trimmed %}Or send us a message from our <a href="{{ contact_url }}">Contact page</a>.{% endblocktranslate %}</p>
+                    {% endif %}
+                </section>
+            {% endif %}
+        {% endwith %}
+    </div>
+    {% endwith %}
+{% endblock %}

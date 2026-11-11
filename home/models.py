@@ -4,11 +4,12 @@ from django.http import Http404
 from django.utils import translation
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.coreutils import get_supported_content_language_variant
-from wagtail.fields import StreamField
+from wagtail.fields import RichTextField, StreamField
 from wagtail.models import Page, Site
 from wagtail.search import index
 
 from campaigns.models import CampaignPage, phone_link
+from core import accessibility
 from core.blocks import BaseStreamBlock
 from core.images import with_card_images
 from core.models import SiteSettings, SocialMetaMixin
@@ -106,3 +107,53 @@ class StandardPage(PublishGuardMixin, SocialMetaMixin, Page):
         index.SearchField("introduction"),
         index.SearchField("body"),
     ]
+
+
+class AccessibilityStatementPage(PublishGuardMixin, Page):
+    """The standard's accessibility statement (#167), in W3C's order: the charity's commitment,
+    how well the site works and what doesn't work yet, from the code (`core/accessibility.py`),
+    then the charity's own content problems and how to tell it. One per home page, so each
+    language has one; the footer finds it without a chooser."""
+
+    commitment = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="One sentence under the title, such as why it matters to you that everyone "
+        "can use your site.",
+    )
+    content_problems = RichTextField(
+        "Problems in what you've published",
+        features=["ul", "bold", "italic", "link"],
+        blank=True,
+        help_text="A list of anything you've published that doesn't work for everyone, such as "
+        "a PDF, a video without captions or a photo without a description. What doesn't work in "
+        "the website itself is listed for you.",
+    )
+    content_checked = models.DateField(
+        "Content last checked",
+        null=True,
+        blank=True,
+        help_text="When you last checked what you've published for these problems.",
+    )
+
+    content_panels = Page.content_panels + [
+        FieldPanel("commitment"),
+        FieldPanel("content_problems"),
+        FieldPanel("content_checked"),
+    ]
+
+    parent_page_types = ["home.HomePage"]
+    subpage_types = []
+    max_count_per_parent = 1
+
+    class Meta:
+        verbose_name = "accessibility statement"
+
+    def get_context(self, request, *args, **kwargs):
+        context = super().get_context(request, *args, **kwargs)
+        context["platform"] = {
+            "checks": accessibility.CHECKS,
+            "known_problems": accessibility.KNOWN_PROBLEMS,
+            "reviewed": accessibility.REVIEWED,
+        }
+        return context
