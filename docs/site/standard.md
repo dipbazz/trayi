@@ -59,8 +59,8 @@ Nepali names are still to be checked with charities.
 On every page: the charity's name; one **registration line** (in Nepal, the District
 Administration Office registration number and district, the Social Welfare Council affiliation
 number and the PAN; in the UK, the registered charity number), under the name; the address,
-phone and email; social links; and links to Reports and accounts, the privacy notice, the
-accessibility statement and Contact.
+phone and email; social links; and links to Reports and accounts, the privacy notice, Contact
+and the accessibility statement.
 
 For now the charity types its registration line itself, in each language, in Site settings, so
 nothing checks which numbers it includes; entering each number in its own box is
@@ -119,6 +119,26 @@ message", then the charity's own text or "We'll reply by email or phone, using t
 gave.", then "If it's urgent, call us on …" when the site has a phone, and a link home. It
 promises no reply time. It can't go live without an address to send each message to.
 
+## The accessibility statement
+
+One per home page, so one in each language, at `/accessibility/`, in W3C's order:
+
+1. The title and the charity's commitment, one line.
+2. **How well this site works:** that the site partially conforms to WCAG 2.2 at level AA, and
+   the checks every change gets before it's released. Nothing has audited the whole of WCAG 2.2
+   AA, so the statement doesn't say "meets". "Partially" points to the problems listed below, or,
+   with none listed, says not every part of the standard has been checked yet.
+3. **What doesn't work yet:** the known problems in the website itself and the day they were last
+   reviewed, then the charity's own list for what it has published (PDFs, videos without
+   captions, photos without descriptions) and the day it last checked.
+4. **Tell us about a problem or ask for another format:** the phone, email and address from Site
+   settings, and a link to the Contact page. Always shown, so a visitor knows they can ask;
+   while there's none of them, the dashboard asks the charity for one.
+
+Parts 2 and 3's platform part are the same on every site and come with each release; the charity
+writes only the commitment and its own content's problems
+([Pages and content](pages-and-content.md#the-accessibility-statement)).
+
 ## Forms
 
 A form that asks a visitor to get in touch (Contact is the first) has a **fixed core** of
@@ -166,16 +186,16 @@ Delete this section once [#191](https://github.com/dipbazz/trayi/issues/191) is 
 |---|---|---|
 | Header | The name on a row of its own above the controls row; it scrolls away | [#176](https://github.com/dipbazz/trayi/issues/176), [#139](https://github.com/dipbazz/trayi/issues/139) |
 | Menu | The five sections, each linking to the page chosen in Site settings → Menu; no lists under About us or Get involved yet | [#171](https://github.com/dipbazz/trayi/issues/171) |
-| Footer | Name, the registration line the charity types, address, contact details, social links, privacy link and Contact | [#172](https://github.com/dipbazz/trayi/issues/172), [#167](https://github.com/dipbazz/trayi/issues/167), [#170](https://github.com/dipbazz/trayi/issues/170) |
+| Footer | Name, the registration line the charity types, address, contact details, social links, privacy link, Contact and the accessibility statement | [#172](https://github.com/dipbazz/trayi/issues/172), [#167](https://github.com/dipbazz/trayi/issues/167), [#170](https://github.com/dipbazz/trayi/issues/170) |
 | About us | A standard page, written freely | [#169](https://github.com/dipbazz/trayi/issues/169), [#170](https://github.com/dipbazz/trayi/issues/170) |
 | Appeals and Stories | Built | |
 | Get involved | A volunteer form at `/volunteer/` | [#168](https://github.com/dipbazz/trayi/issues/168) |
 | Forms | Built: Contact has the fixed core; the volunteer form is all the editor's questions | |
 | Contact | Built | |
-| Accessibility statement | Missing | [#167](https://github.com/dipbazz/trayi/issues/167) |
+| Accessibility statement | Built | |
 | Home page | Banner, current appeals, then any blocks | [#173](https://github.com/dipbazz/trayi/issues/173) |
 | Donate page | Introduction, payment notice, pledge form, then any blocks | [#174](https://github.com/dipbazz/trayi/issues/174) |
-| A new site's pages | `new_site` builds the pages that have a page type today: Home, About us, Appeals, Stories, the volunteer form at `/volunteer/`, Contact, Donate and the privacy notice. The accessibility statement, Get involved and Reports and accounts join it with their own issues. A page with placeholder text can't go live | [#175](https://github.com/dipbazz/trayi/issues/175) |
+| A new site's pages | `new_site` builds the pages that have a page type today: Home, About us, Appeals, Stories, the volunteer form at `/volunteer/`, Contact, the accessibility statement, Donate and the privacy notice. Get involved and Reports and accounts join it with their own issues. A page with placeholder text can't go live | [#175](https://github.com/dipbazz/trayi/issues/175) |
 
 ## Where the code is
 

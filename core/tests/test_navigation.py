@@ -3,6 +3,8 @@ from pathlib import Path
 
 import pytest
 from bs4 import BeautifulSoup
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import translation
 from wagtail.models import PageViewRestriction
@@ -15,7 +17,7 @@ from core.brand import DEFAULT_LOGO_SIZE
 from core.menu import SECTIONS
 from core.models import SiteSettings
 from core.tests.test_settings import registered_texts
-from home.models import StandardPage
+from home.models import AccessibilityStatementPage, StandardPage
 from news.models import NewsIndexPage
 
 pytestmark = pytest.mark.django_db
@@ -237,6 +239,80 @@ class TestFooterContactLink:
         choose(site, contact_page=contact)
 
         assert ("सम्पर्क", contact.url) in footer_links(client, "/ne/")
+
+
+class TestFooterAccessibilityStatementLink:
+    """The footer links to the home page's accessibility statement, last, once it's live and
+    public. There's no chooser: a home page has only one (#167)."""
+
+    def test_comes_after_contact(self, client, site, home_page, privacy_notice):
+        contact = add_page(home_page, "Reach us", page_class=ContactPage)
+        choose(site, contact_page=contact)
+        statement = add_page(home_page, "Accessibility", page_class=AccessibilityStatementPage)
+
+        assert footer_links(client)[-2:] == [
+            ("Contact", contact.url),
+            ("Accessibility statement", statement.url),
+        ]
+
+    def test_none_without_a_statement(self, client, home_page):
+        assert "Accessibility statement" not in [text for text, href in footer_links(client)]
+
+    def test_none_while_it_isnt_published(self, client, home_page):
+        add_page(home_page, "Accessibility", live=False, page_class=AccessibilityStatementPage)
+
+        assert "Accessibility statement" not in [text for text, href in footer_links(client)]
+
+    def test_none_while_it_is_behind_a_login(self, client, home_page):
+        statement = add_page(home_page, "Accessibility", page_class=AccessibilityStatementPage)
+        PageViewRestriction.objects.create(
+            page=statement, restriction_type=PageViewRestriction.LOGIN
+        )
+
+        assert "Accessibility statement" not in [text for text, href in footer_links(client)]
+
+    def test_nepali_readers_get_its_nepali_translation(self, client, home_page, nepali_home_page):
+        statement = add_page(home_page, "Accessibility", page_class=AccessibilityStatementPage)
+        nepali = statement.copy_for_translation(nepali_home_page.locale)
+        nepali.save_revision().publish()
+
+        assert footer_links(client, "/ne/")[-1][1] == nepali.url
+        assert footer_links(client)[-1][1] == statement.url
+
+    def test_without_a_live_translation_nepali_readers_get_the_main_one(
+        self, client, home_page, nepali_home_page
+    ):
+        statement = add_page(home_page, "Accessibility", page_class=AccessibilityStatementPage)
+        statement.copy_for_translation(nepali_home_page.locale)  # a draft
+
+        assert footer_links(client, "/ne/")[-1][1] == statement.url
+
+    def test_costs_no_query_of_its_own(self, client, home_page):
+        def queries():
+            client.get("/")  # fills the caches
+            with CaptureQueriesContext(connection) as captured:
+                client.get("/")
+            return len(captured)
+
+        without = queries()
+        add_page(home_page, "Accessibility", page_class=AccessibilityStatementPage)
+
+        assert queries() == without
+
+    def test_finds_it_without_joining_the_content_types(self, client, home_page):
+        # Every page runs this query: the statement's content type comes from Django's cache.
+        add_page(home_page, "Accessibility", page_class=AccessibilityStatementPage)
+        client.get("/")  # fills the caches
+        with CaptureQueriesContext(connection) as captured:
+            client.get("/")
+
+        lookup = [
+            q["sql"]
+            for q in captured
+            if "wagtailcore_pageviewrestriction" in q["sql"] and "language_code" in q["sql"]
+        ]
+        assert len(lookup) == 1
+        assert "django_content_type" not in lookup[0]
 
 
 def test_the_sections_are_the_standards_in_its_order_and_names():

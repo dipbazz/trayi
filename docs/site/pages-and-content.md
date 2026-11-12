@@ -45,14 +45,18 @@ and Stories are published, and the header has no Donate button until the Donate 
 ## Pages still to write
 
 The top of the admin's dashboard lists what's left of the [standard](standard.md#pages-every-site-has)
-on the site, on every site, however it was built: "Pages still to write: 4 of 12", counting each
+on the site, on every site, however it was built: "Pages still to write: 4 of 16", counting each
 standard page with a page type today once per language. Rows are grouped by language, main
-language first: the privacy notice, Donate, the menu sections in the standard's order. Each is the
+language first: the privacy notice, Donate, the menu sections in the standard's order, then the
+volunteer form and the accessibility statement. Each is the
 page's title, linked to edit it if you may, and one status: **Not set**, **Draft**, **Has [Write:
 …] text**, **Not translated yet** with a Translate link, or **Translate after publishing** while
 the main page isn't set or live. The privacy notice, Donate, About us, Appeals, Stories and Contact
 are the pages chosen in Site settings (Not set links there); the volunteer form is found by its address
-under the home page until it has a chooser of its own. A line above the list asks for the registration details while Site
+under the home page until it has a chooser of its own, and the accessibility statement by its
+page type, since a home page has only one, so renaming it doesn't lose it. A live statement in the main language says **No
+contact details**, linked to Site settings, while the site has no phone, email, address or live,
+public Contact page for its "Tell us about a problem" section. A line above the list asks for the registration details while Site
 settings' registration line is blank in any language.
 
 Only someone who can change a page or Site settings sees the panel; a pledges-only user can do
@@ -121,6 +125,34 @@ The first thing a visitor sees, so it leads with the charity's message and its o
 General pages such as About us or the privacy notice: a title, an introduction and a body of
 content blocks. They go under the home page or another standard page, so editors can build
 sections (`home/models.py`, `StandardPage`).
+
+## The accessibility statement
+
+`AccessibilityStatementPage` (`home/models.py`) is the standard's accessibility statement
+([Standard](standard.md#the-accessibility-statement)): one under each home page, at
+`/accessibility/` in a new site. There's no chooser: the footer links to the one under the home
+page in the language being read once it's live and public, else to the main language's, last in
+its list, found in the same query as the chosen pages (`core/context_processors.py`).
+
+- **The platform's part is in the code** (`core/accessibility.py`), translated, the same on
+  every site: that the site partially conforms to WCAG 2.2 AA (pointing to the problems listed
+  below, or, with none in either list, saying not every part has been checked), the checks behind that
+  (`CHECKS`), the known problems in the website itself (`KNOWN_PROBLEMS`) and the day they were
+  last reviewed (`REVIEWED`). A fix to a listed problem takes it off the list in the same pull
+  request, and each release checks the list and moves the date
+  ([Releases](../contributing/releases.md#cutting-a-release)), so every site's statement is
+  corrected at its next upgrade.
+- **The charity writes three things:** a one-line commitment under the title, a list of
+  problems in what it has published (such as a PDF or a video without captions), and the day it
+  last checked its content. The list and the date show only when filled in. A new site's draft
+  has a commitment and a placeholder in the list, so it can't go live until the charity writes
+  its problems or deletes the line.
+- **Tell us about a problem** shows the phone, email and address from Site settings, with the
+  address's "Open in a map" link, as the Contact page's General enquiries do (one include,
+  `contact/includes/general_enquiries.html`), and a link to the Contact page when it's live and
+  public. It's always shown, so a visitor knows they can
+  ask; while there's none of them, the dashboard's [Pages still to write](#pages-still-to-write)
+  says **No contact details** on the live statement.
 
 ## Content blocks
 
@@ -216,7 +248,8 @@ and declares what the base can't: its own field model (a `ParentalKey` with
 
 `ContactPage` is the standard's Contact page ([Standard](standard.md#the-contact-page)): one
 under each home page, chosen for the menu's Contact section, which takes no other kind of page.
-The footer links to it once it's live and public, after the privacy notice. Its form starts with
+The footer links to it once it's live and public, after the privacy notice and before the
+accessibility statement. Its form starts with
 a **fixed core** (`ContactForm`): Your name, Email, Phone with its country (the shared picker in
 `core/phone.py`, `includes/phone_field.html`) and Your message, saved as `name`, `email`, `phone`
 and `message` in every language, the phone in E.164 (+977…). Email or phone is required. A

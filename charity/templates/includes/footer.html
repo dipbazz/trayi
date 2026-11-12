@@ -11,6 +11,7 @@
             {% for name, url in site_settings.social_links %}<li><a href="{{ url }}">{{ name }}</a></li>{% endfor %}
             {% if privacy_page %}<li><a href="{% pageurl privacy_page %}">{% translate "Privacy notice" %}</a></li>{% endif %}
             {% if contact_page_link %}<li><a href="{% pageurl contact_page_link %}">{% translate "Contact" %}</a></li>{% endif %}
+            {% if accessibility_page %}<li><a href="{% pageurl accessibility_page %}">{% translate "Accessibility statement" %}</a></li>{% endif %}
         </ul>
         <p class="meta">
             &copy; {% now "Y" %} <span lang="{{ site_settings.name_language }}">{{ site_settings.name|default:"Charity" }}</span>.

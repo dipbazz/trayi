@@ -77,7 +77,9 @@ Root
 │  │   └─ Appeal  /appeals/flood-relief/
 │  ├─ Stories  /stories/            (the news page; one per home page)
 │  │   └─ Story  /stories/<slug>/
-│  └─ Form page  /volunteer/        (no children)
+│  ├─ Form page  /volunteer/        (no children)
+│  ├─ Contact page  /contact/       (one per home page; no children)
+│  └─ Accessibility statement  /accessibility/  (one per home page; no children)
 └─ Home page  /ne/  (the Nepali tree, with the same rules)
 ```
 

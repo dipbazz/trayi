@@ -169,6 +169,12 @@ Release a version as soon as the last issue in its milestone is closed.
      looks like. Fix what has drifted in this pull request, in a `docs:` commit of its own, and
      retake a screenshot when the page it shows has changed. Then set "Last verified against"
      in the [project map](../project-context.md) to `vX.Y.Z`.
+   - **check the accessibility statement's platform part** (`core/accessibility.py`): you,
+     cutting the release, check that `KNOWN_PROBLEMS` lists what this version's site still gets
+     wrong for disabled visitors (open `accessibility` issues and what the docs check finds) and
+     that `CHECKS` still matches what CI and QA check, then set `REVIEWED` to today. Every
+     site's statement says it, so a stale list tells disabled visitors something untrue
+     ([Pages and content](../site/pages-and-content.md#the-accessibility-statement));
    - **run the release reviews** over the whole code ([Reviews](reviews.md#at-each-release)):
      what they find becomes issues, like the docs check below;
    - **A bug the check finds in the code** (the code is wrong, not the page) becomes an issue.

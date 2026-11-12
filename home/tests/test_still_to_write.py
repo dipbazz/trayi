@@ -9,7 +9,7 @@ from django.contrib.auth.models import Permission
 from django.core.management import call_command
 from django.urls import reverse
 from django.utils import timezone
-from wagtail.models import Locale, Page, PageLogEntry, Site
+from wagtail.models import Locale, Page, PageLogEntry, PageViewRestriction, Site
 
 from core.models import SiteSettings, SiteSettingsText
 from home.management.commands.new_site import standard_pages
@@ -42,6 +42,7 @@ def write_and_publish(page):
         "intro": "<p>Written.</p>",
         "thank_you_text": "<p>Written.</p>",
         "to_address": "team@example.org",
+        "content_problems": "<ul><li>Written.</li></ul>",
     }
     for name, value in written.items():
         if hasattr(page, name):
@@ -95,6 +96,7 @@ class TestTheCommandsDrafts:
             "Stories",
             "Volunteer with us",
             "Contact",
+            "Accessibility statement",
         ]
         assert second.language == "नेपाली"
         assert {row.status for row in second.rows} == {"Translate after publishing"}
@@ -113,7 +115,7 @@ class TestTheCommandsDrafts:
 
         result = panel(admin, site)
 
-        assert (result.left, result.total) == (14, 14)
+        assert (result.left, result.total) == (16, 16)
 
     def test_the_privacy_notice_and_donate_say_why_they_come_first(self, home_page, admin):
         rows = panel(admin, built_site(home_page)).groups[0].rows
@@ -176,7 +178,60 @@ class TestStatuses:
 
         row = result.groups[1].rows[0]
         assert (row.title, row.status) == ("Privacy notice", "Translate after publishing")
-        assert (result.left, result.total) == (14, 14)
+        assert (result.left, result.total) == (16, 16)
+
+
+class TestTheStatementsWayToReport:
+    """A live statement isn't done while a visitor has no one to tell about a problem (#167)."""
+
+    def live_statement(self, home_page):
+        site = built_site(home_page)
+        write_and_publish(Page.objects.get(slug="accessibility"))
+        return site
+
+    def test_asks_for_contact_details_while_the_site_has_none(self, home_page, admin):
+        site = self.live_statement(home_page)
+
+        row = next(r for r in panel(admin, site).groups[0].rows if r.title.startswith("Access"))
+
+        assert row.status == "No contact details"
+        assert row.settings_url == reverse(
+            "wagtailsettings:edit", args=["core", "sitesettings", site.pk]
+        )
+
+    @pytest.mark.parametrize("field", ["phone", "contact_email"])
+    def test_done_once_settings_have_a_phone_or_email(self, home_page, admin, field):
+        site = self.live_statement(home_page)
+        settings = SiteSettings.for_site(site)
+        setattr(settings, field, "01-4567890" if field == "phone" else "hi@example.org")
+        settings.save()
+
+        titles = [row.title for row in panel(admin, site).groups[0].rows]
+
+        assert "Accessibility statement" not in titles
+
+    def live_contact_page(self, site):
+        """The Contact page live, after the registration line and privacy notice it needs."""
+        register(site)
+        write_and_publish(Page.objects.get(slug="privacy"))
+        return write_and_publish(Page.objects.get(slug="contact"))
+
+    def test_done_once_the_contact_page_is_live(self, home_page, admin):
+        site = self.live_statement(home_page)
+        self.live_contact_page(site)
+
+        titles = [row.title for row in panel(admin, site).groups[0].rows]
+
+        assert "Accessibility statement" not in titles
+
+    def test_a_contact_page_behind_a_login_doesnt_count(self, home_page, admin):
+        site = self.live_statement(home_page)
+        contact = self.live_contact_page(site)
+        PageViewRestriction.objects.create(page=contact, restriction_type=PageViewRestriction.LOGIN)
+
+        assert ("Accessibility statement", "No contact details") in statuses(
+            panel(admin, site).groups[0]
+        )
 
 
 class TestWhoCanFollowTheLinks:
@@ -234,6 +289,18 @@ class TestAHandBuiltSite:
 
         assert "Help us" not in titles and "Volunteer with us" not in titles
 
+    def test_finds_the_accessibility_statement_by_its_type_whatever_its_address(
+        self, home_page, admin
+    ):
+        site = built_site(home_page)
+        statement = Page.objects.get(slug="accessibility").specific
+        statement.slug = "access"
+        statement.save()
+
+        assert ("Accessibility statement", "Has [Write: …] text") in statuses(
+            panel(admin, site).groups[0]
+        )
+
     def test_nothing_left_never_claims_the_site_is_done(self, home_page, admin):
         site = built_site(home_page)
         PageLogEntry.objects.filter(action=NEW_SITE_BUILT).delete()
@@ -266,8 +333,11 @@ class TestWhenEveryPageIsDone:
         # registration line is read from each language's row (#172), one fewer since the pages
         # chosen in Site settings are read in one query (#171). Each standard page's two
         # translations cost six: the Contact page added them (#321). Two more since the
-        # placeholder check reads each Contact page translation's other contacts (#322).
-        with django_assert_max_num_queries(42):
+        # placeholder check reads each Contact page translation's other contacts (#322). Four
+        # more for the accessibility statement (#167): finding it by its slug, and its
+        # translation found and read in the second language. Two more to check a live statement
+        # says how to report a problem: the address, and whether the Contact page is public.
+        with django_assert_max_num_queries(48):
             panel(admin, site)
 
     def test_the_line_goes_seven_days_after_the_last_page_went_live(self, home_page, admin):
@@ -326,7 +396,7 @@ class TestOnTheDashboard:
 
         html = client.get(reverse("wagtailadmin_home")).content.decode()
 
-        assert "Pages still to write: 14 of 14" in html
+        assert "Pages still to write: 16 of 16" in html
         assert html.index("Pages still to write") < html.index("Fundraising overview")
 
     def test_its_text_lines_up_with_wagtails_dashboard_tables(self, home_page, admin, client):

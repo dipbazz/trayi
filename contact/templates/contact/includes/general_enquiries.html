@@ -1,0 +1,11 @@
+{% load i18n %}{# Site settings' general enquiries, as the Contact page and the accessibility statement both show them (#167): only what's filled in. Needs `site_settings`. #}
+{% if site_settings.phone or site_settings.contact_email %}
+    <ul class="contact-list">
+        {% if site_settings.phone %}{% include "contact/includes/phone_item.html" with phone=site_settings.phone %}{% endif %}
+        {% if site_settings.contact_email %}<li><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></li>{% endif %}
+    </ul>
+{% endif %}
+{% if site_settings.address %}
+    <address>{{ site_settings.address|linebreaksbr }}</address>
+    {% if site_settings.map_url %}<ul class="contact-list"><li><a href="{{ site_settings.map_url }}">{% translate "Open in a map" %}</a></li></ul>{% endif %}
+{% endif %}

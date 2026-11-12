@@ -1,8 +1,10 @@
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.utils.functional import SimpleLazyObject
 from wagtail.models import Page
 
-from core.languages import reading_language
+from core.accessibility import STATEMENT_PAGE_TYPE
+from core.languages import main_language, reading_language
 from core.menu import SECTIONS, SHOWN, link_to, menu_sections, with_privacy
 from core.models import AnnouncementBanner, SiteSettings
 
@@ -16,11 +18,13 @@ def chosen_pages(request):
     `contact_page_link` the footer's Contact link, their Contact page or None (#167). Each links
     as the menu does (`link_to`): only while the chosen page is published and public, so nothing
     links to a draft or a page behind a password (#312), and then to its published, public
-    translation in the language being read, else to the chosen page.
+    translation in the language being read, else to the chosen page. `accessibility_page` is the
+    footer's link to the accessibility statement (#167): the live, public one in the language
+    being read, else the main language's, else None.
 
-    Looked up only when a template uses one, and then all together in one query: the chosen pages
-    and their published translations in the language being read, each with whether it's behind a
-    password or login.
+    Looked up only when a template uses one, and then all together in one query: the chosen pages,
+    their published translations in the language being read and the accessibility statement, each
+    with whether it's behind a password or login.
     """
 
     def find():
@@ -33,7 +37,7 @@ def chosen_pages(request):
         }
         for section in SECTIONS:
             chosen[section.setting] = getattr(site_settings, f"{section.setting}_id")
-        pages, translated = find_in_reading_language(chosen)
+        pages, translated, statement = find_in_reading_language(chosen)
         found = {
             name: link_to(pages[name], translated[name])
             for name in ("privacy_page", "donate_page_link", "banner_link_page")
@@ -46,24 +50,28 @@ def chosen_pages(request):
         found["contact_page_link"] = next(
             (s.page for s in found["menu_sections"] if s.section.setting == "contact_page"), None
         )
+        found["accessibility_page"] = statement
         return found
 
     def find_in_reading_language(chosen):
-        """Each chosen page, by name, and its published translation in the language being read."""
+        """Each chosen page, by name, and its published translation in the language being read;
+        and the accessibility statement, which has no chooser: a home page has only one."""
         ids = {pk for pk in chosen.values() if pk is not None}
-        if not ids:
-            return dict.fromkeys(chosen), dict.fromkeys(chosen)
-        language = reading_language()
-        pages = with_privacy(
-            Page.objects.filter(
-                Q(pk__in=ids)
-                | Q(
-                    translation_key__in=Page.objects.filter(pk__in=ids).values("translation_key"),
-                    locale__language_code=language,
-                    live=True,
-                )
+        language, main = reading_language(), main_language()
+        # Django caches content types, so the statement's id costs no query and no join.
+        statement_type = ContentType.objects.get_by_natural_key(*STATEMENT_PAGE_TYPE).pk
+        wanted = Q(
+            content_type_id=statement_type,
+            locale__language_code__in={language, main},
+            live=True,
+        )
+        if ids:
+            wanted |= Q(pk__in=ids) | Q(
+                translation_key__in=Page.objects.filter(pk__in=ids).values("translation_key"),
+                locale__language_code=language,
+                live=True,
             )
-        ).select_related("locale")
+        pages = with_privacy(Page.objects.filter(wanted)).select_related("locale")
         by_id = {page.pk: page for page in pages}
         translations = {
             page.translation_key: page
@@ -75,7 +83,12 @@ def chosen_pages(request):
             name: translations.get(page.translation_key) if page is not None else None
             for name, page in pages.items()
         }
-        return pages, translated
+        statements = {
+            page.locale.language_code: page
+            for page in by_id.values()
+            if page.content_type_id == statement_type and page.live and not page.private
+        }
+        return pages, translated, statements.get(language) or statements.get(main)
 
     pages = SimpleLazyObject(find)
     names = (
@@ -84,5 +97,6 @@ def chosen_pages(request):
         "banner_link_page",
         "menu_sections",
         "contact_page_link",
+        "accessibility_page",
     )
     return {name: SimpleLazyObject(lambda name=name: pages[name]) for name in names}

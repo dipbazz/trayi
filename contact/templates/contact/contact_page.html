@@ -20,14 +20,7 @@
                         {% if general %}
                             <section aria-labelledby="general-enquiries">
                                 <h2 id="general-enquiries">{% translate "General enquiries" %}</h2>
-                                <ul class="contact-list">
-                                    {% if site_settings.phone %}{% include "contact/includes/phone_item.html" with phone=site_settings.phone %}{% endif %}
-                                    {% if site_settings.contact_email %}<li><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></li>{% endif %}
-                                </ul>
-                                {% if site_settings.address %}
-                                    <address>{{ site_settings.address|linebreaksbr }}</address>
-                                    {% if site_settings.map_url %}<ul class="contact-list"><li><a href="{{ site_settings.map_url }}">{% translate "Open in a map" %}</a></li></ul>{% endif %}
-                                {% endif %}
+                                {% include "contact/includes/general_enquiries.html" %}
                             </section>
                         {% endif %}
                         {% if teams %}

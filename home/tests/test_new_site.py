@@ -19,12 +19,13 @@ from core.models import SiteSettings
 from core.publishing import (
     ADD_RECIPIENT,
     PUBLISH_PRIVACY_NOTICE,
+    REPLACE_PLACEHOLDERS,
     PublishRefused,
     has_placeholders,
     reasons_not_to_publish,
 )
 from home.management.commands.new_site import standard_pages
-from home.models import HomePage, StandardPage
+from home.models import AccessibilityStatementPage, HomePage, StandardPage
 from news.models import NewsIndexPage
 
 pytestmark = pytest.mark.django_db
@@ -41,6 +42,7 @@ BUILT = {
     "stories": ("Stories", NewsIndexPage),
     "volunteer": ("Volunteer with us", FormPage),
     "contact": ("Contact", ContactPage),
+    "accessibility": ("Accessibility statement", AccessibilityStatementPage),
     "donate": ("Donate", DonatePage),
     "privacy": ("Privacy notice", StandardPage),
 }
@@ -48,7 +50,6 @@ BUILT = {
 NOT_BUILT_YET = {
     "reports and accounts": "#170",
     "get involved": "#168",
-    "accessibility statement": "#167",
 }
 
 
@@ -220,6 +221,19 @@ class TestThePlaceholders:
         assert contact.to_address == ""
         assert not contact.form_fields.exists()
         assert ADD_RECIPIENT in reasons_not_to_publish(contact)
+
+    def test_the_statement_asks_only_for_the_charitys_own_content(self, home_page):
+        """The commitment has a default; the charity lists its own content's problems, or
+        deletes the placeholder when there are none, before it can go live."""
+        new_site()
+
+        statement = pages_under(home_page)["accessibility"]
+        assert statement.commitment == (
+            "We want everyone to be able to use this website, however they use it."
+        )
+        assert "[Write:" in str(statement.content_problems)
+        assert statement.content_checked is None
+        assert reasons_not_to_publish(statement) == [REPLACE_PLACEHOLDERS]
 
 
 class TestSiteSettings:

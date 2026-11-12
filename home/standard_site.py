@@ -8,7 +8,7 @@ from campaigns.forms import PledgeForm
 from campaigns.models import CampaignIndexPage, DonatePage
 from contact.models import ContactPage, FormField, FormPage
 from core.menu import SECTIONS
-from home.models import StandardPage
+from home.models import AccessibilityStatementPage, StandardPage
 from news.models import NewsIndexPage
 
 NEW_SITE_BUILT = "charity.new_site"
@@ -17,14 +17,17 @@ NEW_SITE_BUILT = "charity.new_site"
 @dataclass(frozen=True)
 class StandardPageEntry:
     """A page every site has. `build` makes `new_site`'s draft of it, in the language being read.
-    `setting` names its chooser in Site settings; without one it's found by its slug under the
-    home page, until #167 and #168 add theirs."""
+    `setting` names its chooser in Site settings. Without one it's found under the home page: by
+    `page_type` for the accessibility statement, which a home page has only one of (#167), so
+    renaming it doesn't lose it, else by its slug: the volunteer form until #168 adds its
+    chooser."""
 
     name: str
     slug: str
     build: Callable[[], object]
     setting: str = ""
     why: str = ""
+    page_type: type | None = None
 
     @property
     def in_menu(self):
@@ -173,8 +176,24 @@ def contact():
     )
 
 
+def accessibility_statement():
+    """The platform's part comes from the code, so the charity writes only about its own
+    content: what it has published that doesn't work for everyone, or nothing."""
+    return AccessibilityStatementPage(
+        title=_("Accessibility statement"),
+        slug="accessibility",
+        commitment=_("We want everyone to be able to use this website, however they use it."),
+        content_problems=_(
+            "<ul><li>[Write: anything you've published that doesn't work for everyone, such as a "
+            "PDF, a video without captions or a photo without a description. Delete this if "
+            "there's nothing.]</li></ul>"
+        ),
+    )
+
+
 # The one list of them, in the dashboard panel's order: the pages with a `why` first, then the menu
-# sections in the standard's order. #167, #168, #169 and #170 each add theirs.
+# sections in the standard's order, then the accessibility statement. #168, #169 and #170 each
+# add theirs.
 STANDARD_PAGES = (
     StandardPageEntry(
         gettext_lazy("Privacy notice"),
@@ -195,4 +214,10 @@ STANDARD_PAGES = (
     StandardPageEntry(gettext_lazy("Stories"), "stories", stories, setting="stories_page"),
     StandardPageEntry(gettext_lazy("Volunteer with us"), "volunteer", volunteer_form),
     StandardPageEntry(gettext_lazy("Contact"), "contact", contact, setting="contact_page"),
+    StandardPageEntry(
+        gettext_lazy("Accessibility statement"),
+        "accessibility",
+        accessibility_statement,
+        page_type=AccessibilityStatementPage,
+    ),
 )
