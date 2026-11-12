@@ -43,6 +43,14 @@ class FormField(AbstractFormField):
 COPY_ID = "copy-id"
 
 
+class CopyIdFormBuilder(FormBuilder):
+    """The editor's questions, with this copy's one-time ID (COPY_ID)."""
+
+    @property
+    def formfields(self):
+        return {**super().formfields, COPY_ID: CopyIdField()}
+
+
 class EmailFormPage(HoneypotFormMixin, PublishGuardMixin, AbstractEmailForm):
     """What every form page does (#167): drop a filled hidden box, email the team with Reply-To
     set to the sender, keep the send when the mail server is down, go on to `?sent` after it,
@@ -55,6 +63,7 @@ class EmailFormPage(HoneypotFormMixin, PublishGuardMixin, AbstractEmailForm):
 
     collects_personal_details = True
     base_form_class = FormPageForm
+    form_builder = CopyIdFormBuilder
 
     class Meta:
         abstract = True
@@ -83,11 +92,6 @@ class EmailFormPage(HoneypotFormMixin, PublishGuardMixin, AbstractEmailForm):
 
     # A field's label in the email when it isn't the form's, by name. A type sets its own.
     email_labels = {}
-
-    def get_form_class(self):
-        """The type's form, with this copy's one-time ID (COPY_ID)."""
-        form_class = super().get_form_class()
-        return type(form_class.__name__, (form_class,), {COPY_ID: CopyIdField()})
 
     def process_form_submission(self, form):
         """Save and email only the data fields (get_data_fields), so a field that only helps
@@ -254,7 +258,7 @@ class ContactForm(PhoneWithCountryMixin, BaseForm):
         return [field for field in self.visible_fields() if field.name not in RESERVED_NAMES]
 
 
-class ContactFormBuilder(FormBuilder):
+class ContactFormBuilder(CopyIdFormBuilder):
     def get_form_class(self):
         return type("ContactPageForm", (ContactForm,), self.formfields)
 
