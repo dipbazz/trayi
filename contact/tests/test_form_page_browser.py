@@ -91,6 +91,25 @@ def test_going_back_and_sending_again_keeps_one_submission(site_page, request, f
     assert FormSubmission.objects.filter(page=page).count() == 1
 
 
+# Regression: the tab kept only the last ID sent on each page, so going back to an earlier copy
+# gave it a later copy's ID, and sending it again saved it a second time. Found in code review of
+# #348 on 2026-11-12.
+def test_going_back_to_an_earlier_copy_keeps_its_own_id(site_page, volunteer_form):
+    for name in ("Sam", "Kim"):
+        site_page.goto(SITE + volunteer_form.url)
+        site_page.locator('main form [name="your_name"]').fill(name)
+        site_page.locator('main form [name="email_address"]').fill("sam@example.com")
+        site_page.get_by_role("button", name="Send").click()
+        expect(site_page).to_have_url(re.compile(r"\?sent$"))
+    for _ in range(3):
+        site_page.go_back()
+    expect(site_page.locator('main form [name="your_name"]')).to_have_value("Sam")
+    site_page.get_by_role("button", name="Send").click()
+    expect(site_page).to_have_url(re.compile(r"\?sent$"))
+
+    assert FormSubmission.objects.filter(page=volunteer_form).count() == 2
+
+
 def test_opening_a_form_page_again_starts_a_new_copy(site_page, volunteer_form):
     for _ in range(2):
         site_page.goto(SITE + volunteer_form.url)
