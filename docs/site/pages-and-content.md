@@ -240,6 +240,12 @@ and declares what the base can't: its own field model (a `ParentalKey` with
 - If the email can't be sent, the error is logged and the visitor still sees the thank-you page:
   the submission is already saved, and the team reads and exports submissions (CSV or Excel) in the admin. Anything a visitor typed
   that a spreadsheet would run as a formula is exported as text.
+- **The same copy sent again is saved once.** Each copy of the form carries a one-time ID
+  (`COPY_ID`, a hidden field): a send with an earlier submission's ID and the same answers, from
+  a second tap, a resend or Back and Send, saves and emails nothing more and still shows the
+  thanks. Changed answers are saved again, so the team gets what was meant. Back can reload the
+  form with a new ID, so `charity.js` puts back the one sent; without JavaScript a copy sent
+  again after Back may be saved twice. The ID is never emailed, listed or exported.
 - "How we use your details" links to the privacy notice just before the Send button.
 - Only the page's data fields (`get_data_fields()`) are saved, emailed and exported, so a field
   that only helps fill in another, like the phone's country, never reaches a submission.

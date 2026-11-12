@@ -10,7 +10,7 @@ from django.urls import reverse
 from openpyxl import load_workbook
 from wagtail.contrib.forms.models import AbstractFormField, FormSubmission
 
-from contact.models import EmailFormPage, FormField, FormPage
+from contact.models import COPY_ID, EmailFormPage, FormField, FormPage
 from core.models import SiteSettings
 from home.models import StandardPage
 
@@ -320,6 +320,111 @@ class TestOnlyTheDataFieldsAreKept:
         body = mail.outbox[0].body
         assert "Helper" not in body
         assert "Your name: Sam" in body
+
+
+class TestACopyIsSavedOnce:
+    """Each copy of a form page's form carries a one-time ID (#326): the same copy sent again,
+    by a second tap with JavaScript off, a resend or a retried request, saves and emails
+    nothing more, and goes on to the thanks as if it had worked."""
+
+    SENT = {
+        "volunteer_form": VALID_DATA,
+        "contact_page": {
+            "name": "Sam",
+            "email": "sam@example.com",
+            "phone_country": "NP",
+            "phone": "",
+            "message": "Can I visit?",
+        },
+    }
+
+    @pytest.fixture(params=["volunteer_form", "contact_page"])
+    def page_and_answers(self, request):
+        return request.getfixturevalue(request.param), self.SENT[request.param]
+
+    def copy_id(self, client, page):
+        html = BeautifulSoup(client.get(page.url).content, "html.parser")
+        form = html.find("form", method="post")
+        return form.find("input", {"name": COPY_ID, "type": "hidden"})["value"]
+
+    def test_the_same_copy_sent_twice_is_saved_and_emailed_once(self, client, page_and_answers):
+        page, answers = page_and_answers
+        copy = self.copy_id(client, page)
+
+        client.post(page.url, {**answers, COPY_ID: copy})
+        response = client.post(page.url, {**answers, COPY_ID: copy})
+
+        assert response.status_code == 303
+        assert response["Location"] == f"{page.url}?sent"
+        assert FormSubmission.objects.filter(page=page).count() == 1
+        assert len(mail.outbox) == 1
+
+    def test_two_copies_with_the_same_words_are_both_saved(self, client, page_and_answers):
+        page, answers = page_and_answers
+
+        client.post(page.url, {**answers, COPY_ID: self.copy_id(client, page)})
+        client.post(page.url, {**answers, COPY_ID: self.copy_id(client, page)})
+
+        assert FormSubmission.objects.filter(page=page).count() == 2
+        assert len(mail.outbox) == 2
+
+    def test_a_copy_changed_before_it_is_sent_again_is_saved_again(self, client, page_and_answers):
+        """Back to the form, a word changed, Send: the team gets what was meant, not nothing."""
+        page, answers = page_and_answers
+        copy = self.copy_id(client, page)
+
+        client.post(page.url, {**answers, COPY_ID: copy})
+        client.post(page.url, {**answers, "your_name": "Sam G", "name": "Sam G", COPY_ID: copy})
+
+        assert FormSubmission.objects.filter(page=page).count() == 2
+
+    def test_the_same_copy_sent_to_another_form_page_is_saved_there(
+        self, client, volunteer_form, contact_page
+    ):
+        copy = self.copy_id(client, volunteer_form)
+
+        client.post(volunteer_form.url, {**VALID_DATA, COPY_ID: copy})
+        client.post(contact_page.url, {**self.SENT["contact_page"], COPY_ID: copy})
+
+        assert FormSubmission.objects.count() == 2
+
+    @pytest.mark.parametrize("sent", [None, "", "not-an-id"])
+    def test_a_copy_without_a_readable_id_is_still_saved(self, client, page_and_answers, sent):
+        """A page opened before the ID existed, or one tampered with: never a reason to lose a
+        message."""
+        page, answers = page_and_answers
+        data = answers if sent is None else {**answers, COPY_ID: sent}
+
+        response = client.post(page.url, data)
+
+        assert response.status_code == 303
+        assert FormSubmission.objects.filter(page=page).count() == 1
+
+    def test_a_copy_sent_with_mistakes_and_then_put_right_is_saved(self, client, page_and_answers):
+        page, answers = page_and_answers
+        copy = self.copy_id(client, page)
+
+        mistaken = client.post(page.url, {COPY_ID: copy})
+        client.post(page.url, {**answers, COPY_ID: copy})
+
+        assert mistaken.status_code == 422
+        assert f'value="{copy}"' in mistaken.content.decode()
+        assert FormSubmission.objects.filter(page=page).count() == 1
+
+    def test_the_id_is_never_emailed_listed_or_exported(self, client, editor, page_and_answers):
+        page, answers = page_and_answers
+        copy = self.copy_id(client, page)
+        client.post(page.url, {**answers, COPY_ID: copy})
+
+        client.force_login(editor)
+        url = reverse("wagtailforms:list_submissions", args=[page.pk])
+        listed = client.get(url).content.decode()
+        exported = b"".join(client.get(url, {"export": "csv"}).streaming_content).decode()
+
+        assert "Sam" in listed and "Sam" in exported
+        for shown in (mail.outbox[0].body, listed, exported):
+            assert copy not in shown
+            assert COPY_ID not in shown
 
 
 class TestSubmissionsInTheAdmin:

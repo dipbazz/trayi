@@ -306,6 +306,11 @@ Every page works without JavaScript:
   tells screen readers. Back gives working buttons again. Only the words change
   (`[data-busy-label]` when a button has one), so a provider's logo stays on its button. Without
   JavaScript a second tap still sends again.
+- **A form's one-time ID survives Back** (`charity.js`, `input[data-copy-id]`): the pledge form
+  and every form page carry an ID per copy, and the server saves a copy sent again once. Back
+  from the thanks can reload the form with a new ID while the browser refills what was typed, so
+  the script keeps each copy's ID on its own history entry (`history.state`) and puts it back on
+  Back or Forward; opening the page any other way starts a new copy.
 
 ## Accessibility
 

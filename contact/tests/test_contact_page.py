@@ -77,6 +77,7 @@ class TestTheForm:
             "phone",
             "message",
             "which_school",
+            "copy-id",
         ]
 
     def test_the_core_fields_are_worded_for_supporters(self, contact_page):

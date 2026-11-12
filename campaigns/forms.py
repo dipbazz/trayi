@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.utils.translation import gettext, gettext_lazy
 
 from campaigns.models import RECEIPT_MAX_PIXELS, RECEIPT_WIDTH, Frequency, PaymentStatus, Pledge
+from core.copy_id import CopyIdField
 from core.images import clean_image
 from core.money import CURRENCIES, format_money
 from core.number_fields import WholeNumberField
@@ -72,8 +73,8 @@ class PledgeForm(PhoneWithCountryMixin, forms.ModelForm):
     )
     # A one-time ID for this copy of the form: sending the same copy again updates its pledge
     # instead of adding a second one. Going back from the thank-you page can reload the page with
-    # a new ID, so donate.js puts back the ID that was sent.
-    submission_id = forms.CharField(required=False, initial=uuid.uuid4, widget=forms.HiddenInput)
+    # a new ID, so charity.js puts back the ID that was sent (data-copy-id).
+    submission_id = CopyIdField()
 
     # The page's order, which the template sets field by field: the error summary lists the
     # mistakes in it, so they read top to bottom like the form.
@@ -253,10 +254,10 @@ class PledgeForm(PhoneWithCountryMixin, forms.ModelForm):
         """This copy's ID, or a new one if it's missing or unreadable (a page opened before IDs
         existed): never a reason to turn a pledge away. A new one too if this copy's pledge can't
         be changed (pledge_sent_before), so sending it again starts a new pledge."""
-        try:
-            sent = uuid.UUID(self.cleaned_data["submission_id"])
-        except ValueError:
+        sent = self.cleaned_data["submission_id"]
+        if sent is None:
             return uuid.uuid4()
+        sent = uuid.UUID(sent)
         if self.instance.pk is None and Pledge.objects.filter(submission_id=sent).exists():
             return uuid.uuid4()
         return sent
