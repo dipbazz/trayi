@@ -92,7 +92,7 @@ class TestPagesInNepali:
             "गर्छ। आंशिक भनेको केही भागले अझै यो मापदण्ड पूरा गर्दैनन्: ती तल दिइएका छन्।"
         ) in text
         assert "थिच्ने हरेक कुरा कम्तीमा ४४ पिक्सेल अग्लो छ" in text
-        assert "हामीले वेबसाइट आफैँलाई पछिल्लो पटक 11 नभम्वर 2026 मा जाँचेका थियौं।" in text
+        assert "हामीले वेबसाइट आफैँ पछिल्लो पटक 11 नभम्वर 2026 मा जाँचेका थियौं।" in text
         assert "partially" not in text
 
     def test_search_in_nepali(self, client, nepali_home_page):

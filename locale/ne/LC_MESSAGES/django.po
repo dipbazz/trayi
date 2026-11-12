@@ -1015,7 +1015,7 @@ msgstr "वेबसाइटमै कुनै समस्या भएको
 
 #, python-format
 msgid "We last reviewed the website itself on %(date)s."
-msgstr "हामीले वेबसाइट आफैँलाई पछिल्लो पटक %(date)s मा जाँचेका थियौं।"
+msgstr "हामीले वेबसाइट आफैँ पछिल्लो पटक %(date)s मा जाँचेका थियौं।"
 
 msgid "In what we've published:"
 msgstr "हामीले प्रकाशित गरेका कुरामा:"
