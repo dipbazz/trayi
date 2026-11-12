@@ -1,6 +1,5 @@
 import json
 import logging
-import uuid
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -23,6 +22,7 @@ from wagtail.contrib.forms.panels import FormSubmissionsPanel
 from wagtail.fields import RichTextField
 from wagtail.models import Orderable
 
+from core.copy_id import CopyIdField
 from core.honeypot import HoneypotFormMixin
 from core.languages import main_language
 from core.models import SiteSettings
@@ -41,23 +41,6 @@ class FormField(AbstractFormField):
 # submission's form_data under this name. Wagtail's field names never have a hyphen, so no
 # editor's question can take it.
 COPY_ID = "copy-id"
-
-
-class CopyIdField(forms.CharField):
-    """A copy's one-time ID, cleaned to its text, or None when it's missing or unreadable (a page
-    opened before IDs existed): never a reason to turn a message away. Marked data-copy-id, so
-    charity.js puts back the ID that was sent when the form is reached with Back."""
-
-    widget = forms.HiddenInput(attrs={"data-copy-id": True})
-
-    def __init__(self, **kwargs):
-        super().__init__(required=False, initial=uuid.uuid4, **kwargs)
-
-    def to_python(self, value):
-        try:
-            return str(uuid.UUID(str(value)))
-        except ValueError:
-            return None
 
 
 class EmailFormPage(HoneypotFormMixin, PublishGuardMixin, AbstractEmailForm):
