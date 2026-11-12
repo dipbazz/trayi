@@ -117,7 +117,9 @@ class EmailFormPage(HoneypotFormMixin, PublishGuardMixin, AbstractEmailForm):
     def sent_before(self, copy, answers):
         """This page's submission from the copy `copy` with these answers, if there is one. The
         answers count too: a copy changed after Back and sent again is what the sender meant, so
-        it's saved. One worker serves the site, on SQLite, so two sends of a copy never race."""
+        it's saved. Nothing locks the check: two sends of a copy that arrive together at the
+        server's two workers (WEB_CONCURRENCY) can both be saved. The busy Send button stops a
+        second tap where JavaScript runs, so that's left (#252)."""
         if copy is None:
             return None
         answers = json.loads(json.dumps(answers, cls=DjangoJSONEncoder))
