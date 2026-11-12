@@ -156,6 +156,29 @@ document.querySelectorAll("textarea[data-char-count][maxlength]").forEach((box) 
     update();
 });
 
+// One-time IDs: each copy of a form (the pledge form, every form page) carries one in a hidden
+// input marked data-copy-id, and the same copy sent again is saved once. Going back from the
+// thanks can reload the form with a new ID while the browser refills what was typed, so remember
+// the ID that was sent in this tab and put it back when the form is reached with Back or Forward.
+// Opening the page any other way starts a new copy. Without JavaScript, or storage, a resent copy
+// may still be saved twice.
+const copyIds = document.querySelectorAll("input[data-copy-id]");
+if (copyIds.length) {
+    const [navigation] = performance.getEntriesByType("navigation");
+    copyIds.forEach((copyId) => {
+        const key = `copy-sent:${location.pathname}:${copyId.name}`;
+        try {
+            const sent = sessionStorage.getItem(key);
+            if (sent && navigation?.type === "back_forward") {
+                copyId.value = sent;
+            }
+            copyId.form.addEventListener("submit", () => sessionStorage.setItem(key, copyId.value));
+        } catch {
+            // Storage can be blocked (some private windows); the form still works.
+        }
+    });
+}
+
 // Busy buttons: a send button with data-busy-text (Send on every form page, the pay buttons) says
 // it's busy once its form is sent, and every one stops taking taps, so a slow connection doesn't
 // send a message twice or start a second payment. A status line ([data-busy-status]) tells screen

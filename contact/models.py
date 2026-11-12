@@ -45,9 +45,10 @@ COPY_ID = "copy-id"
 
 class CopyIdField(forms.CharField):
     """A copy's one-time ID, cleaned to its text, or None when it's missing or unreadable (a page
-    opened before IDs existed): never a reason to turn a message away."""
+    opened before IDs existed): never a reason to turn a message away. Marked data-copy-id, so
+    charity.js puts back the ID that was sent when the form is reached with Back."""
 
-    widget = forms.HiddenInput
+    widget = forms.HiddenInput(attrs={"data-copy-id": True})
 
     def __init__(self, **kwargs):
         super().__init__(required=False, initial=uuid.uuid4, **kwargs)

@@ -4,8 +4,11 @@ pytest's HTML checks in test_form_page.py can't see these. Run `uv run playwrigh
 --with-deps chromium` once; `uv run pytest -m "not browser"` leaves them out.
 """
 
+import re
+
 import pytest
 from playwright.sync_api import expect
+from wagtail.contrib.forms.models import FormSubmission
 
 from conftest import SITE
 from contact.models import FormField
@@ -57,6 +60,46 @@ def test_send_says_its_sending_and_a_second_tap_does_nothing(site_page, request,
 
     assert busy == {"label": sending, "disabled": True, "status": sending, "sends": 1}
     assert restored == {"label": "Send", "disabled": False, "status": "", "sends": 1}
+
+
+# What each form is sent with, box by box (its name: what's typed).
+ANSWERS = {
+    "contact_page": {"name": "Sam", "email": "sam@example.com", "message": "Can I visit?"},
+    "volunteer_form": {"your_name": "Sam", "email_address": "sam@example.com"},
+}
+
+
+# Regression: going back from the thanks reloaded the form with a new one-time ID while the
+# browser refilled what was typed, so sending it again saved and emailed a second copy (#326).
+@pytest.mark.parametrize("form", ["contact_page", "volunteer_form"])
+def test_going_back_and_sending_again_keeps_one_submission(site_page, request, form):
+    page = request.getfixturevalue(form)
+    site_page.goto(SITE + page.url)
+    for name, typed in ANSWERS[form].items():
+        site_page.locator(f'main form [name="{name}"]').fill(typed)
+    send = site_page.get_by_role("button", name="Send")
+
+    send.click()
+    expect(site_page).to_have_url(re.compile(r"\?sent$"))
+    site_page.go_back()
+    expect(
+        site_page.locator('main form [name="email"], main form [name="email_address"]')
+    ).to_have_value("sam@example.com")
+    send.click()
+    expect(site_page).to_have_url(re.compile(r"\?sent$"))
+
+    assert FormSubmission.objects.filter(page=page).count() == 1
+
+
+def test_opening_a_form_page_again_starts_a_new_copy(site_page, volunteer_form):
+    for _ in range(2):
+        site_page.goto(SITE + volunteer_form.url)
+        for name, typed in ANSWERS["volunteer_form"].items():
+            site_page.locator(f'main form [name="{name}"]').fill(typed)
+        site_page.get_by_role("button", name="Send").click()
+        expect(site_page).to_have_url(re.compile(r"\?sent$"))
+
+    assert FormSubmission.objects.filter(page=volunteer_form).count() == 2
 
 
 def test_a_summary_link_shows_the_question_and_its_mistake_on_a_phone(site_page, volunteer_form):

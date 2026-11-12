@@ -72,8 +72,12 @@ class PledgeForm(PhoneWithCountryMixin, forms.ModelForm):
     )
     # A one-time ID for this copy of the form: sending the same copy again updates its pledge
     # instead of adding a second one. Going back from the thank-you page can reload the page with
-    # a new ID, so donate.js puts back the ID that was sent.
-    submission_id = forms.CharField(required=False, initial=uuid.uuid4, widget=forms.HiddenInput)
+    # a new ID, so charity.js puts back the ID that was sent (data-copy-id).
+    submission_id = forms.CharField(
+        required=False,
+        initial=uuid.uuid4,
+        widget=forms.HiddenInput(attrs={"data-copy-id": True}),
+    )
 
     # The page's order, which the template sets field by field: the error summary lists the
     # mistakes in it, so they read top to bottom like the form.

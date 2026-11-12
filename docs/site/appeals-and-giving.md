@@ -95,8 +95,8 @@ JavaScript. If something is wrong, a summary at the top lists each problem as a 
 **Sending the same form twice updates one pledge.** Each copy of the form carries a one-time ID;
 sending it again, even after going back and changing something, updates that pledge instead of
 adding another. Because going back can reload the form with a new ID while the browser refills
-what was typed, the Donate page's own script (`donate.js`) remembers the ID it sent and puts it
-back. **A pledge someone has started paying is never changed this way:** each attempt to pay is
+what was typed, the site's script (`charity.js`, as for [form pages](pages-and-content.md#forms))
+remembers the ID it sent and puts it back. **A pledge someone has started paying is never changed this way:** each attempt to pay is
 for the pledge as it was, and a paid pledge records money received, so sending its copy again
 starts a new pledge.
 
