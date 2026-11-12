@@ -1,7 +1,10 @@
+import json
 import logging
+import uuid
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.http import HttpResponseRedirect
 from django.utils import translation
@@ -32,6 +35,28 @@ logger = logging.getLogger(__name__)
 
 class FormField(AbstractFormField):
     page = ParentalKey("FormPage", on_delete=models.CASCADE, related_name="form_fields")
+
+
+# Each copy of a form page's form carries a one-time ID in a hidden field (#326), saved in the
+# submission's form_data under this name. Wagtail's field names never have a hyphen, so no
+# editor's question can take it.
+COPY_ID = "copy-id"
+
+
+class CopyIdField(forms.CharField):
+    """A copy's one-time ID, cleaned to its text, or None when it's missing or unreadable (a page
+    opened before IDs existed): never a reason to turn a message away."""
+
+    widget = forms.HiddenInput
+
+    def __init__(self, **kwargs):
+        super().__init__(required=False, initial=uuid.uuid4, **kwargs)
+
+    def to_python(self, value):
+        try:
+            return str(uuid.UUID(str(value)))
+        except ValueError:
+            return None
 
 
 class EmailFormPage(HoneypotFormMixin, PublishGuardMixin, AbstractEmailForm):
@@ -75,14 +100,46 @@ class EmailFormPage(HoneypotFormMixin, PublishGuardMixin, AbstractEmailForm):
     # A field's label in the email when it isn't the form's, by name. A type sets its own.
     email_labels = {}
 
+    def get_form_class(self):
+        """The type's form, with this copy's one-time ID (COPY_ID)."""
+        form_class = super().get_form_class()
+        return type(form_class.__name__, (form_class,), {COPY_ID: CopyIdField()})
+
     def process_form_submission(self, form):
         """Save and email only the data fields (get_data_fields), so a field that only helps
         fill in another, like the phone's country, is neither kept nor sent (#321). Wagtail
-        saves and emails the form's answers, so the others are dropped from them first."""
+        saves and emails the form's answers, so the others are dropped from them first.
+
+        A copy already saved with the same answers (sent_before) is neither saved nor emailed
+        again (#326). Otherwise its ID is saved with the answers, but neither emailed nor shown
+        in the admin's list or export, which list only the data fields: Wagtail's email lists
+        the form's fields, so the ID's field is dropped from them."""
+        copy = form.cleaned_data.get(COPY_ID)
         names = {name for name, label in self.get_data_fields()}
         for name in form.cleaned_data.keys() - names:
             del form.cleaned_data[name]
+        earlier = self.sent_before(copy, form.cleaned_data)
+        if earlier is not None:
+            return earlier
+        if copy is not None:
+            form.cleaned_data[COPY_ID] = copy
+        form.fields.pop(COPY_ID, None)
         return super().process_form_submission(form)
+
+    def sent_before(self, copy, answers):
+        """This page's submission from the copy `copy` with these answers, if there is one. The
+        answers count too: a copy changed after Back and sent again is what the sender meant, so
+        it's saved. One worker serves the site, on SQLite, so two sends of a copy never race."""
+        if copy is None:
+            return None
+        answers = json.loads(json.dumps(answers, cls=DjangoJSONEncoder))
+        sent = self.get_submission_class().objects.filter(
+            page=self, **{f"form_data__{COPY_ID}": copy}
+        )
+        for submission in sent:
+            if {k: v for k, v in submission.form_data.items() if k != COPY_ID} == answers:
+                return submission
+        return None
 
     def render_email(self, form):
         """Wagtail's email, with each field under its `email_labels` label (the Contact page's
