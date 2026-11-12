@@ -102,7 +102,7 @@ class EmailFormPage(HoneypotFormMixin, PublishGuardMixin, AbstractEmailForm):
         again (#326). Otherwise its ID is saved with the answers, but neither emailed nor shown
         in the admin's list or export, which list only the data fields: Wagtail's email lists
         the form's fields, so the ID's field is dropped from them."""
-        copy = form.cleaned_data.get(COPY_ID)
+        copy = form.cleaned_data.pop(COPY_ID, None)
         names = {name for name, label in self.get_data_fields()}
         for name in form.cleaned_data.keys() - names:
             del form.cleaned_data[name]
