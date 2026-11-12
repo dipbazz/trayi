@@ -95,34 +95,45 @@ def with_privacy(pages):
     return pages.annotate(private=Exists(over_it))
 
 
-def menu_sections(site_settings, chosen, found):
+def chosen_status(page):
+    """Whether a page chosen in settings is linked to: SHOWN while it's live and public, as public
+    listings are (`.live().public()`), else why not. `page` is read `with_privacy`, or None."""
+    if page is None or not page.live:
+        return NOT_PUBLISHED
+    if page.private:
+        return NOT_PUBLIC
+    return SHOWN
+
+
+def link_to(page, translation):
+    """The page a link to `page`, chosen in settings, goes to in the language being read, or None.
+
+    Only the chosen page decides whether there's a link, in every language (`chosen_status`), so
+    the admin, which reads only the chosen pages, says what each language's site does. The link
+    goes to `translation`, its translation in the language being read, while that's live and
+    public, else to the chosen page. Both are read `with_privacy`.
+    """
+    if chosen_status(page) != SHOWN:
+        return None
+    if translation is not None and chosen_status(translation) == SHOWN:
+        return translation
+    return page
+
+
+def menu_sections(site_settings, chosen, translated):
     """Each section, in the standard's order, with the page it links to and its status.
 
-    `chosen` maps a section's setting to its chosen page, or None, and `found` to the page it
-    links to in the language being read: its published, public translation, else the chosen page.
-    Each page is read `with_privacy`. Only the chosen page decides whether a section is shown, in
-    every language, so the Menu tab, which reads only the chosen pages, says what each language's
-    menu does. It's shown when its chosen page is live and public, as public listings are
-    (`.live().public()`).
+    `chosen` maps a section's setting to its chosen page, or None, and `translated` to that page's
+    translation in the language being read, or None; the link is `link_to` them.
     """
     sections = []
     for section in SECTIONS:
         page = chosen.get(section.setting)
         if getattr(site_settings, f"{section.setting}_id") is None:
             status = NOT_SET
-        elif page is None or not page.live:
-            status = NOT_PUBLISHED
-        elif page.private:
-            status = NOT_PUBLIC
         else:
-            status = SHOWN
-        link = None
-        if status == SHOWN:
-            link = found.get(section.setting)
-            # A translation behind a password or login falls back to the chosen page, as a draft
-            # translation does.
-            if link is None or link.private:
-                link = page
+            status = chosen_status(page)
+        link = link_to(page, translated.get(section.setting))
         sections.append(MenuSection(section, link, status))
     return sections
 

@@ -5,7 +5,7 @@ from wagtail.models import Page
 
 from core.accessibility import STATEMENT_PAGE_TYPE
 from core.languages import main_language, reading_language
-from core.menu import SECTIONS, SHOWN, menu_sections, with_privacy
+from core.menu import SECTIONS, SHOWN, link_to, menu_sections, with_privacy
 from core.models import AnnouncementBanner, SiteSettings
 
 
@@ -13,17 +13,18 @@ def chosen_pages(request):
     """The pages chosen in settings that every page links to, in the language being read.
 
     `privacy_page` is the privacy notice for the footer and forms (#105) and `donate_page_link` the
-    header's Donate button: each None until a page is chosen and published. `banner_link_page` is
-    the announcement banner's link (#117). `menu_sections` are the menu's sections that have a
-    published, public page, in the standard's order (#171), and `contact_page_link` the footer's
-    Contact link, their Contact page or None (#167). Each page is its published translation
-    in the language being read, else the chosen page. `accessibility_page` is the footer's link
-    to the accessibility statement (#167): the live, public one in the language being read, else
-    the main language's, else None.
+    header's Donate button, and `banner_link_page` the announcement banner's link (#117).
+    `menu_sections` are the menu's sections that have a page, in the standard's order (#171), and
+    `contact_page_link` the footer's Contact link, their Contact page or None (#167). Each links
+    as the menu does (`link_to`): only while the chosen page is published and public, so nothing
+    links to a draft or a page behind a password (#312), and then to its published, public
+    translation in the language being read, else to the chosen page. `accessibility_page` is the
+    footer's link to the accessibility statement (#167): the live, public one in the language
+    being read, else the main language's, else None.
 
-    Looked up only when a template uses one, and then all together in one query: the chosen pages
-    and their published translations in the language being read, each with whether it's behind a
-    password or login.
+    Looked up only when a template uses one, and then all together in one query: the chosen pages,
+    their published translations in the language being read and the accessibility statement, each
+    with whether it's behind a password or login.
     """
 
     def find():
@@ -36,23 +37,25 @@ def chosen_pages(request):
         }
         for section in SECTIONS:
             chosen[section.setting] = getattr(site_settings, f"{section.setting}_id")
-        found, by_id = find_in_reading_language(chosen)
-        sections = [section.setting for section in SECTIONS]
-        in_menu = {name: by_id.get(chosen[name]) for name in sections}
-        links = {name: found.pop(name) for name in sections}
+        pages, translated, statement = find_in_reading_language(chosen)
+        found = {
+            name: link_to(pages[name], translated[name])
+            for name in ("privacy_page", "donate_page_link", "banner_link_page")
+        }
         found["menu_sections"] = [
             section
-            for section in menu_sections(site_settings, in_menu, links)
+            for section in menu_sections(site_settings, pages, translated)
             if section.status == SHOWN
         ]
         found["contact_page_link"] = next(
             (s.page for s in found["menu_sections"] if s.section.setting == "contact_page"), None
         )
+        found["accessibility_page"] = statement
         return found
 
     def find_in_reading_language(chosen):
-        """Each chosen page in the language being read, and the chosen pages by id; and the
-        accessibility statement, which has no chooser: a home page has only one."""
+        """Each chosen page, by name, and its published translation in the language being read;
+        and the accessibility statement, which has no chooser: a home page has only one."""
         ids = {pk for pk in chosen.values() if pk is not None}
         language, main = reading_language(), main_language()
         # Django caches content types, so the statement's id costs no query and no join.
@@ -75,20 +78,17 @@ def chosen_pages(request):
             for page in by_id.values()
             if page.locale.language_code == language and page.live
         }
-        found = {}
-        for name, pk in chosen.items():
-            page = by_id.get(pk)
-            found[name] = page and translations.get(page.translation_key, page)
-        for name in ("privacy_page", "donate_page_link"):
-            if found[name] is not None and not found[name].live:
-                found[name] = None
+        pages = {name: by_id.get(pk) for name, pk in chosen.items()}
+        translated = {
+            name: translations.get(page.translation_key) if page is not None else None
+            for name, page in pages.items()
+        }
         statements = {
             page.locale.language_code: page
             for page in by_id.values()
             if page.content_type_id == statement_type and page.live and not page.private
         }
-        found["accessibility_page"] = statements.get(language) or statements.get(main)
-        return found, by_id
+        return pages, translated, statements.get(language) or statements.get(main)
 
     pages = SimpleLazyObject(find)
     names = (

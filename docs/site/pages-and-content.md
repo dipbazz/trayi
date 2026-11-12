@@ -210,8 +210,11 @@ Settings that apply to every page, under **Settings** in the admin (`core/models
   change shows on every page as soon as it's saved, so its preview panel shows it on real pages
   first ([Look and feel](look-and-feel.md#seeing-a-brand-change-before-it-goes-live)).
 - **Announcement banner**: one message, written in each language, on or off, optionally linking
-  to a page, shown across the top of every page in amber. Editors change it directly, without
-  approval, because an emergency appeal can't wait.
+  to a page, shown across the top of every page in amber. While the chosen page is a draft,
+  unpublished or behind a password or login, the banner shows its message without a link, in
+  every language, as the field's help text says. Otherwise it links as the menu does: to the
+  page's published, public translation, else to the chosen page. Editors change it directly,
+  without approval, because an emergency appeal can't wait.
 
 Both are per Site. Text that differs between languages is in rows, one per language, in the same
 form, and links to chosen pages go to their translation in the language being read
