@@ -29,7 +29,9 @@ each language), settings in `charity/settings/base.py`, and the site's own Nepal
   policy, testimonials, partners, news categories and the names of the charity's QR codes. Each falls back to the main language until it's
   translated, so nothing disappears while a translation is missing.
 - **Links chosen in settings follow the language too:** on a Nepali page the header's Donate button
-  and the banner's link go to the Nepali version of their page once it's published.
+  and the banner's link go to the Nepali version of their page once it's published and public,
+  as the menu's do (`link_to` in `core/menu.py`). Only the chosen page decides whether there's a
+  link at all, in every language.
 - **An address with no page in that language** (such as `/ne/about/` before the About page is
   translated) redirects to the same address in the main language, if a page is there.
 
