@@ -18,6 +18,7 @@ Labels:
 | `bug`, `enhancement`, `documentation` | Kind of change |
 | `accessibility`, `security` | Areas that need extra care in review |
 | `epic` | A feature track (below) |
+| `tier: light`, `tier: high risk` | How much review the issue gets; none means standard ([Reviews](reviews.md#tiers-how-much-review-a-change-gets)) |
 | `needs: …` | A review the issue or pull request still needs before work starts or it merges ([Reviews](reviews.md)) |
 | `might do` | Worth discussing later, not planned |
 
@@ -198,7 +199,7 @@ Release a version as soon as the last issue in its milestone is closed.
 5. **Close the milestone and plan the next version** ([above](#what-goes-into-which-version)).
    On the board, change the filters of the **Current version** and **Next version** views to the
    new milestones.
-6. **Deploy it** ([Deploy a change](../hosting.md#deploy-a-version)). The tag says exactly which
+6. **Deploy it** ([Deploy a version](../hosting.md#deploy-a-version)). The tag says exactly which
    code is live. Then check the live site against the version before it
    ([Reviews](reviews.md#at-each-release)).
 

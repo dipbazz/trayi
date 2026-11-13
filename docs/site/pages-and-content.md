@@ -13,8 +13,8 @@ Every page shares one layout (`charity/templates/base.html`):
   ([Look and feel](look-and-feel.md#header)).
 - **Main content**, with a "Skip to content" link before the header.
 - **Footer**: the charity's name, its registration line (each line as the charity typed it, left
-  out while there's none), address, email, phone and social links, the privacy notice link, and
-  "© year, name.", all from Site settings. A long number or email breaks to fit a phone. On a
+  out while there's none), address, email, phone and social links, the links to the privacy notice, Contact and the
+  accessibility statement (each once it's live and public), and "© year, name.", all from Site settings. A long number or email breaks to fit a phone. On a
   short page it sits at the bottom of the window.
 - In `<head>`: the title (the page's SEO title or title, then "| the charity's name" in the
   language being read, [Languages](languages.md#snippets-and-settings-text)), its search
@@ -34,8 +34,8 @@ yet.
 
 ## A new site's home page
 
-While a home page's hero heading, hero text and body are all empty, in any language, it shows
-only the charity's name, "Our new website is on its way." and the main email and phone as links,
+While a home page's hero heading, hero text and body are all empty, in any language, it shows,
+in place of the banner, the charity's name, "Our new website is on its way." and the main email and phone as links,
 and it stays out of search results. A hero image alone doesn't end this. Writing any of the three
 does, at once. `new_site` leaves both home pages this way ([Hosting](../hosting.md#management-commands)).
 
@@ -47,8 +47,8 @@ and Stories are published, and the header has no Donate button until the Donate 
 The top of the admin's dashboard lists what's left of the [standard](standard.md#pages-every-site-has)
 on the site, on every site, however it was built: "Pages still to write: 4 of 16", counting each
 standard page with a page type today once per language. Rows are grouped by language, main
-language first: the privacy notice, Donate, the menu sections in the standard's order, then the
-volunteer form and the accessibility statement. Each is the
+language first: the privacy notice, Donate, About us, Appeals and Stories, then the volunteer
+form, Contact and the accessibility statement. Each is the
 page's title, linked to edit it if you may, and one status: **Not set**, **Draft**, **Has [Write:
 …] text**, **Not translated yet** with a Translate link, or **Translate after publishing** while
 the main page isn't set or live. The privacy notice, Donate, About us, Appeals, Stories and Contact

@@ -5,8 +5,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions f
 [Semantic Versioning](https://semver.org/) as defined for this site in
 [Versions and releases](docs/contributing/releases.md).
 
-Each pull request adds its line under **Unreleased**. A release moves those lines under a new
-version number.
+Each pull request adds its entry as a file in `changelog.d/`. A release gathers those entries
+under a new version number.
 
 ## [Unreleased]
 

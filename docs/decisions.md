@@ -268,7 +268,7 @@ dependency, but it would accept numbers that can't exist.
   several times a year. Keep it up to date with the other dependencies.
 - `core.phone.parse_phone()` is the one place numbers are read; anything that stores a phone
   number uses `normalise_mobile()` (Donate's monthly reminder) or `normalise_phone()`, which also
-  takes landlines: the Contact form (#167), where the team calls back rather than messages.
+  takes landlines: the Contact form (#321), where the team calls back rather than messages.
 
 ## Browser tests with Playwright
 
@@ -824,7 +824,7 @@ Prapa, Sadas, Ashraya, Tribhuj and others; no English one-word name had a free d
   Only CI's throwaway image is tagged `trayi`.
 - `CHANGELOG.md` keeps the old address in its released entries and the links at its bottom, which
   work through GitHub's redirect only until a repository with the old name exists again under the
-  account. From the next release on, its links go to the `Repository` address under
+  account. From 0.6.0 on, its links go to the `Repository` address under
   `[project.urls]` in `pyproject.toml`, which the docs' header and footer use too. The Markdown
   pages link to `dipbazz/trayi` directly, so they still read on GitHub without a build.
 - The name was checked as free, not registered as a trademark, so nothing stops someone else
