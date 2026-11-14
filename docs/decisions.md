@@ -174,8 +174,8 @@ history.
   option; they're simple but say nothing about whether an upgrade needs care.
 - **0.1.0 is the first release,** collecting everything built before versioning started.
 - **When 1.0.0 happens** (since #249; before it, "the first time a real charity runs the
-  site"): the first minor release, not a patch, made after both v0.6.0 (the charity
-  site standard) is deployed to CCDCE and CCDCE's real content is live, with no placeholder
+  site"): the first minor release, not a patch, made after both v0.6.x (the charity
+  site standard, v0.6.0 or a patch of it) is deployed to CCDCE and CCDCE's real content is live, with no placeholder
   pages left. CCDCE went live on 0.4.0 with placeholder content, so by the old rule 0.5.0
   should have been 1.0.0; nobody noticed at release time, and 0.x was kept until the site
   standard and real content are both live. Choosing the number is now a release step.
