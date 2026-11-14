@@ -14,7 +14,9 @@ Every page shares one layout (`charity/templates/base.html`):
 - **Main content**, with a "Skip to content" link before the header.
 - **Footer**: the charity's name, its registration line (each line as the charity typed it, left
   out while there's none), address, email, phone and social links, the links to the privacy notice, Contact and the
-  accessibility statement (each once it's live and public), and "© year, name.", all from Site settings. A long number or email breaks to fit a phone. On a
+  accessibility statement (each once it's live and public), and "© year, name.". All of it comes
+  from Site settings except the accessibility statement's link, found by its page type with
+  nothing to choose. A long number or email breaks to fit a phone. On a
   short page it sits at the bottom of the window.
 - In `<head>`: the title (the page's SEO title or title, then "| the charity's name" in the
   language being read, [Languages](languages.md#snippets-and-settings-text)), its search

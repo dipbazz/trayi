@@ -172,9 +172,9 @@ appeal and the Donate page in both languages with each
 [font style](../site/look-and-feel.md#a-font-style). In the admin it loads a pledge's page as a
 moderator: no sideways scrolling, and the page's own links, buttons and fields at least WCAG 2.2
 AA's 24px. Wagtail's own controls keep their size, so the page matches the rest of the admin.
-It also tabs through every page, and each pay page, at 320 and 1440px with a dark and a light
-name bar and footer, and fails when a link, button or field has no focus ring, or one under 3:1
-against what it sits on.
+It also tabs through every page at 320 and 1440px with a dark and a light name bar and footer,
+and through each pay page at both widths with the default name bar and footer, and fails when a
+link, button or field has no focus ring, or one under 3:1 against what it sits on.
 
 **A person checks what only eyes catch**: wording, whether a page looks right, whether a flow
 makes sense. Each pull request's **Check before merging** section has one `- [ ]` box per page

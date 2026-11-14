@@ -7,7 +7,7 @@ points to the one page that answers it, so there's no need to read everything or
 
 ## Keeping the docs current
 
-- **Starting a session:** trust the docs. Run `git log --oneline v0.5.0..HEAD --stat` (the version
+- **Starting a session:** trust the docs. Run `git log --oneline v0.6.0..HEAD --stat` (the version
   above) and re-read only the pages for the areas those commits touched. Re-scan the repo only if
   most areas changed, or if the docs contradict the code.
 - **Before reading code to answer a question,** read the page below that answers it. Always read
