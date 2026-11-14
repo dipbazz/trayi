@@ -235,13 +235,17 @@ from GitHub with a backup and an approval each time.
 
    ```bash
    cd /srv/charity/app && sudo git fetch --tags && sudo git checkout vX.Y.Z
-   cd deploy/aws && sudo docker compose build && sudo docker compose up -d
+   cd deploy/aws && sudo docker compose build --pull --no-cache && sudo docker compose up -d
    sudo docker image prune -f       # remove the previous image, so the disk doesn't fill up
+   sudo docker builder prune -af    # and the build cache, which --no-cache never reuses
    ```
 
-   `up -d` replaces the web container with a few seconds of downtime; it runs any migrations,
-   then starts. Building on a small instance takes several minutes and needs swap, or it can stop
-   with "Killed".
+   `--pull --no-cache` starts from the newest Python base image and runs the Dockerfile's
+   `apt-get upgrade` again. A plain `build` reuses both from the server's last build, so a server
+   that has built once never gets Debian's security fixes, among them OpenSSL and the
+   certificates the payment calls trust. `up -d` replaces the web container with a few seconds
+   of downtime; it runs any migrations, then starts. Building on a small instance takes several
+   minutes every time and needs swap, or it can stop with "Killed".
 3. **Check it:** `sudo docker compose ps` (both containers up?) and
    `sudo docker compose logs --tail 100 web`, then open the pages the change touched.
 4. **If something's wrong**, check out the previous tag and build again; if a migration changed
