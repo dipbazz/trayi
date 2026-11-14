@@ -29,7 +29,8 @@ UPLOAD_FORMATS = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}
 # What to serve each as, by the extension clean_image() gives it.
 UPLOAD_CONTENT_TYPES = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
 # Formats saved as another: a phone camera's JPEG often carries a second, smaller picture, which
-# Pillow reads as MPO. Only the first is kept.
+# Pillow reads as MPO. Its JPEG reader opens it and hands it on, so only the JPEG reader is needed
+# for it. Only the first picture is kept.
 SAVED_AS = {"MPO": "JPEG"}
 # The file names those come with: a JPEG is as often called .jpeg as .jpg.
 UPLOAD_EXTENSIONS = ["jpg", "jpeg", "png", "webp"]
@@ -61,9 +62,10 @@ def clean_image(upload, widths, max_pixels=MAX_UPLOAD_PIXELS):
     if upload.size > MAX_UPLOAD_BYTES:
         raise ValidationError(NOT_AN_IMAGE, code="invalid_image")
     try:
-        # Not closed when done: closing throws the decoded picture away. Pillow didn't open the
-        # upload, so it leaves it to its owner.
-        picture = Image.open(upload)
+        # Only the allowed formats' readers see the file: by default Pillow tries each of its
+        # readers in turn until one takes it. Not closed when done: closing throws the decoded
+        # picture away. Pillow didn't open the upload, so it leaves it to its owner.
+        picture = Image.open(upload, formats=tuple(UPLOAD_FORMATS))
         image_format = SAVED_AS.get(picture.format, picture.format)
         if image_format not in UPLOAD_FORMATS:
             raise ValidationError(NOT_AN_IMAGE, code="invalid_image")
