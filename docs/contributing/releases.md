@@ -18,6 +18,7 @@ Labels:
 | `bug`, `enhancement`, `documentation` | Kind of change |
 | `accessibility`, `security` | Areas that need extra care in review |
 | `epic` | A feature track (below) |
+| `tier: light`, `tier: high risk` | How much review the issue gets; none means standard ([Reviews](reviews.md#tiers-how-much-review-a-change-gets)) |
 | `needs: …` | A review the issue or pull request still needs before work starts or it merges ([Reviews](reviews.md)) |
 | `might do` | Worth discussing later, not planned |
 
@@ -84,8 +85,8 @@ library that other code calls, so the parts are defined by who has to act when t
 
 While the version is `0.x`, the site is still taking shape: a change that would be MAJOR bumps
 MINOR instead, and its release notes get an **Upgrade notes** section saying what to do. Version
-`1.0.0` is the first minor release (not a patch) made after both v0.6.0 (the charity site
-standard) is deployed to CCDCE and CCDCE's real content is live, with no placeholder pages left
+`1.0.0` is the first minor release (not a patch) made after both v0.6.x (the charity site
+standard, v0.6.0 or a patch of it) is deployed to CCDCE and CCDCE's real content is live, with no placeholder pages left
 ([Decisions](../decisions.md)).
 
 The version lives in one place, `version` in `pyproject.toml`, and
@@ -154,7 +155,7 @@ Release a version as soon as the last issue in its milestone is closed.
 1. **Check the milestone.** Every issue in it is closed, or moved to the next milestone or the
    Backlog with a comment saying why.
 2. **Prepare the release** on a `chore/release-X.Y.Z` branch:
-   - **choose the number.** While the version is still `0.x`: are v0.6.0 and CCDCE's real
+   - **choose the number.** While the version is still `0.x`: are v0.6.x and CCDCE's real
      content both live on CCDCE? Then this release is `1.0.0`, not the next `0.x`
      ([Version numbers](#version-numbers));
    - run `uv run python -m charity.changelog X.Y.Z`. It adds the `changelog.d/` entries to
@@ -184,6 +185,10 @@ Release a version as soon as the last issue in its milestone is closed.
      broke it or added it, when it stops people using the site (`P1`), or when it's a security
      or personal-data problem. Any other bug goes into the next milestone, as new work does
      ([above](#what-goes-into-which-version)).
+     A security or personal-data bug can wait for a patch instead when no site has deployed
+     this version yet: release the version, deploy no site to it, and ship the fix as the patch
+     straight after ([below](#patch-releases)). Say so in this release's notes, so nobody
+     hosting the site deploys the version without the fix.
 3. **Open a pull request** titled `chore(release): X.Y.Z`, labelled `no changelog`, in the
    milestone. CI runs as usual.
 4. **After it's merged,** tag the merge commit and publish the release:
@@ -198,7 +203,7 @@ Release a version as soon as the last issue in its milestone is closed.
 5. **Close the milestone and plan the next version** ([above](#what-goes-into-which-version)).
    On the board, change the filters of the **Current version** and **Next version** views to the
    new milestones.
-6. **Deploy it** ([Deploy a change](../hosting.md#deploy-a-version)). The tag says exactly which
+6. **Deploy it** ([Deploy a version](../hosting.md#deploy-a-version)). The tag says exactly which
    code is live. Then check the live site against the version before it
    ([Reviews](reviews.md#at-each-release)).
 
@@ -209,6 +214,12 @@ version being built; any other fix goes into that version. A patch release, such
 0.4.0 is live, holds that fix and nothing else, so it's made from the live version's tag, not
 from `main`, which already has work for the next version. Give it a milestone (`v0.4.1`) holding
 the bug's issue.
+
+The exception is a patch to a version no site has deployed, such as 0.6.1 holding the security
+fixes held back from 0.6.0 ([above](#cutting-a-release)). Nothing live needs keeping apart from
+`main`, so cut it from `main` with the steps in [Cutting a release](#cutting-a-release), skipping
+the steps below. That only works while `main` holds nothing but fixes since that version; once
+it has a feature, the release is the next minor version instead.
 
 1. **Fix it on `main` first,** in a normal pull request with its `fixed` file in `changelog.d/`,
    so the next version has the fix too. If the fix needs a migration, write it to follow the live

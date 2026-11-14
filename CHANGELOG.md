@@ -5,10 +5,169 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions f
 [Semantic Versioning](https://semver.org/) as defined for this site in
 [Versions and releases](docs/contributing/releases.md).
 
-Each pull request adds its line under **Unreleased**. A release moves those lines under a new
-version number.
+Each pull request adds its entry as a file in `changelog.d/`. A release gathers those entries
+under a new version number.
 
 ## [Unreleased]
+
+## [0.6.0] - 2026-11-13
+
+### Upgrade notes
+
+- Add the accessibility statement under each language's home page (Add child page →
+  Accessibility statement, with the address `accessibility`), list any problems in what you've
+  published, or leave the list empty, and publish it: the footer then links to it. There's nothing
+  to choose in Site settings ([#167](https://github.com/dipbazz/trayi/issues/167)).
+- Before adding the Contact page, rename or remove any form page a site already has at `/contact/`
+  (change its slug, say to `enquiries`): the new page needs that address. Its old messages stay with
+  the old page. Then add the Contact page under each language's home page with the address to send
+  messages to, publish it and choose it in Site settings → Menu → Contact; a Standard page chosen
+  there before is refused at the next save. Add to each live privacy notice, under what you collect:
+  "When you send us a message, we keep your name, the email or phone number you give and your
+  message." ([#321](https://github.com/dipbazz/trayi/issues/321)).
+- The menu is empty until its pages are chosen. Straight after deploying, a moderator chooses the
+  page for each section in Site settings → Menu; the tab names any still unset. If Site settings'
+  Donate page isn't a Donate page, its next save is refused until it is
+  ([#171](https://github.com/dipbazz/trayi/issues/171)).
+- Before deploying, check each site's privacy notice is chosen in Site settings and published: until
+  it is, the Donate page and forms can't be published, and a live one's next change is refused.
+  Check too that each language's home page has a hero heading, hero text or a body: a home page with
+  none says "Our new website is on its way." and asks search engines not to list it
+  ([#175](https://github.com/dipbazz/trayi/issues/175)).
+- Before deploying, check each site has a charity number, or will have its registration line written
+  in every language straight after: until then its next save of Site settings, and its next publish
+  of the Donate page or a form, are refused. The migration moves an existing number into each
+  language's registration line; there's no way back except the previous release and its backup
+  ([Running the live site](https://github.com/dipbazz/trayi/blob/main/docs/hosting.md))
+  ([#172](https://github.com/dipbazz/trayi/issues/172)).
+
+### Added
+
+- Every site can have an accessibility statement at `/accessibility/`, in each language, and the
+  footer links to it once it's live. It says the site partially conforms to WCAG 2.2 at level AA,
+  what's checked before each release and what doesn't work yet in the website itself, all written
+  and translated for every charity and corrected with each release. The charity adds one line on
+  why it matters to them, any problems in what it has published (such as a PDF or a video without
+  captions) and when it last checked, and the page tells visitors how to report a problem or ask
+  for another format. A new site starts with it as a draft
+  ([#167](https://github.com/dipbazz/trayi/issues/167)).
+- The code now has a licence, the GNU Affero General Public License v3.0 or later: anyone may use,
+  change and host it, and whoever changes it and runs it as a website offers its users the changed
+  source. Contributors sign a contributor licence agreement once, when the bot asks on their first
+  pull request ([#277](https://github.com/dipbazz/trayi/issues/277)).
+- The Contact page can list Other contacts: teams such as Finance or Volunteering, each with a name
+  and an email, a phone or both, added on the page in the admin and worded separately in each
+  language. And Site settings → Organisation takes a map link (one starting with `https://`), shown
+  as "Open in a map" under the address on the Contact page when the address is filled in too
+  ([#322](https://github.com/dipbazz/trayi/issues/322)).
+- Every site can have a Contact page at `/contact/`, in each language: the charity's main phone,
+  email and address from Site settings, then a message form that asks Your name, Email, Phone (any
+  real number, with the country picker the Donate form uses) and Your message (up to 2,000
+  characters, with a count as on the Donate form), with email or phone
+  needed so the charity can reply. Editors can add their own questions after these. Each message is
+  kept and exported in the admin and emailed to the page's address, with Reply-To set to the
+  sender. The menu's Contact section takes only this page, and the footer links to it once it's
+  live. A new site starts with it as a draft, and the privacy notice a new site starts with says
+  what a message keeps ([#321](https://github.com/dipbazz/trayi/issues/321)).
+- A new charity's site can be set up with one command, `new_site`, which asks for each value in turn: the standard pages that exist
+  today as drafts with text in square brackets saying what to write, a privacy notice written for
+  the charity, and a live home page in Nepali and English saying the site is on its way. It refuses
+  a site that already has pages
+  ([#175](https://github.com/dipbazz/trayi/issues/175)).
+- The admin's dashboard now lists the standard pages a site still has to write or translate, with a
+  link to each and what it's waiting for, and asks for the registration details until they're in Site
+  settings ([#175](https://github.com/dipbazz/trayi/issues/175)).
+- Editors can no longer publish a page that still holds placeholder text ("[Write: …]"), the Donate
+  page or a form before the privacy notice chosen in Site settings is published, or a form with no
+  email address to send its messages to. The admin says why, on the field where it can, and drafts
+  still save. The privacy notice can't be unpublished while the Donate page or a form is live. A
+  page that's already live stays live, but its next change waits for the same fixes
+  ([#175](https://github.com/dipbazz/trayi/issues/175)).
+
+### Changed
+
+- A form page sent with mistakes, such as volunteer sign-up, now lists them in a box above the form,
+  as the Donate page does, each linking to its field, and a screen reader reads the box first.
+  Each mistake now shows under its own field's label, not under the field before it. On
+  every form, including the "I've paid" step of paying by QR, the page title now starts "Error: "
+  ([#167](https://github.com/dipbazz/trayi/issues/167)).
+- After someone sends a form page, such as volunteer sign-up, the thank-you now has its own address
+  ending in `?sent`, so reloading it can't send the message a second time
+  ([#167](https://github.com/dipbazz/trayi/issues/167)).
+- The menu now shows five sections, in this order and with these names in each language: About us, Appeals, Stories, Get involved and Contact. A moderator chooses
+  the page each one links to in the new **Site settings → Menu** tab, which names any section the
+  menu leaves out because no page is chosen, or its page isn't published or is behind a password or
+  login. Ticking "Show in menus" no longer adds a page to the menu. Appeals takes only the appeals
+  page, Stories only the stories page and the Donate button only the Donate page, one page (or its
+  translation) can't be two sections, and the home page can't be one
+  ([#171](https://github.com/dipbazz/trayi/issues/171)).
+- The footer shows where the charity is registered and its numbers, under its name, in the reader's
+  language: a **Registration line** the charity types in each language under Site settings → Text in
+  each language, in place of the single UK charity number. In Nepal that's the District
+  Administration Office registration and district, the Social Welfare Council affiliation and the
+  PAN, each on its own line. Site settings can't be saved without it in every language, and the
+  Donate page and forms can't go live without it; pages already live stay live. A long number or
+  email in the footer now breaks to fit a phone. A site upgraded with a charity number keeps showing
+  just that number, in each language's words: add the rest the standard asks for
+  ([#172](https://github.com/dipbazz/trayi/issues/172)).
+- The project is now called **Trayi**, and its repository is <https://github.com/dipbazz/trayi>;
+  links to the old address redirect there. Nothing changes on a running site: the Docker Compose
+  project, its volumes and the settings keep their names, so upgrading needs no extra step. A server
+  or a clone can point at the new address with
+  `git remote set-url origin https://github.com/dipbazz/trayi.git`
+  ([#279](https://github.com/dipbazz/trayi/issues/279)).
+
+### Removed
+
+- The onboarding pack in `onboarding/`, added in 0.5.0, is gone: the guide, the form and the script
+  that built them are no longer part of Trayi, and a release no longer updates the guide and form a
+  charity was sent. Whoever sets up a charity now gathers its content outside the repository
+  ([#261](https://github.com/dipbazz/trayi/issues/261)).
+
+### Fixed
+
+- Scrolling the admin with the pointer over an amount no longer changes it: an appeal's target and
+  amount raised, a suggested amount on an appeal or the Donate page, a pledge's amount and the
+  amount received when marking a QR payment paid are now text boxes that bring up the number keypad
+  on a phone. Each also accepts an amount written the way the site shows it, such as "1,00,000"
+  ([#97](https://github.com/dipbazz/trayi/issues/97)).
+- The announcement banner no longer links to its chosen page while that page is a draft, has been
+  unpublished or is behind a password or login, which sent every visitor who pressed it to a "page
+  not found" or a password prompt. The banner still shows its message, without a link, in every
+  language, and links again once the page is published and public; the banner's settings now say
+  so. The privacy notice and Donate links follow the same rule, as the menu already did
+  ([#312](https://github.com/dipbazz/trayi/issues/312)).
+- The Fundraising overview on the admin dashboard counts an appeal published in both Nepali and
+  English once: in the number of open appeals, the amount raised of the target and "Closing soon".
+  Before, each translation counted again, so the totals were bigger than what had been raised. An
+  appeal published in one language only still counts
+  ([#195](https://github.com/dipbazz/trayi/issues/195)).
+- The outline that shows where you are when you move around the site with the keyboard is now easy
+  to see on every page: dark on light areas and light on dark ones, instead of amber, which was
+  hard to see on white and couldn't be seen at all on the announcement banner
+  ([#211](https://github.com/dipbazz/trayi/issues/211)).
+- Going back from a form page's thank-you message and pressing Send again, or the same message
+  being sent twice on a poor connection, saved and emailed it twice, so the team got duplicates
+  of the same volunteer sign-up or message. A form page (a volunteer form, the Contact page) now
+  saves the same copy of its form once; a copy whose answers were changed before sending again is
+  still saved, so nothing meant is lost ([#326](https://github.com/dipbazz/trayi/issues/326)).
+- On a slow connection, pressing Send again on a form page (a volunteer form, the Contact page) sent
+  the form again, so the team got the same message several times. Send now reads "Sending…" once
+  pressed and takes no more taps until the next page opens.
+- The Donate page's list of mistakes now follows the form's order, so a missing amount comes before
+  a missing "How often" ([#167](https://github.com/dipbazz/trayi/issues/167)).
+- When a page can't go live yet, the editor now says so, that the changes are still there and that
+  it can be saved as a draft, in place of "The page could not be saved" or, on a new page, "could
+  not be created". A refused Unpublish also says nothing was unpublished. The
+  header no longer shows a Donate button leading to Page not found while the chosen Donate page is
+  a draft ([#175](https://github.com/dipbazz/trayi/issues/175)).
+
+### Security
+
+- The Donate page's pledge form and every form page, such as volunteer sign-up, now drop sends from
+  simple scripts that fill in every box: they see the usual thank-you, and nothing is saved,
+  emailed or counted. Supporters see and do nothing different
+  ([#104](https://github.com/dipbazz/trayi/issues/104)).
 
 ## [0.5.0] - 2026-10-25
 
@@ -407,7 +566,8 @@ The first tracked release. It collects everything built before versioning starte
 - Every CI action is pinned to a commit, and Dependabot proposes updates
   ([#69](https://github.com/dipbazz/Charity-wagtail-CMS/pull/69)).
 
-[Unreleased]: https://github.com/dipbazz/Charity-wagtail-CMS/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/dipbazz/trayi/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/dipbazz/trayi/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/dipbazz/Charity-wagtail-CMS/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/dipbazz/Charity-wagtail-CMS/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/dipbazz/Charity-wagtail-CMS/compare/v0.2.0...v0.3.0

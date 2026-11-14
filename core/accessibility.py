@@ -14,7 +14,7 @@ from django.utils.translation import gettext_lazy as _
 # from `home`.
 STATEMENT_PAGE_TYPE = ("home", "accessibilitystatementpage")
 
-REVIEWED = date(2026, 11, 11)
+REVIEWED = date(2026, 11, 13)
 
 # What every change to the code is checked for before it's released.
 CHECKS = (
@@ -30,5 +30,13 @@ KNOWN_PROBLEMS = (
         "The page that asks for a password, or for you to log in, before you can read a private "
         "page doesn't look like the rest of the site, and on a phone its text is small until you "
         "zoom in."
+    ),
+    _(
+        "With a contrast theme turned on, such as Windows' contrast themes, buttons look like "
+        "plain text and an appeal's progress bar disappears."
+    ),
+    _(
+        "On a wide screen, the lines of an appeal's story, and of other pages, are longer than is "
+        "comfortable to read."
     ),
 )

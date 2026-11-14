@@ -3,7 +3,7 @@
 A one-page map into these docs for anyone (or any AI session) starting work here: each question
 points to the one page that answers it, so there's no need to read everything or scan the code.
 
-**Last verified against:** `v0.5.0` (every page and screenshot checked on 2026-10-25)
+**Last verified against:** `v0.6.0` (every page and screenshot checked on 2026-11-13)
 
 ## Keeping the docs current
 

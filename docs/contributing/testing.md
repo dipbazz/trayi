@@ -49,7 +49,7 @@ Some tests guard the whole project rather than one feature:
 | `charity/tests/test_deploy.py` | `.env` stays out of git and the image, and reaches the app; images pinned; tests run on the image's Python; logs capped |
 | `charity/tests/test_production_settings.py` | Production refuses to start half-configured; every app's warnings are logged |
 | `home/tests/test_seed_demo.py` | Every demo page renders |
-| `charity/tests/test_demo_layout_browser.py` | Each kind of demo page at six widths: no sideways scrolling, no tap target under 44px; readable text in every light or dark name bar and footer; each font style fits; a pledge's page in the admin fits ([QA](#qa)) |
+| `charity/tests/test_demo_layout_browser.py` | Each kind of demo page at six widths: no sideways scrolling, no tap target under 44px; readable text in every light or dark name bar and footer; the focus ring can be seen on everything Tab reaches; each font style fits; a pledge's page in the admin fits ([QA](#qa)) |
 | `charity/tests/test_lighthouse_budgets.py` | Each page's total weight budget is its image budget plus the fixed allowance ([Performance](performance.md)) |
 | `charity/tests/test_changelog.py`, `test_changelog_fragments.py` | The changelog is well-formed, its newest version matches `pyproject.toml`, and `changelog.d/` files are named `<slug>.<group>.md` |
 | `charity/tests/test_docs.py` | The docs sidebar menu isn't hidden |
@@ -146,6 +146,9 @@ Install Chromium once with `uv run playwright install --with-deps chromium`; on 
 Where Chromium can't start, browser tests are skipped locally with that hint; in CI they always
 run. Each takes about a second.
 
+The Nepali catalogue checks in `charity/tests/test_translations.py` need GNU gettext (`msgattrib`,
+`msgfmt`): without it they're skipped locally; CI installs it and fails without it.
+
 Once Playwright has started, its event loop stays in the main thread for the rest of the run, so
 the root `conftest.py` sets `DJANGO_ALLOW_ASYNC_UNSAFE` whenever browser tests are collected.
 
@@ -155,7 +158,8 @@ QA is split between what a machine checks on every pull request and what needs a
 
 **CI checks layout on every pull request.** `charity/tests/test_demo_layout_browser.py` loads one
 page of each kind from the demo site (home, an ordinary page, the appeals and an appeal, news, the
-Donate and volunteer forms, search, and the Nepali home page, appeal and Donate page; each pay
+Donate, volunteer and Contact forms, the accessibility statement, search, and the Nepali home
+page, appeal, Donate page, Contact page and accessibility statement; each pay
 page in both languages, from the choices to the wait page; and a shared gift's thank-you and
 gift pages) at 320, 375, 412, 768, 1024 and 1440px, and fails when a page scrolls sideways or has
 a tap target under 44px (a button, select, text field, summary, a way to pay, a pay step or share
@@ -168,6 +172,9 @@ appeal and the Donate page in both languages with each
 [font style](../site/look-and-feel.md#a-font-style). In the admin it loads a pledge's page as a
 moderator: no sideways scrolling, and the page's own links, buttons and fields at least WCAG 2.2
 AA's 24px. Wagtail's own controls keep their size, so the page matches the rest of the admin.
+It also tabs through every page, and each pay page, at 320 and 1440px with a dark and a light
+name bar and footer, and fails when a link, button or field has no focus ring, or one under 3:1
+against what it sits on.
 
 **A person checks what only eyes catch**: wording, whether a page looks right, whether a flow
 makes sense. Each pull request's **Check before merging** section has one `- [ ]` box per page

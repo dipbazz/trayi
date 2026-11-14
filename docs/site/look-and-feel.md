@@ -26,7 +26,8 @@ Never design for desktop and override down with `max-width` queries;
 writing or reviewing any CSS or layout markup. CI checks every kind of page at 320, 375, 412,
 768, 1024 and 1440px ([Testing](../contributing/testing.md#qa)).
 
-There are three breakpoints, each chosen by the content: **64rem**, where the home page banner
+There are four breakpoints, each chosen by the content: **60rem**, where the Contact page's
+details sit beside its form, **64rem**, where the home page banner
 switches its dark overlay for a gradient, and **68rem**, where the whole header fits on one line,
 in `charity.css`; and **48rem** in `donate.css`, where the QR page's code sits beside its steps.
 
