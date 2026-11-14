@@ -195,7 +195,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every pull request and every
 
 | Job | What it checks |
 |---|---|
-| `test` | ruff, `makemigrations --check`, Django's `check --deploy --fail-level WARNING` against production settings, the test suite with coverage, including the browser tests in Chromium and the layout check at six widths |
+| `test` | `requirements.txt` pins what `uv.lock` does, ruff, `makemigrations --check`, Django's `check --deploy --fail-level WARNING` against production settings, the test suite with coverage, including the browser tests in Chromium and the layout check at six widths |
 | `lighthouse` | Page weight and layout shift on a phone ([Performance](performance.md)) |
 | `docker` | The image builds and passes `check --deploy` inside it; the AWS Compose file and Caddyfile parse, and so does the local `compose.yaml` |
 | `docs` | These docs build with warnings as errors; the built site is uploaded as the `docs-html` artifact |

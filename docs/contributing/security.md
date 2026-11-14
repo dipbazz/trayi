@@ -42,6 +42,12 @@ Workflows pin every action to a full commit SHA, with the version in a comment
 release. The Caddy image in `deploy/aws/compose.yaml` is pinned to a digest for the same reason.
 See [the decision record](../decisions.md#workflow-actions-pinned-to-commits).
 
+## The image installs what `uv.lock` pins
+
+The Docker image installs `requirements.txt`, which `uv export` writes from `uv.lock`, so CI's
+`test` job fails when the two pin a package at different versions (#360). Otherwise a security
+upgrade in `uv.lock` alone would pass every test and never reach the sites.
+
 ## Server secrets stay out of git and the image
 
 Server secrets live in `deploy/aws/.env`, which is gitignored and dockerignored.
