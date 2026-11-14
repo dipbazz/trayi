@@ -12,6 +12,13 @@ under a new version number.
 
 ## [0.6.0] - 2026-11-13
 
+**Don't deploy this version: deploy 0.6.1, which follows it.** 0.6.0 is released without two
+security fixes: packages with published advisories, one of which lets anyone slow the site down
+with a single request ([#360](https://github.com/dipbazz/trayi/issues/360)), and a limit on
+searches, each of which writes to the database, so a script can grow it and the backups without
+end ([#352](https://github.com/dipbazz/trayi/issues/352)). The upgrade notes below still apply
+when you deploy 0.6.1.
+
 ### Upgrade notes
 
 - Add the accessibility statement under each language's home page (Add child page →

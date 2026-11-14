@@ -187,8 +187,9 @@ Release a version as soon as the last issue in its milestone is closed.
      ([above](#what-goes-into-which-version)).
      A security or personal-data bug can wait for a patch instead when no site has deployed
      this version yet: release the version, deploy no site to it, and ship the fix as the patch
-     straight after ([below](#patch-releases)). Say so in this release's notes, so nobody
-     hosting the site deploys the version without the fix.
+     straight after ([below](#patch-releases)). Say so at the top of this version's section in
+     `CHANGELOG.md`, which becomes the release notes in step 4, so nobody hosting the site
+     deploys the version without the fix.
 3. **Open a pull request** titled `chore(release): X.Y.Z`, labelled `no changelog`, in the
    milestone. CI runs as usual.
 4. **After it's merged,** tag the merge commit and publish the release:
@@ -205,7 +206,8 @@ Release a version as soon as the last issue in its milestone is closed.
    new milestones.
 6. **Deploy it** ([Deploy a version](../hosting.md#deploy-a-version)). The tag says exactly which
    code is live. Then check the live site against the version before it
-   ([Reviews](reviews.md#at-each-release)).
+   ([Reviews](reviews.md#at-each-release)). Skip this step for a version whose fix waits for a
+   patch (step 2): deploy the patch instead.
 
 ## Patch releases
 
