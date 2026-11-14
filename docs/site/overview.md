@@ -48,12 +48,12 @@ Two traps with versions this new:
 | App | Owns |
 |---|---|
 | `charity` | The project: settings, URLs, the API, the base templates, the stylesheet and scripts |
-| `core` | Everything shared: content blocks, the image model, re-saving uploads (`clean_image()`) and private file storage, site settings and the banner, partners and testimonials, languages, the form that requires text in every language, money and phone formatting, the rate limits on public forms (`limits.py`), the hidden box that drops scripts' sends (`honeypot.py`), spreadsheet-safe exports (`exports.py`), the mail backend, the sitemap, template tags, the `update_site_url` and `backup_site` commands, and `makemessages` and `compilemessages` with this repo's defaults ([Languages](languages.md)) |
-| `home` | The home page, standard pages and the demo content (`seed_demo`) |
+| `core` | Everything shared: content blocks, the image model, re-saving uploads (`clean_image()`) and private file storage, site settings and the banner, partners and testimonials, languages, the form that requires text in every language, money and phone formatting and the shared phone picker (`phone.py`), the menu's standard sections (`menu.py`), brand shades (`brand.py`), the checks that stop a page going live (`publishing.py`), the accessibility statement's platform text (`accessibility.py`), number boxes, character counts and copy IDs for forms (`number_fields.py`, `textarea.py`, `copy_id.py`), the rate limits on public forms (`limits.py`), the hidden box that drops scripts' sends (`honeypot.py`), spreadsheet-safe exports (`exports.py`), the mail backend, the sitemap, template tags, the `update_site_url` and `backup_site` commands, and `makemessages` and `compilemessages` with this repo's defaults ([Languages](languages.md)) |
+| `home` | The home page, standard pages, the accessibility statement, the dashboard's Pages still to write panel, the `new_site` command and the demo content (`seed_demo`) |
 | `campaigns` | Appeals, the Donate page, pledges and paying them (with the QR codes and supporters' receipt screenshots, and the `delete_old_receipts` command), and the admin's fundraising panel |
 | `nepal_payments` | The payment providers (eSewa, Khalti), one file each. Not a Django app: it imports nothing from Django or this site, so it can be published for any Python project (#196); `campaigns/payments.py` connects it to the site ([Paying a pledge](appeals-and-giving.md#paying-a-pledge)) |
 | `news` | News stories, categories, tag and category pages and the RSS feed |
-| `contact` | Forms editors build themselves, such as volunteer sign-up |
+| `contact` | Forms editors build themselves, such as volunteer sign-up, and the Contact page |
 | `search` | Site search |
 | `deploy/aws/` | The live server's Docker Compose setup, Caddy, timers and backup script ([Running the live site](../hosting.md)) |
 

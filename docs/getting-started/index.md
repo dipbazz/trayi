@@ -119,10 +119,12 @@ a field every charity can fill in, or leave blank.
 2. **Write a failing test first.** Settings tests live in `core/tests/test_settings.py`. Add one
    that saves a value in the new field and checks the homepage shows it. Run
    `uv run pytest core/tests/test_settings.py` and watch it fail.
-3. **Add the field** to `SiteSettings` and its `organisation_panels` (Site settings has two tabs,
-   Organisation and Brand, each with its own list of panels), then make a migration:
+3. **Add the field** to `SiteSettings` and its `organisation_panels` (Site settings has three
+   tabs, Organisation, Menu and Brand, each with its own list of panels; the social links are in
+   Organisation's "Social media" panel), then make a migration:
    `uv run python manage.py makemigrations core`.
-4. **Show it** in `footer.html`, reading `settings.core.SiteSettings`.
+4. **Show it:** add `("YouTube", self.youtube_url)` to the `social_links` property in
+   `core/models.py`. `footer.html` lists every link in it, so the template needs no change.
 5. **Run the test again**, then ruff (CI runs the whole suite when you push).
 6. **Look at it** at <http://localhost:8000> at phone width first, then wider (see
    [Look and feel](../site/look-and-feel.md)).

@@ -213,8 +213,8 @@ and the month names in dates, so those need nothing from us.
 - **Not marked: the admin.** Editors work in English, so model field names, help texts and panel
   headings stay as they are. The pledge form words itself in `campaigns/forms.py` rather than
   taking its labels from the `Pledge` model, so the model's English stays for the admin; the
-  countries in Site settings stay English the same way (`phone_country_choices(translate=True)` is
-  the supporters' list).
+  country names stay English everywhere, in Site settings and on supporters' forms alike
+  (`phone_country_choices()`, `core/phone.py`).
 
 **Amounts** keep Latin digits and their lakh or western grouping in both languages ("Rs 46,87,500"):
 Nepali digits are a separate piece of work.

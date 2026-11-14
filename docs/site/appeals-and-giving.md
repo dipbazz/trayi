@@ -451,8 +451,10 @@ A gift's page that isn't shown goes (302, as it may be shown again) to the appea
 page for wherever it's needed most: a friend with a link shared before can still give, and sees no
 name. An unknown code is page not found.
 
-**Accepted risk:** while a QR payment is being checked, the name typed on the form is public, so
-until spam protection (#104) someone could put any name on a page under the charity's name. The
+**Accepted risk:** while a QR payment is being checked, the name typed on the form is public. The
+hidden box ([Security](../contributing/security.md#a-hidden-box-drops-simple-scripts-sends)) stops
+only scripts that fill every box, so a person could still put any name on a page under the
+charity's name. The
 team's **Stop showing on the website** (below) takes it down at once.
 
 ## Pledges in the admin

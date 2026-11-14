@@ -17,8 +17,10 @@ A new kind of page, such as an events listing. Copy the shape of an existing one
    through the real admin as the `editor` fixture, with Wagtail's form-data helpers (as in
    `campaigns/tests/test_campaigns.py`); and for a listing, that private pages stay out and the
    query count doesn't grow per item (`cold_cache_queries`).
-3. **Write the model.** Mix in `SocialMetaMixin` (sharing image on the Promote tab, falling back to
-   a `hero_image` field); give it `body = StreamField(BaseStreamBlock(), blank=True)` so editors get
+3. **Write the model.** Put `PublishGuardMixin` (`core/publishing.py`) first among its bases, so
+   the page can't go live with placeholder text or before the privacy notice
+   (`test_every_page_type_is_guarded` fails without it). Mix in `SocialMetaMixin` (sharing image
+   on the Promote tab, falling back to a `hero_image` field); give it `body = StreamField(BaseStreamBlock(), blank=True)` so editors get
    the same blocks as everywhere; images are a nullable `ForeignKey` to `core.CustomImage` with
    `on_delete=SET_NULL`; add `search_fields` (and `api_fields` if it belongs in the API); set
    `parent_page_types` and `subpage_types` so it only goes where it makes sense. Then
