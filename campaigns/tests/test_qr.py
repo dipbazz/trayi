@@ -11,7 +11,7 @@ from django.db import connection, transaction
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone, translation
-from PIL import Image
+from PIL import GifImagePlugin, Image
 from wagtail.models import Locale
 
 from campaigns.forms import MarkPaidForm
@@ -1124,3 +1124,39 @@ class TestQRCodesInTheAdmin:
 
         assert response.status_code == 200
         assert QRCode.objects.count() == 0
+
+    def test_no_other_formats_reader_sees_the_upload(self, client, moderator, monkeypatch):
+        # Pillow tries each of its readers on a file until one takes it: a GIF named qr.png must
+        # be refused before the GIF reader parses it, as a receipt screenshot is (#360).
+        client.force_login(moderator)
+        opened = []
+        gif_reader = GifImagePlugin.GifImageFile._open
+
+        def spy(picture):
+            opened.append(picture)
+            gif_reader(picture)
+
+        monkeypatch.setattr(GifImagePlugin.GifImageFile, "_open", spy)
+
+        response = client.post(
+            reverse("wagtailsnippets_campaigns_qrcode:add"),
+            {
+                "image": card("GIF", "qr.png"),
+                "account_name": "BRIGHTWELL WATER",
+                "texts-TOTAL_FORMS": "0",
+                "texts-INITIAL_FORMS": "0",
+                "texts-MIN_NUM_FORMS": "0",
+                "texts-MAX_NUM_FORMS": "1000",
+            },
+        )
+
+        assert response.status_code == 200
+        assert QRCode.objects.count() == 0
+        assert opened == []
+
+    def test_the_file_picker_offers_the_formats_it_takes(self, client, moderator):
+        client.force_login(moderator)
+
+        html = soup(client.get(reverse("wagtailsnippets_campaigns_qrcode:add")))
+
+        assert html.find("input", type="file")["accept"] == "image/jpeg,image/png,image/webp"

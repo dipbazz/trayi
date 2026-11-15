@@ -28,6 +28,8 @@ def with_card_images(pages):
 UPLOAD_FORMATS = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}
 # What to serve each as, by the extension clean_image() gives it.
 UPLOAD_CONTENT_TYPES = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
+# What a file picker offers: those formats, and nothing else.
+UPLOAD_ACCEPT = ",".join(UPLOAD_CONTENT_TYPES.values())
 # Formats saved as another: a phone camera's JPEG often carries a second, smaller picture, which
 # Pillow reads as MPO. Its JPEG reader opens it and hands it on, so only the JPEG reader is needed
 # for it. Only the first picture is kept.

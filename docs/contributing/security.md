@@ -110,8 +110,10 @@ anyone can type it; a test sends a forged return and checks that nothing changes
   and camera data and anything hidden in other bytes, allows JPEG, PNG and WebP of up to 5 MB (no
   SVG; a phone camera's JPEG that Pillow reads as MPO is saved as a plain JPEG), and names the file
   itself. Only Pillow's JPEG, PNG and WebP readers parse it (`formats=` in `Image.open()`), where
-  by default Pillow tries each of its readers until one takes the file (#360). Those three still
-  decode whatever they're sent, so a flaw in one of them is fixed only by upgrading Pillow.
+  by default Pillow tries each of its readers until one takes the file (#360). So its field is a
+  `FileField`, never Django's `ImageField`, which opens an upload with every reader, and again
+  for its size, before any validator runs. Those three still decode whatever they're sent, so a
+  flaw in one of them is fixed only by upgrading Pillow.
 
 ## A supporter's upload is private and short-lived
 
