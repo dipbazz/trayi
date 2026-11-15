@@ -46,7 +46,10 @@ See [the decision record](../decisions.md#workflow-actions-pinned-to-commits).
 
 The Docker image installs `requirements.txt`, which `uv export` writes from `uv.lock`, so CI's
 `test` job fails when the two pin a package at different versions (#360). Otherwise a security
-upgrade in `uv.lock` alone would pass every test and never reach the sites.
+upgrade in `uv.lock` alone would pass every test and never reach the sites. After any change to
+`uv.lock` (`uv add`, `uv remove`, `uv lock -P <package>`), run
+`uv export --no-dev --no-hashes --no-emit-project -o requirements.txt` and commit the two files
+together.
 
 ## Server secrets stay out of git and the image
 
