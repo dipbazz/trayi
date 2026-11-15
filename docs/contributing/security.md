@@ -42,6 +42,15 @@ Workflows pin every action to a full commit SHA, with the version in a comment
 release. The Caddy image in `deploy/aws/compose.yaml` is pinned to a digest for the same reason.
 See [the decision record](../decisions.md#workflow-actions-pinned-to-commits).
 
+## The image installs what `uv.lock` pins
+
+The Docker image installs `requirements.txt`, which `uv export` writes from `uv.lock`, so CI's
+`test` job fails when the two pin a package at different versions (#360). Otherwise a security
+upgrade in `uv.lock` alone would pass every test and never reach the sites. After any change to
+`uv.lock` (`uv add`, `uv remove`, `uv lock -P <package>`), run
+`uv export --no-dev --no-hashes --no-emit-project -o requirements.txt` and commit the two files
+together.
+
 ## Server secrets stay out of git and the image
 
 Server secrets live in `deploy/aws/.env`, which is gitignored and dockerignored.
@@ -103,7 +112,11 @@ anyone can type it; a test sends a forged return and checks that nothing changes
   and a supporter's receipt screenshot): `core/images.clean_image()` decodes it, drops location
   and camera data and anything hidden in other bytes, allows JPEG, PNG and WebP of up to 5 MB (no
   SVG; a phone camera's JPEG that Pillow reads as MPO is saved as a plain JPEG), and names the file
-  itself.
+  itself. Only Pillow's JPEG, PNG and WebP readers parse it (`formats=` in `Image.open()`), where
+  by default Pillow tries each of its readers until one takes the file (#360). So its field is a
+  `FileField`, never Django's `ImageField`, which opens an upload with every reader, and again
+  for its size, before any validator runs. Those three still decode whatever they're sent, so a
+  flaw in one of them is fixed only by upgrading Pillow.
 
 ## A supporter's upload is private and short-lived
 

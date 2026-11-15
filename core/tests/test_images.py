@@ -4,7 +4,7 @@ import pytest
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from PIL import Image
+from PIL import GifImagePlugin, Image
 from wagtail.images import get_image_model
 from wagtail_factories import ImageFactory
 
@@ -152,6 +152,24 @@ class TestCleanImage:
     def test_refuses_a_format_that_isnt_allowed(self):
         with pytest.raises(ValidationError):
             clean_image(self.upload("GIF"), widths=(800,))
+
+    def test_no_other_formats_reader_sees_the_upload(self, monkeypatch):
+        # Pillow tries each of its readers on a file until one takes it, so a GIF would be parsed
+        # by the GIF reader before being refused: only the allowed formats' readers may see it.
+        gif = self.upload("GIF")
+        opened = []
+        gif_reader = GifImagePlugin.GifImageFile._open
+
+        def spy(picture):
+            opened.append(picture)
+            gif_reader(picture)
+
+        monkeypatch.setattr(GifImagePlugin.GifImageFile, "_open", spy)
+
+        with pytest.raises(ValidationError):
+            clean_image(gif, widths=(800,))
+
+        assert opened == []
 
     def test_refuses_a_file_that_is_cut_off(self):
         whole = self.upload("PNG").read()

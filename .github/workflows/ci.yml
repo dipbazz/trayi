@@ -25,6 +25,19 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked
 
+      # The Docker image installs requirements.txt, not uv.lock, so an upgrade in uv.lock alone
+      # never reaches the sites. Only the package==version pins are compared: a newer uv writing
+      # its comments or markers differently mustn't fail this.
+      - name: Check requirements.txt matches uv.lock
+        run: |
+          pins() { grep --only-matching --extended-regexp '^[A-Za-z0-9._-]+==[^ ;]+' | sort; }
+          uv export --frozen --no-dev --no-hashes --no-emit-project > "$RUNNER_TEMP/exported.txt"
+          if ! diff <(pins < requirements.txt) <(pins < "$RUNNER_TEMP/exported.txt"); then
+            echo "::error file=requirements.txt::requirements.txt doesn't match uv.lock. Run:" \
+              "uv export --no-dev --no-hashes --no-emit-project -o requirements.txt"
+            exit 1
+          fi
+
       - name: Lint
         run: |
           uv run ruff check .

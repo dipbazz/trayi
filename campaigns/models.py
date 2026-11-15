@@ -5,9 +5,11 @@ import secrets
 import uuid
 from decimal import Decimal
 
+from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
+from django.core.files.images import get_image_dimensions
 from django.core.files.storage import storages
 from django.core.paginator import Paginator
 from django.core.validators import FileExtensionValidator, MinValueValidator
@@ -53,7 +55,13 @@ from campaigns.payments import (
 )
 from core import honeypot, limits
 from core.blocks import BaseStreamBlock
-from core.images import UPLOAD_EXTENSIONS, check_upload, clean_image, with_card_images
+from core.images import (
+    UPLOAD_ACCEPT,
+    UPLOAD_EXTENSIONS,
+    check_upload,
+    clean_image,
+    with_card_images,
+)
 from core.languages import main_language
 from core.models import (
     SiteSettings,
@@ -1050,10 +1058,11 @@ class QRCode(TextInEachLanguageMixin, ClusterableModel, Orderable):
     another account. Wagtail logs who added, changed or removed each code, in its history.
     """
 
-    image = models.ImageField(
+    # A file field, not an image field: Django's image field opens an upload with every Pillow
+    # reader, and again for its size, before check_upload() lets only the allowed formats' readers
+    # see it (#360). save() keeps the size of the card as re-saved.
+    image = models.FileField(
         upload_to="qr-codes",
-        width_field="image_width",
-        height_field="image_height",
         validators=[FileExtensionValidator(UPLOAD_EXTENSIONS), check_upload],
         help_text="The QR card as your wallet or bank gives it: it's shown as it is, so keep its "
         "name and logo. A JPEG, PNG or WebP of up to 5 MB.",
@@ -1084,7 +1093,7 @@ class QRCode(TextInEachLanguageMixin, ClusterableModel, Orderable):
             help_text="What supporters pick it by, such as eSewa or Fonepay (bank). A language "
             "with no name of its own shows the main language's.",
         ),
-        FieldPanel("image"),
+        FieldPanel("image", widget=forms.ClearableFileInput(attrs={"accept": UPLOAD_ACCEPT})),
         FieldPanel("account_name"),
         FieldPanel("account_number"),
     ]
@@ -1133,6 +1142,8 @@ class QRCode(TextInEachLanguageMixin, ClusterableModel, Orderable):
         if self.image and not self.image._committed:
             extension, (large, small) = clean_image(self.image.file, QR_IMAGE_WIDTHS)
             name = uuid.uuid4().hex
+            # Read from the re-saved card, which is ours, never from the upload.
+            self.image_width, self.image_height = get_image_dimensions(large)
             self.image.save(f"{name}.{extension}", large, save=False)
             self.image_small.save(f"{name}-small.{extension}", small, save=False)
         super().save(*args, **kwargs)
