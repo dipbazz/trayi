@@ -248,8 +248,9 @@ from GitHub with a backup and an approval each time.
    minutes every time and needs swap, or it can stop with "Killed".
 3. **Check it:** `sudo docker compose ps` (both containers up?) and
    `sudo docker compose logs --tail 100 web`, then open the pages the change touched.
-4. **If something's wrong**, check out the previous tag and build again; if a migration changed
-   data, restore the backup (below).
+4. **If something's wrong**, check out the previous tag and run step 2's commands again. Nothing
+   is kept from the last build, so it takes the full build time, while the version you're
+   leaving stays up. If a migration changed data, restore the backup (below).
 
 A changed file in `deploy/aws/systemd/` must be copied to `/etc/systemd/system/` again, followed
 by `sudo systemctl daemon-reload`. A changed `Caddyfile` takes effect only after
