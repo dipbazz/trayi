@@ -96,6 +96,65 @@ def test_logs_each_query_for_editors(client, home_page):
     assert Query.get("volunteer").hits == 2
 
 
+@pytest.fixture
+def search_limit(settings):
+    """Two logged searches per window from one connection (#352)."""
+    settings.LIMITS = {**settings.LIMITS, "search": 2}
+
+
+@pytest.fixture(autouse=True)
+def fixed_clock(monkeypatch):
+    """Every search in a test falls in one window, so none crosses a window's edge."""
+    monkeypatch.setattr("core.limits.time.time", lambda: 1000.0)
+
+
+def test_past_the_limit_a_new_word_saves_nothing(client, home_page, search_limit):
+    search(client, "water")
+    search(client, "schools")
+    search(client, "blankets")
+
+    assert sorted(Query.objects.values_list("query_string", flat=True)) == ["schools", "water"]
+
+
+def test_past_the_limit_results_and_promotions_are_the_same(client, home_page, search_limit):
+    donate = StandardPage(title="Donate", introduction="Give a gift today")
+    home_page.add_child(instance=donate)
+    SearchPromotion.objects.create(
+        query=Query.get("gift"), page=donate, description="Add 25% to your gift"
+    )
+
+    responses = [search(client, "gift") for _ in range(3)]
+
+    assert [r.status_code for r in responses] == [200, 200, 200]
+    assert result_titles(responses[2]) == result_titles(responses[0]) == ["Donate"]
+    assert "Add 25% to your gift" in responses[2].content.decode()
+    assert Query.get("gift").hits == 2
+
+
+def test_later_pages_are_not_counted_or_logged(client, campaign_index, search_limit):
+    pages = CampaignPageFactory.create_batch(11, parent=campaign_index, summary="Clean water")
+    SearchPromotion.objects.create(
+        query=Query.get("water"), page=pages[0], description="Our biggest well"
+    )
+
+    search(client, "water")
+    later = [search(client, "water", page=2) for _ in range(2)]
+    search(client, "water")
+
+    # Page 2 still shows the promotion, and the two page 1 searches fit in the limit of 2.
+    assert all("Our biggest well" in r.content.decode() for r in later)
+    assert Query.get("water").hits == 2
+
+
+def test_a_page_past_the_last_shows_page_one_and_is_counted(client, home_page, search_limit):
+    home_page.add_child(instance=StandardPage(title="Volunteer", introduction="Join us"))
+
+    responses = [search(client, "volunteer", page=2) for _ in range(3)]
+
+    assert result_titles(responses[0]) == ["Volunteer"]
+    assert Query.get("volunteer").hits == 2
+
+
 def test_shows_editor_promoted_results_first(client, home_page):
     donate = StandardPage(title="Donate", introduction="Give today")
     home_page.add_child(instance=donate)

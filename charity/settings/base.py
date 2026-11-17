@@ -246,9 +246,10 @@ LIVE_PAYMENTS = False
 
 # How often one internet connection may send a new pledge, start a payment, say it paid by QR or
 # come back from a provider, per window of LIMITS_WINDOW seconds (#226, core/limits.py). 0 stops
-# every try. The longest wait supporters are told is the window, so keep it short.
+# every try. The longest wait supporters are told is the window, so keep it short. Past "search"
+# the results are the same and only the logging for editors stops (#352).
 LIMITS_WINDOW = 300
-LIMITS = {"pledge": 10, "start_payment": 10, "qr_paid": 5, "payment_return": 30}
+LIMITS = {"pledge": 10, "start_payment": 10, "qr_paid": 5, "payment_return": 30, "search": 30}
 # The request header holding the visitor's address, set by the proxy in front (production);
 # None reads the connection's own address.
 LIMITS_ADDRESS_HEADER = None

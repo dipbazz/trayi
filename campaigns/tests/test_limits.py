@@ -22,7 +22,13 @@ def limits(settings, monkeypatch):
     """Set one action's limit; the others keep their defaults. Tried as a window starts."""
     settings.LIMITS_WINDOW = 300
     monkeypatch.setattr("core.limits.wait_seconds", lambda: 300)
-    settings.LIMITS = {"pledge": 10, "start_payment": 10, "qr_paid": 5, "payment_return": 30}
+    settings.LIMITS = {
+        **settings.LIMITS,
+        "pledge": 10,
+        "start_payment": 10,
+        "qr_paid": 5,
+        "payment_return": 30,
+    }
 
     def set_limit(action, limit):
         settings.LIMITS = {**settings.LIMITS, action: limit}
