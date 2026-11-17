@@ -18,6 +18,8 @@ stamp=$(date -u +%Y-%m-%dT%H%M%SZ)
 aws s3 cp --recursive --only-show-errors "$data_dir/backups/latest" "s3://$bucket/backups/$stamp/"
 echo "Backed up to s3://$bucket/backups/$stamp/"
 
-# Then keep each receipt screenshot 30 days at most (they're outside media/, so never backed up).
+# Then keep each receipt screenshot 30 days at most (they're outside media/, so never backed up),
+# and search logs 90 days (WAGTAILSEARCH_HITS_MAX_AGE; promoted terms stay).
 # Last, so a failure here can't stop the backup; it still fails the run, which the journal shows.
 docker compose exec -T web python manage.py delete_old_receipts
+docker compose exec -T web python manage.py searchpromotions_garbage_collect

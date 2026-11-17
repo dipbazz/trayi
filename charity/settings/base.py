@@ -228,6 +228,9 @@ WAGTAILSEARCH_BACKENDS = {
         "BACKEND": "wagtail.search.backends.database",
     }
 }
+# Search logs (the editors' Search terms report) are kept 90 days: the nightly clean-up in
+# deploy/aws/backup.sh deletes older ones and keeps promoted terms (#352). Wagtail's default is 7.
+WAGTAILSEARCH_HITS_MAX_AGE = 90
 
 # The site's public address, without a trailing slash. `manage.py update_site_url` copies it into
 # the default Wagtail Site, which every full URL is built from: API links, feeds, the sitemap and

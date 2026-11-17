@@ -1,5 +1,9 @@
+from datetime import timedelta
+
 import pytest
-from wagtail.contrib.search_promotions.models import Query, SearchPromotion
+from django.core.management import call_command
+from django.utils import timezone
+from wagtail.contrib.search_promotions.models import Query, QueryDailyHits, SearchPromotion
 from wagtail.models import PageViewRestriction
 
 from campaigns.tests.factories import CampaignIndexPageFactory, CampaignPageFactory
@@ -153,6 +157,26 @@ def test_a_page_past_the_last_shows_page_one_and_is_counted(client, home_page, s
 
     assert result_titles(responses[0]) == ["Volunteer"]
     assert Query.get("volunteer").hits == 2
+
+
+def test_the_nightly_clean_up_keeps_search_logs_90_days(home_page):
+    today = timezone.now().date()
+
+    def logged(word, days_ago):
+        query = Query.get(word)
+        QueryDailyHits.objects.create(query=query, date=today - timedelta(days_ago), hits=1)
+        return query
+
+    logged("water", 89)
+    logged("schools", 91)
+    donate = StandardPage(title="Donate", introduction="Give today")
+    home_page.add_child(instance=donate)
+    SearchPromotion.objects.create(query=logged("gift", 91), page=donate)
+
+    call_command("searchpromotions_garbage_collect", verbosity=0)
+
+    assert sorted(Query.objects.values_list("query_string", flat=True)) == ["gift", "water"]
+    assert list(QueryDailyHits.objects.values_list("query__query_string", flat=True)) == ["water"]
 
 
 def test_shows_editor_promoted_results_first(client, home_page):

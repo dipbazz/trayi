@@ -311,7 +311,8 @@ A search box in the header and a search page (`search/views.py`):
   title and its search description, else its summary, else its introduction.
 - **Promoted results**: editors pin a page for a search term, per language; a promoted link to
   another website shows in both languages. Promotions show above the results.
-- Every search is logged, so editors can see what people look for and promote answers.
+- Every search is logged, so editors can see what people look for and promote answers. Logs are
+  kept 90 days; a term with a promoted result stays after its logs go.
 - Search pages aren't indexed by search engines (robots.txt).
 
 ## SEO and sharing
