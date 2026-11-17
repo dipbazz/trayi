@@ -10,6 +10,45 @@ under a new version number.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-17
+
+Two security fixes held back from 0.6.0. A site still on 0.5.0 goes straight to 0.6.1: follow
+0.6.0's upgrade notes below as well as these.
+
+### Upgrade notes
+
+- Deploy this version, and every one after it, with
+  `sudo docker compose build --pull --no-cache && sudo docker compose up -d`, then
+  `sudo docker image prune -f` and `sudo docker builder prune -af` (Running the live site → Deploy a
+  version). A plain `build` kept a server on the Debian packages of its first build, so it never got
+  their security fixes, among them OpenSSL and the certificates the payment calls trust. Each deploy
+  now takes the full build time, several minutes on a small server
+  ([#360](https://github.com/dipbazz/trayi/issues/360)).
+
+### Changed
+
+- Search logs, the counts in the editors' Search terms report, are now kept 90 days. The nightly
+  backup deletes older ones, and a search term with a promoted result stays after its logs go.
+  Before, nothing deleted them, so they grew for as long as the site ran
+  ([#352](https://github.com/dipbazz/trayi/issues/352)).
+
+### Security
+
+- The site now runs Django REST framework 3.18.3, Pillow 13.0.0, certifi 2026.10.23 and
+  soupsieve 4.1, past the security problems published for the versions before them. A crafted
+  request to the public page API (`/api/v2/`) could keep a web worker busy. Pillow reads the receipt
+  photo a supporter uploads on the pay page without signing in, and now only its JPEG, PNG and WebP
+  readers look at an upload. certifi, whose certificate list is used when an editor embeds a video,
+  drops certificates that were revoked. soupsieve isn't used on a live site; it's upgraded so
+  security scanners stop listing it ([#360](https://github.com/dipbazz/trayi/issues/360)).
+- A script searching a charity's site fills its database far more slowly. Searches from one
+  internet connection stop being logged for the editors' Search terms report past 30 in 5
+  minutes, and logs now go after 90 days; the results and promoted results look the same. Reading
+  page 2 or later no longer counts the search again; going back to page 1 does. People sharing one
+  connection, such as an office, are counted together, so the report's counts are the least that
+  were searched
+  ([#352](https://github.com/dipbazz/trayi/issues/352)).
+
 ## [0.6.0] - 2026-11-13
 
 **Don't deploy this version: deploy 0.6.1, which follows it.** 0.6.0 is released without two
@@ -573,7 +612,8 @@ The first tracked release. It collects everything built before versioning starte
 - Every CI action is pinned to a commit, and Dependabot proposes updates
   ([#69](https://github.com/dipbazz/Charity-wagtail-CMS/pull/69)).
 
-[Unreleased]: https://github.com/dipbazz/trayi/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/dipbazz/trayi/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/dipbazz/trayi/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/dipbazz/trayi/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/dipbazz/Charity-wagtail-CMS/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/dipbazz/Charity-wagtail-CMS/compare/v0.3.0...v0.4.0
