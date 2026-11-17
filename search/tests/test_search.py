@@ -1,5 +1,9 @@
+from datetime import timedelta
+
 import pytest
-from wagtail.contrib.search_promotions.models import Query, SearchPromotion
+from django.core.management import call_command
+from django.utils import timezone
+from wagtail.contrib.search_promotions.models import Query, QueryDailyHits, SearchPromotion
 from wagtail.models import PageViewRestriction
 
 from campaigns.tests.factories import CampaignIndexPageFactory, CampaignPageFactory
@@ -94,6 +98,97 @@ def test_logs_each_query_for_editors(client, home_page):
     search(client, "volunteer ")
 
     assert Query.get("volunteer").hits == 2
+
+
+@pytest.fixture
+def search_limit(settings):
+    """Two logged searches per window from one connection (#352)."""
+    settings.LIMITS = {**settings.LIMITS, "search": 2}
+
+
+@pytest.fixture(autouse=True)
+def fixed_clock(monkeypatch):
+    """Every search in a test falls in one window, so none crosses a window's edge."""
+    monkeypatch.setattr("core.limits.time.time", lambda: 1000.0)
+
+
+def test_past_the_limit_a_new_word_saves_nothing(client, home_page, search_limit):
+    search(client, "water")
+    search(client, "schools")
+    search(client, "blankets")
+
+    assert sorted(Query.objects.values_list("query_string", flat=True)) == ["schools", "water"]
+
+
+def test_past_the_limit_results_and_promotions_are_the_same(client, home_page, search_limit):
+    donate = StandardPage(title="Donate", introduction="Give a gift today")
+    home_page.add_child(instance=donate)
+    SearchPromotion.objects.create(
+        query=Query.get("gift"), page=donate, description="Add 25% to your gift"
+    )
+
+    responses = [search(client, "gift") for _ in range(3)]
+
+    assert [r.status_code for r in responses] == [200, 200, 200]
+    assert result_titles(responses[2]) == result_titles(responses[0]) == ["Donate"]
+    assert "Add 25% to your gift" in responses[2].content.decode()
+    assert Query.get("gift").hits == 2
+
+
+def test_later_pages_are_not_counted_or_logged(client, campaign_index, search_limit):
+    pages = CampaignPageFactory.create_batch(11, parent=campaign_index, summary="Clean water")
+    SearchPromotion.objects.create(
+        query=Query.get("water"), page=pages[0], description="Our biggest well"
+    )
+
+    search(client, "water")
+    later = [search(client, "water", page=2) for _ in range(2)]
+    search(client, "water")
+
+    # Page 2 still shows the promotion, and the two page 1 searches fit in the limit of 2.
+    assert all("Our biggest well" in r.content.decode() for r in later)
+    assert Query.get("water").hits == 2
+
+
+def test_a_page_past_the_last_of_one_page_shows_it_and_is_counted(client, home_page, search_limit):
+    home_page.add_child(instance=StandardPage(title="Volunteer", introduction="Join us"))
+
+    responses = [search(client, "volunteer", page=2) for _ in range(3)]
+
+    assert result_titles(responses[0]) == ["Volunteer"]
+    assert Query.get("volunteer").hits == 2
+
+
+def test_a_page_past_the_last_of_several_shows_the_last_and_isnt_counted(
+    client, campaign_index, search_limit
+):
+    CampaignPageFactory.create_batch(11, parent=campaign_index, summary="Clean water")
+
+    response = search(client, "water", page=99)
+
+    # Django shows the last page, page 2 of 2, so nothing is logged.
+    assert len(result_titles(response)) == 1
+    assert not Query.objects.filter(query_string="water").exists()
+
+
+def test_the_nightly_clean_up_keeps_search_logs_90_days(home_page):
+    today = timezone.now().date()
+
+    def logged(word, days_ago):
+        query = Query.get(word)
+        QueryDailyHits.objects.create(query=query, date=today - timedelta(days_ago), hits=1)
+        return query
+
+    logged("water", 89)
+    logged("schools", 91)
+    donate = StandardPage(title="Donate", introduction="Give today")
+    home_page.add_child(instance=donate)
+    SearchPromotion.objects.create(query=logged("gift", 91), page=donate)
+
+    call_command("searchpromotions_garbage_collect", verbosity=0)
+
+    assert sorted(Query.objects.values_list("query_string", flat=True)) == ["gift", "water"]
+    assert list(QueryDailyHits.objects.values_list("query__query_string", flat=True)) == ["water"]
 
 
 def test_shows_editor_promoted_results_first(client, home_page):

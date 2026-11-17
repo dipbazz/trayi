@@ -3,6 +3,9 @@ from django.db.models import Q
 from django.template.response import TemplateResponse
 from wagtail.contrib.search_promotions.models import Query, SearchPromotion
 from wagtail.models import Locale, Page
+from wagtail.search.utils import normalise_query_string
+
+from core.limits import over_limit
 
 RESULTS_PER_PAGE = 10
 
@@ -15,25 +18,35 @@ def search(request):
     if search_query:
         # public() drops pages behind a password, login or group restriction.
         search_results = Page.objects.live().public().filter(locale=locale).search(search_query)
-        # Log the query so editors can see what people look for and add promotions.
-        query = Query.get(search_query)
-        query.add_hit()
+        # Only reads: Query.get() would save a row for every new word, even past the limit (#352).
+        query = Query.objects.filter(query_string=normalise_query_string(search_query)).first()
         # Editors promote a page in each language for the same query; external links show in both.
-        promotions = query.editors_picks.filter(
-            Q(page__isnull=True) | Q(page__locale=locale)
-        ).select_related("page")
+        promotions = (
+            query.editors_picks.filter(
+                Q(page__isnull=True) | Q(page__locale=locale)
+            ).select_related("page")
+            if query
+            else SearchPromotion.objects.none()
+        )
     else:
         search_results = Page.objects.none()
         promotions = SearchPromotion.objects.none()
 
-    paginator = Paginator(search_results, RESULTS_PER_PAGE)
+    page = Paginator(search_results, RESULTS_PER_PAGE).get_page(request.GET.get("page"))
+
+    # Logged so editors can see what people look for and add promotions: each time page 1 is shown
+    # (later pages don't count the search again, going back to page 1 does; a page past the last
+    # shows the last, page 1 only when the results fit on one), and only while this connection is
+    # under its limit, so a script can't fill the database. Past it the page is the same.
+    if search_query and page.number == 1 and not over_limit(request, "search"):
+        Query.get(search_query).add_hit()
 
     return TemplateResponse(
         request,
         "search/search.html",
         {
             "search_query": search_query,
-            "search_results": paginator.get_page(request.GET.get("page")),
+            "search_results": page,
             "promotions": promotions,
         },
     )

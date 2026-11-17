@@ -16,7 +16,7 @@ from core import limits
 def default_limits(settings, monkeypatch):
     settings.LIMITS_WINDOW = 300
     monkeypatch.setattr(limits, "broken_logged_in", None)
-    settings.LIMITS = {"pledge": 2, "start_payment": 2}
+    settings.LIMITS = {**settings.LIMITS, "pledge": 2, "start_payment": 2}
     settings.LIMITS_ADDRESS_HEADER = None
 
 

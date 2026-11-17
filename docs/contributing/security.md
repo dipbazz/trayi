@@ -164,15 +164,20 @@ on Django's cache API, with no package.
 | `start_payment` | A new attempt would start (not a paid or held pledge, not going back to the attempt just started) | 10 |
 | `qr_paid` | "I've paid" is valid and would be saved | 5 |
 | `payment_return` | Coming back from a provider again, or Check my payment, would ask the provider (not for a paid payment, and never a payment's first time back: each has one, starting one is counted, and others on the payer's connection could otherwise leave a real payment unconfirmed) | 30 |
+| `search` | A search would be logged for editors: a word was searched and page 1 of its results is shown (a page past the last shows the last, so page 1 only when the results fit on one), so reading later pages doesn't count it again; going back to page 1 does (#352) | 30 |
 
 - **The window** is `LIMITS_WINDOW`, 300 seconds, for every action. Windows are fixed, numbered
   by the clock, and the wait supporters are told is what's left of the current one, so keep it
   short. Both are in `charity/settings/base.py`; 0 stops every counted try.
-- **Never limited:** reading any page, and the way to a provider's page (`go_to_provider`), which
+- **Never limited:** reading any page (past `search`, only the logging stops), and the way to a provider's page (`go_to_provider`), which
   calls no provider and could stop a payer between Pay and the provider.
-- **One too many** is HTTP 429 with `Retry-After` and never cached; nothing is saved and no
-  provider is asked. What supporters see is in
+- **One too many** of the four giving actions is HTTP 429 with `Retry-After` and never cached;
+  nothing is saved and no provider is asked. What supporters see is in
   [Appeals and giving](../site/appeals-and-giving.md#one-try-too-many).
+- **Past `search`** the page is still 200 with the same results and promoted results; only the
+  logging stops. Promotions are found with a lookup that only reads, so a new word past the limit
+  saves no row. Search logs are kept 90 days (`WAGTAILSEARCH_HITS_MAX_AGE`), deleted nightly by
+  `backup.sh` ([Running the live site](../hosting.md#management-commands)).
 - **The connection** is the address Caddy sends as `X-Real-IP` (`LIMITS_ADDRESS_HEADER` in
   production), which replaces any a visitor sends; a visitor's `X-Forwarded-For` is never read.
   Without the setting (dev, tests) it's the address Django sees. If production's header is
@@ -185,7 +190,12 @@ on Django's cache API, with no package.
   `/tmp` in production, shared by both gunicorn workers, at most 2,000 entries (about 8 MB).
   A past window's counters are never read again, so when full `core.limits.CounterCache` deletes
   them first; only if it's still full, about 1,000 connections counted in one window, does
-  Django forget a random third, which lets some of them try again early. They're kept with the window as their
+  Django forget a random third, which lets some of them try again early. Searches are counted
+  there too, and a search is the cheapest request to send (a GET with no form token), so a search
+  flood from about 1,000 connections in one window can make giving's counts start again early.
+  While the folder is full every count, giving's too, waits 7 to 15 ms on its lock, and about
+  105 ms on the save that clears space (measured on Linux); on a normal day it's under 1 ms.
+  They're kept with the window as their
   expiry, never with `cache.incr()`, which on a file cache saves the key again with the default
   timeout. Each count is read and saved under a lock file in that folder, so tries at the same
   moment are counted one by one. The default cache, Wagtail's, is separate.
