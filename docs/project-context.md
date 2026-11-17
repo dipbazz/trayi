@@ -17,7 +17,8 @@ points to the one page that answers it, so there's no need to read everything or
 - **Each release checks every page against the code** and fixes what has drifted, in the release
   pull request, then sets "Last verified against" to the new version
   ([Cutting a release](contributing/releases.md#cutting-a-release)). So the version above is always
-  one whose docs were checked in full.
+  one whose docs were checked in full, or a patch cut from `main` whose changes since the
+  version before were checked ([Patch releases](contributing/releases.md#patch-releases)).
 
 ## In one paragraph
 
