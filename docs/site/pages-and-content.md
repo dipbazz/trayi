@@ -313,8 +313,9 @@ A search box in the header and a search page (`search/views.py`):
   another website shows in both languages. Promotions show above the results.
 - Every search is logged, so editors can see what people look for and promote answers. Logs are
   kept 90 days; a term with a promoted result stays after its logs go.
-- Searches are counted per internet connection: one search is counted once, however many pages
-  of results are read, and past 30 in 5 minutes from one connection they stop being logged
+- Searches are counted per internet connection, each time page 1 of the results shows: reading
+  later pages doesn't count a search again, going back to page 1 does. Past 30 in 5 minutes
+  from one connection they stop being logged
   ([Security](../contributing/security.md#one-connection-can-only-try-so-often)). The results
   look the same. People sharing one connection, such as an office or a mobile network, are
   counted together, so the report's counts are the least that were searched.
