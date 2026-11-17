@@ -221,7 +221,11 @@ The exception is a patch to a version no site has deployed, such as 0.6.1 holdin
 fixes held back from 0.6.0 ([above](#cutting-a-release)). Nothing live needs keeping apart from
 `main`, so cut it from `main` with the steps in [Cutting a release](#cutting-a-release), skipping
 the steps below. That only works while `main` holds nothing but fixes since that version; once
-it has a feature, the release is the next minor version instead.
+it has a feature, the release is the next minor version instead. The version before it had the
+full docs check and release reviews, so the patch checks only what changed since its tag
+(`git log --stat vX.Y.Z..HEAD`): the docs pages and screenshots those commits touch or describe,
+and `/cso` on the code they change. `/test-audit` and `/deslop-shared-libs` wait for the next
+minor version, since a few fixes don't change what they look at.
 
 1. **Fix it on `main` first,** in a normal pull request with its `fixed` file in `changelog.d/`,
    so the next version has the fix too. If the fix needs a migration, write it to follow the live

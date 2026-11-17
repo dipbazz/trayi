@@ -14,7 +14,7 @@ from django.utils.translation import gettext_lazy as _
 # from `home`.
 STATEMENT_PAGE_TYPE = ("home", "accessibilitystatementpage")
 
-REVIEWED = date(2026, 11, 13)
+REVIEWED = date(2026, 11, 17)
 
 # What every change to the code is checked for before it's released.
 CHECKS = (

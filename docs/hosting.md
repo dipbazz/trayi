@@ -117,8 +117,8 @@ Go-live and expiry times only take effect because `publish_scheduled` runs every
 
 `backup.sh` runs `backup_site /data/backups/latest` inside the running container, copies the
 database and uploads archive to S3 under `backups/<UTC time>/`, then runs `delete_old_receipts`
-and `searchpromotions_garbage_collect`. The clean-ups come last so a failure there can't stop the backup, and each runs even if the
-other fails; any failure still fails the run, which
+and `searchpromotions_garbage_collect`. The clean-ups come last so a failure there can't stop
+the backup, and each runs even if the other fails; any failure still fails the run, which
 `journalctl -u charity-backup.service` shows. The server's IAM role can write and read `backups/`
 but not delete, so a compromised server can't wipe them; the bucket's lifecycle rule removes them
 after 30 days.
