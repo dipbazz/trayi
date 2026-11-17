@@ -3,11 +3,12 @@
 A one-page map into these docs for anyone (or any AI session) starting work here: each question
 points to the one page that answers it, so there's no need to read everything or scan the code.
 
-**Last verified against:** `v0.6.0` (every page and screenshot checked on 2026-11-13)
+**Last verified against:** `v0.6.1` (every page and screenshot checked on 2026-11-13 for v0.6.0;
+the changes since checked on 2026-11-17)
 
 ## Keeping the docs current
 
-- **Starting a session:** trust the docs. Run `git log --oneline v0.6.0..HEAD --stat` (the version
+- **Starting a session:** trust the docs. Run `git log --oneline v0.6.1..HEAD --stat` (the version
   above) and re-read only the pages for the areas those commits touched. Re-scan the repo only if
   most areas changed, or if the docs contradict the code.
 - **Before reading code to answer a question,** read the page below that answers it. Always read

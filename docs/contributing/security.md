@@ -169,8 +169,9 @@ on Django's cache API, with no package.
 - **The window** is `LIMITS_WINDOW`, 300 seconds, for every action. Windows are fixed, numbered
   by the clock, and the wait supporters are told is what's left of the current one, so keep it
   short. Both are in `charity/settings/base.py`; 0 stops every counted try.
-- **Never limited:** reading any page (past `search`, only the logging stops), and the way to a provider's page (`go_to_provider`), which
-  calls no provider and could stop a payer between Pay and the provider.
+- **Never limited:** reading any page (past `search`, only the logging stops), and the way to a
+  provider's page (`go_to_provider`), which calls no provider and could stop a payer between Pay
+  and the provider.
 - **One too many** of the four giving actions is HTTP 429 with `Retry-After` and never cached;
   nothing is saved and no provider is asked. What supporters see is in
   [Appeals and giving](../site/appeals-and-giving.md#one-try-too-many).
