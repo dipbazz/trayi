@@ -150,13 +150,25 @@ def test_later_pages_are_not_counted_or_logged(client, campaign_index, search_li
     assert Query.get("water").hits == 2
 
 
-def test_a_page_past_the_last_shows_page_one_and_is_counted(client, home_page, search_limit):
+def test_a_page_past_the_last_of_one_page_shows_it_and_is_counted(client, home_page, search_limit):
     home_page.add_child(instance=StandardPage(title="Volunteer", introduction="Join us"))
 
     responses = [search(client, "volunteer", page=2) for _ in range(3)]
 
     assert result_titles(responses[0]) == ["Volunteer"]
     assert Query.get("volunteer").hits == 2
+
+
+def test_a_page_past_the_last_of_several_shows_the_last_and_isnt_counted(
+    client, campaign_index, search_limit
+):
+    CampaignPageFactory.create_batch(11, parent=campaign_index, summary="Clean water")
+
+    response = search(client, "water", page=99)
+
+    # Django shows the last page, page 2 of 2, so nothing is logged.
+    assert len(result_titles(response)) == 1
+    assert not Query.objects.filter(query_string="water").exists()
 
 
 def test_the_nightly_clean_up_keeps_search_logs_90_days(home_page):

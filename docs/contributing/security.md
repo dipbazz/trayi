@@ -164,7 +164,7 @@ on Django's cache API, with no package.
 | `start_payment` | A new attempt would start (not a paid or held pledge, not going back to the attempt just started) | 10 |
 | `qr_paid` | "I've paid" is valid and would be saved | 5 |
 | `payment_return` | Coming back from a provider again, or Check my payment, would ask the provider (not for a paid payment, and never a payment's first time back: each has one, starting one is counted, and others on the payer's connection could otherwise leave a real payment unconfirmed) | 30 |
-| `search` | A search would be logged for editors: a word was searched and page 1 of its results is shown (also when a page past the last was asked for), so paging through results counts one search once (#352) | 30 |
+| `search` | A search would be logged for editors: a word was searched and page 1 of its results is shown (a page past the last shows the last, so page 1 only when the results fit on one), so paging through results counts one search once (#352) | 30 |
 
 - **The window** is `LIMITS_WINDOW`, 300 seconds, for every action. Windows are fixed, numbered
   by the clock, and the wait supporters are told is what's left of the current one, so keep it

@@ -35,8 +35,9 @@ def search(request):
     page = Paginator(search_results, RESULTS_PER_PAGE).get_page(request.GET.get("page"))
 
     # Logged so editors can see what people look for and add promotions: once per search (page 1
-    # shown, even when asked for a page past the last), and only while this connection is under
-    # its limit, so a script can't fill the database. Past it the page is the same.
+    # shown; a page past the last shows the last, page 1 only when the results fit on one), and
+    # only while this connection is under its limit, so a script can't fill the database. Past it
+    # the page is the same.
     if search_query and page.number == 1 and not over_limit(request, "search"):
         Query.get(search_query).add_hit()
 
