@@ -20,6 +20,9 @@ echo "Backed up to s3://$bucket/backups/$stamp/"
 
 # Then keep each receipt screenshot 30 days at most (they're outside media/, so never backed up),
 # and search logs 90 days (WAGTAILSEARCH_HITS_MAX_AGE; promoted terms stay).
-# Last, so a failure here can't stop the backup; it still fails the run, which the journal shows.
-docker compose exec -T web python manage.py delete_old_receipts
-docker compose exec -T web python manage.py searchpromotions_garbage_collect
+# Last, so a failure here can't stop the backup. Each runs even if the other fails, so search
+# logs still go on a night receipts fail; any failure still fails the run, which the journal shows.
+failed=0
+docker compose exec -T web python manage.py delete_old_receipts || failed=1
+docker compose exec -T web python manage.py searchpromotions_garbage_collect || failed=1
+exit "$failed"
