@@ -106,6 +106,7 @@ class Report:
         self.colour = stdout_is_terminal() and not os.environ.get("NO_COLOR")
         self.failed = False
         self.uv = None
+        self.dependencies_ok = True
 
     def line(self, level, text):
         if level == FAIL:
@@ -241,8 +242,10 @@ def check_dependencies(report):
             "then run doctor again",
         )
     elif report.check:
+        report.dependencies_ok = False
         report.line(FAIL, f"dependencies out of date: run `{command}`")
     else:
+        report.dependencies_ok = False
         report.line(FAIL, f"`{command}` failed: {last_line(err)}")
 
 
@@ -297,6 +300,10 @@ def check_database(report):
         return
     if not report.uv:
         report.line(WARN, "migrations not checked: install uv first")
+        return
+    if not report.dependencies_ok:
+        # Django would fail on a missing package, a second error with a different fix.
+        report.line(WARN, "migrations not checked until the dependencies match uv.lock")
         return
     env = dict(os.environ, DJANGO_SETTINGS_MODULE="charity.settings.dev")
     code, _, err = run(

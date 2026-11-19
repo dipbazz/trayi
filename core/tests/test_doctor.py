@@ -414,6 +414,15 @@ def test_check_mode_still_checks_migrations(clone, capsys, uv):
     assert ["run", "--no-sync", "python", "manage.py", "migrate", "--check"] in uv.calls()
 
 
+@pytest.mark.parametrize("args", [[], ["--check"]])
+def test_dependencies_out_of_date_leave_migrations_unchecked(clone, capsys, uv, args):
+    uv.answer("sync", code=1, err="Would install 1 package\n")
+    _, out = run(clone, capsys, *args)
+    assert line(out, "⚠️ migrations not checked until the dependencies match uv.lock")
+    assert not line(out, "Django couldn't start")
+    assert not [call for call in uv.calls() if call[0] == "run"]
+
+
 def test_a_venv_in_use_on_windows_warns(clone, capsys, uv):
     uv.answer(
         "sync",
