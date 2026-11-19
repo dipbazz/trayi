@@ -19,9 +19,9 @@ what has drifted, and sets "Last verified against" to the new version in the [pr
 
 ## Build them
 
-The docs dependencies are in a separate uv group, so install them once with
-`uv sync --group docs` (a plain `uv sync` removes them again), or prefix commands with
-`uv run --group docs` as below.
+The docs dependencies are in a separate uv group. [Getting started](../getting-started/index.md)
+installs them with `uv sync --locked --group docs`; a plain `uv sync` removes them again, and
+`uv run --group docs`, as below, puts them back.
 
 ```bash
 # Rebuild and reload in the browser on every save, at http://127.0.0.1:8000

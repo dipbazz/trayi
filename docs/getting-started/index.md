@@ -19,7 +19,7 @@ stylesheets and two small scripts (the second of each only on the Donate page an
 ```bash
 git clone https://github.com/dipbazz/trayi.git
 cd trayi
-uv sync
+uv sync --locked --group docs              # the site's and the docs' dependencies, exactly as uv.lock pins them
 uv run pre-commit install                  # once: checks ruff, the branch name, CLAUDE.md's length and the commit subject on each commit
 uv run python manage.py migrate
 uv run python manage.py seed_demo          # fictional charity content, safe to re-run
@@ -96,6 +96,41 @@ the language the site opens in) and to
 key and other values in `compose.yaml` are for your computer only; the live server has its own in
 [`deploy/aws/`](../hosting.md). Safari won't keep the admin login on plain `http`;
 use Chrome, Edge or Firefox.
+
+## Check your clone
+
+Run doctor once the site runs, and again whenever you come back to work, yourself or before your
+AI agent starts:
+
+```bash
+uv run --script scripts/doctor.py
+```
+
+No uv yet? `python3 scripts/doctor.py` (Windows: `py scripts/doctor.py`) says how to get it.
+
+It prints one line per check, `✓`, `⚠️` (a warning) or `❌` (an error), and each `⚠️` and `❌`
+names its fix. It checks:
+
+- uv is installed and 0.6.10 or newer;
+- git knows your name and email;
+- your branch isn't behind `main` on [github.com/dipbazz/trayi](https://github.com/dipbazz/trayi),
+  whatever your remote for it is called (in a fork, `origin` is your fork, so add it with
+  `git remote add upstream https://github.com/dipbazz/trayi.git`). Behind on `main` is an error;
+  behind on your own branch is a warning;
+- the dependencies match `uv.lock`;
+- the pre-commit hooks are installed;
+- the database exists and its migrations are applied.
+
+Doctor only reports: it never pulls, switches branch, runs `migrate` or installs the hooks. Its
+one change is running `uv sync --locked --group docs`, as above, which never rewrites `uv.lock`;
+`--check` only says whether that sync is needed. A fetch that fails or would ask for a password
+is a warning, and the other checks still run. It ends with an exit code tools can read:
+
+| Exit code | Means |
+|---|---|
+| `0` | Nothing to fix (warnings may have printed) |
+| `1` | At least one `❌` |
+| `2` | Doctor couldn't check: git is missing, the script isn't in a git clone, or Python is older than 3.14 |
 
 ## Check that everything passes
 
