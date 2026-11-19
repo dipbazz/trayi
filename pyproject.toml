@@ -53,6 +53,8 @@ omit = ["*/migrations/*", "*/tests/*", ".venv/*", "manage.py", "charity/wsgi.py"
 [tool.ruff]
 line-length = 100
 extend-exclude = ["*/migrations/*"]
+# doctor must still parse on an old Python, to say which one it needs.
+per-file-target-version = { "scripts/doctor.py" = "py39" }
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "DJ"]
