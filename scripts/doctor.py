@@ -12,8 +12,8 @@ Run it with `uv run --script scripts/doctor.py` (no uv yet? `python3 scripts/doc
 (docs/getting-started/index.md).
 
 It only reports: it never pulls, checks out, resets, runs `migrate` or installs hooks. Its one
-change is `uv sync --locked --group docs`, which brings `.venv` in line with `uv.lock`;
-`--check` (the start-up hook's mode) only checks whether that's needed.
+change is `uv sync --locked --group docs`, which brings `.venv` in line with `uv.lock`, removing
+any package it doesn't list; `--check` (the start-up hook's mode) only checks whether that's needed.
 
 Exit codes:
   0  nothing to fix (warnings may have printed)

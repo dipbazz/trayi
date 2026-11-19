@@ -122,8 +122,10 @@ names its fix. It checks:
 - the database exists and its migrations are applied.
 
 Doctor only reports: it never pulls, switches branch, runs `migrate` or installs the hooks. Its
-one change is running `uv sync --locked --group docs`, as above, which never rewrites `uv.lock`;
-`--check` only says whether that sync is needed. A fetch that fails or would ask for a password
+one change is running `uv sync --locked --group docs`, as above, which never rewrites `uv.lock`
+but does remove any package `uv.lock` doesn't list, such as one you added with `uv pip install`;
+`--check` only says whether that sync is needed, and counts such a package as out of date. While
+the dependencies are out of date, it doesn't check the migrations. A fetch that fails or would ask for a password
 is a warning, and the other checks still run. It ends with an exit code tools can read:
 
 | Exit code | Means |
