@@ -454,6 +454,21 @@ def test_a_hook_that_isnt_pre_commits_doesnt_count(clone, capsys):
     assert line(out, "❌ pre-commit hooks missing (commit-msg)")
 
 
+@pytest.mark.parametrize(
+    "setting",
+    [
+        "default_install_hook_types:\n  - pre-commit\n  - commit-msg\n",
+        "default_install_hook_types: [pre-commit, commit-msg]  # both\n",
+        "default_install_hook_types: # both\n- 'pre-commit'\n- \"commit-msg\"\nrepos: []\n",
+    ],
+)
+def test_hook_types_read_in_any_yaml_form(clone, capsys, setting):
+    (clone / ".pre-commit-config.yaml").write_text(setting)
+    (clone / ".git" / "hooks" / "commit-msg").unlink()
+    _, out = run(clone, capsys)
+    assert line(out, "❌ pre-commit hooks missing (commit-msg)")
+
+
 def test_hooks_in_core_hooks_path(clone, capsys, tmp_path):
     shutil.rmtree(clone / ".git" / "hooks")
     install_hooks(tmp_path / "my-hooks", "pre-commit", "commit-msg")

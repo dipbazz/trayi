@@ -252,10 +252,19 @@ def hook_types(root):
         config = (root / ".pre-commit-config.yaml").read_text(encoding="utf-8")
     except OSError:
         return ["pre-commit"]
-    found = re.search(r"^default_install_hook_types:\s*\[([^\]]*)\]", config, re.MULTILINE)
-    if not found:
+    # YAML's one-line `[a, b]` or its `- a` list on the lines below.
+    flow = re.search(r"^default_install_hook_types:[ \t]*\[([^\]]*)\]", config, re.MULTILINE)
+    block = re.search(
+        r"^default_install_hook_types:[ \t]*(?:#.*)?\n((?:[ \t]*-[^\n]*\n?)+)", config, re.MULTILINE
+    )
+    if flow:
+        names = flow.group(1).split(",")
+    elif block:
+        items = block.group(1).splitlines()
+        names = [item.split("#")[0].strip().removeprefix("-") for item in items]
+    else:
         return ["pre-commit"]
-    return [name.strip() for name in found.group(1).split(",") if name.strip()]
+    return [name.strip().strip("'\"") for name in names if name.strip()]
 
 
 def is_pre_commit_hook(path):
