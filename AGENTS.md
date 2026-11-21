@@ -2,7 +2,8 @@
 
 Install [uv](https://docs.astral.sh/uv/) first, then run `uv run --script scripts/doctor.py`
 before other work. What an agent does without asking, what it never does and what "done" means
-are in `docs/contributing/agents.md`.
+are in `docs/contributing/agents.md`. When you find a mistake of yours, say what went wrong and
+how to fix it before fixing it.
 
 The documentation is in `docs/` (Sphinx with MyST Markdown; plain Markdown you can read
 directly). Read `docs/project-context.md` before exploring the code: a one-page map of which

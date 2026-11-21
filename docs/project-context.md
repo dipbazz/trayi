@@ -53,7 +53,7 @@ pytest, styled mobile first, and budgeted for queries and page weight in CI.
 | How is a fix, feature or design judged? Quick fix or lasting one? Standard or modern? | [Contributing: Principles](contributing/index.md#principles) |
 | Branches, commits, pull requests, code style? | [Contributing](contributing/index.md) |
 | I work from a fork: which remote, how do I update `main`? | [Contributing: Working from a fork](contributing/index.md#working-from-a-fork) |
-| I work with an AI agent: what does `AGENTS.md` say, what may the agent do without asking, what does it never do, what's "done"? Where do my personal agent settings go? | [Working with an AI agent](contributing/agents.md) |
+| I work with an AI agent: what does `AGENTS.md` say, what may the agent do without asking, what does it never do, what does it do after a mistake, what's "done"? Where do my personal agent settings go? | [Working with an AI agent](contributing/agents.md) |
 | Which reviews does an issue or pull request need? What do the `needs:` labels mean? Which tools (Claude Code, gstack)? | [Reviews](contributing/reviews.md) |
 | How do I write tests? Fixtures? What does CI run? What must I check by hand? | [Testing and QA](contributing/testing.md) |
 | Why did CI fail on query counts or page weight? | [Performance](contributing/performance.md) |

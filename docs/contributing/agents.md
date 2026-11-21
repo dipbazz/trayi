@@ -47,6 +47,15 @@ No local file changes these. CI and the maintainer hold to them whatever an agen
 - **Skip a review or a check**, such as committing with `--no-verify`.
 - **Work on a stale `main`**: it fetches first, as above.
 
+## When it makes a mistake
+
+An agent that finds a mistake of its own, such as a wrong claim in a commit message, a test it
+broke or a command that did more than it meant, says so before it fixes anything: what went
+wrong, why, and how it would fix it. A fix that rewrites a pushed branch, gets round a check or
+changes something other people use waits for the person's yes ([above](#what-it-asks-before)).
+If a check or setting should have stopped an action and didn't, it says that too, so the gap
+can be closed. A mistake fixed quietly is easy to miss, and the next fix is then built on it.
+
 ## What "done" means
 
 A pull request is done when every step of [the workflow](index.md#the-workflow) is: tests
