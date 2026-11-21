@@ -51,6 +51,20 @@ upgrade in `uv.lock` alone would pass every test and never reach the sites. Afte
 `uv export --no-dev --no-hashes --no-emit-project -o requirements.txt` and commit the two files
 together.
 
+## Read a branch's tooling before running it
+
+Before starting an AI agent, pre-commit or the tests on another person's branch, such as a pull
+request from a fork, read its diff of the files that run code on your machine:
+
+```sh
+git diff upstream/main...HEAD -- .claude .pre-commit-config.yaml scripts pyproject.toml uv.lock
+```
+
+(`origin/main` on a clone of Trayi itself.) This code runs without asking: Claude Code's hooks in
+`.claude/settings.json` run the branch's own `.claude/hooks/*.py`, pre-commit runs its
+`scripts/` on every commit, and `uv sync` installs what its `uv.lock` pins.
+[Working with an AI agent](agents.md#someone-elses-branch) links here.
+
 ## Server secrets stay out of git and the image
 
 Server secrets live in `deploy/aws/.env`, which is gitignored and dockerignored.
