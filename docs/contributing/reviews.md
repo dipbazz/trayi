@@ -79,16 +79,19 @@ with the person's QA check last.
 `gh pr checks <n> --watch`, which waits for checks still running. If any check is red on the head
 commit, fix it, or name the red check and why in the review's comment, so the person merging is
 never told a change is ready when CI says it isn't. The one red check that's expected is
-`reviews`, and only while the label this review removes is the last one left; if it lists
+`reviews`, and only while this review's own label is the last one left; if it lists
 another, that review is still owed, so say so.
 
 **The result goes where the label is,** as one comment, so nothing lives only in a local report.
-Then the label comes off the same place.
+Then a person removes the label from the same place, after reading the comment. An AI agent may
+run the review and post its comment, but never removes the label
+([Working with an AI agent](agents.md)); it may re-run the pull request's `Reviews` check once
+the person has.
 
 | The label was on | Comment there | Label comes off |
 |---|---|---|
-| **An issue** (product, design, eng, investigation) | `## <Kind> review decisions (<date>)`: say that they win where they differ from the issue's text, then what changes, what's newly needed, the order of work, and any issues filed. The person who builds it starts from this comment. | Once the comment is posted: `gh issue edit <n> --remove-label "needs: design review"` |
-| **A pull request** (security, code review, QA) | `## <Kind> review (<date>)`: what was found, and for each finding the commit that fixed it or why it stays. If nothing was found, say so. | Once every finding is fixed or answered: `gh pr edit <n> --remove-label "needs: code review"`. The person who checked the pages removes `needs: qa`. |
+| **An issue** (product, design, eng, investigation) | `## <Kind> review decisions (<date>)`: say that they win where they differ from the issue's text, then what changes, what's newly needed, the order of work, and any issues filed. The person who builds it starts from this comment. | Once a person has read the comment: `gh issue edit <n> --remove-label "needs: design review"` |
+| **A pull request** (security, code review, QA) | `## <Kind> review (<date>)`: what was found, and for each finding the commit that fixed it or why it stays. If nothing was found, say so. | Once a person has read the comment and every finding is fixed or answered: `gh pr edit <n> --remove-label "needs: code review"`. The person who checked the pages removes `needs: qa`. |
 
 Fixing a review's own findings doesn't need that review again. Any other change pushed after a
 review, such as a fix QA asked for, puts back the label of an earlier review only for new risk

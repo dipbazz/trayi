@@ -48,9 +48,10 @@ work becomes a GitHub issue), and keep the full report in `~/.gstack`.
    a review is done").
 2. Post the result as one comment where the label is: the issue for an issue's review, the pull
    request for a pull request's, in the format in `reviews.md` ("When a review is done").
-3. Remove the label from that same place. If an open pull request closes the issue, re-run its
-   `Reviews` check (`gh run rerun` on its latest `Reviews` run), since removing an issue's label
-   doesn't.
+3. Never remove the label: ask the user to, from that same place, once they've read the comment
+   (`reviews.md`, "When a review is done"). After they have, if an open pull request closes the
+   issue, re-run its `Reviews` check (`gh run rerun` on its latest `Reviews` run), since removing
+   an issue's label doesn't.
 4. Suggest `/clear` before the next review or building: one review per session, and the comment
    carries the decisions.
 
@@ -74,10 +75,10 @@ Before running a review asked for by name, check `gh pr view <n> --json labels` 
 review comments. If its label is gone, or an earlier review it depends on is still owed, say so
 and ask before running it.
 
-1. **Security:** fix open findings test-first, comment the result on the pull request, then
-   remove the label.
+1. **Security:** fix open findings test-first, comment the result on the pull request, then ask
+   the user to remove the label.
 2. **Code review:** Claude Code's `/code-review` (`medium` for `tier: light`), not gstack's `/review`. Fix findings test-first,
-   not with `--fix`, comment the result on the pull request, then remove the label.
+   not with `--fix`, comment the result on the pull request, then ask the user to remove the label.
 3. **QA:** `/qa-only`, never `/qa` or `/design-review`, which commit their own fixes, several per
    commit. Fix each bug it reports test-first, one per commit, putting back any earlier label
    whose ground the fix changes. **The user removes `needs: qa`** after the pull request's "Check before merging".
