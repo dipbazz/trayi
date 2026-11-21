@@ -25,12 +25,14 @@ repos:
         language: system
         always_run: true
         pass_filenames: false
-      # Fails when CLAUDE.md is over 600 words: it's read at every session start.
+      # Fails when CLAUDE.md and AGENTS.md are over 600 words together: both are read at every
+      # session start. The script reads both files itself, whichever one a commit touches.
       - id: claude-md-words
-        name: CLAUDE.md is 600 words or fewer
+        name: CLAUDE.md and AGENTS.md are 600 words or fewer
         entry: uv run --no-sync python scripts/check_claude_md_words.py
         language: system
-        files: ^CLAUDE\.md$
+        files: ^(CLAUDE|AGENTS)\.md$
+        pass_filenames: false
       # Fails on a first line over 72 characters. Merge and revert subjects are git's own.
       - id: commit-subject-length
         name: commit subject is 72 characters or fewer
