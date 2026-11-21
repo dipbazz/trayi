@@ -52,6 +52,8 @@ pytest, styled mobile first, and budgeted for queries and page weight in CI.
 | How does the live server work? Environment variables, payment keys and turning on real money, the visitor's address, commands, backups, logs, deploying, restoring? | [Running the live site](hosting.md) |
 | How is a fix, feature or design judged? Quick fix or lasting one? Standard or modern? | [Contributing: Principles](contributing/index.md#principles) |
 | Branches, commits, pull requests, code style? | [Contributing](contributing/index.md) |
+| I work from a fork: which remote, how do I update `main`? | [Contributing: Working from a fork](contributing/index.md#working-from-a-fork) |
+| I work with an AI agent: what does `AGENTS.md` say, what may the agent do without asking, what does it never do, what's "done"? Where do my personal agent settings go? | [Working with an AI agent](contributing/agents.md) |
 | Which reviews does an issue or pull request need? What do the `needs:` labels mean? Which tools (Claude Code, gstack)? | [Reviews](contributing/reviews.md) |
 | How do I write tests? Fixtures? What does CI run? What must I check by hand? | [Testing and QA](contributing/testing.md) |
 | Why did CI fail on query counts or page weight? | [Performance](contributing/performance.md) |
@@ -94,8 +96,9 @@ Each is explained on the linked page; they're here because breaking one has caus
 - Workflow actions are pinned to a commit SHA ([Security](contributing/security.md)).
 - Every pull request adds a file to `changelog.d/` or is labelled `no changelog`
   ([Releases](contributing/releases.md#the-changelog)).
-- An issue with a `needs:` label isn't started, and a pull request with one isn't merged
-  ([Reviews](contributing/reviews.md)).
+- An issue with a `needs:` label isn't started, and a pull request with one isn't merged; a
+  person removes the label after reading the review, never an AI agent
+  ([Reviews](contributing/reviews.md#when-a-review-is-done)).
 - Tests use in-memory media; tests that read files from disk switch storage
   ([Testing](contributing/testing.md#fixtures-and-factories)).
 - A new app needs its name in production's loggers ([Overview](site/overview.md#logging)).
