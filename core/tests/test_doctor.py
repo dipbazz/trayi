@@ -527,6 +527,28 @@ def test_getting_started_names_the_command_and_the_sync():
     assert "python3 scripts/doctor.py" in page
 
 
+def test_agents_md_names_the_command():
+    page = (PROJECT / "AGENTS.md").read_text(encoding="utf-8")
+    assert "uv run --script scripts/doctor.py" in page
+
+
+def fork_section():
+    page = (PROJECT / "docs" / "contributing" / "index.md").read_text(encoding="utf-8")
+    return page.split("\n## Working from a fork\n", 1)[1].split("\n## ", 1)[0]
+
+
+def test_the_fork_section_gives_doctors_own_commands(clone, capsys):
+    push_ahead(clone)
+    _, out = run(clone, capsys)
+    pull = re.search(r"`(git pull [^`]+)`", out)[1]
+    git("remote", "remove", "upstream", cwd=clone)
+    _, out = run(clone, capsys)
+    add = re.search(r"`(git remote add [^`]+)`", out)[1]
+    section = fork_section()
+    assert pull in section
+    assert add in section
+
+
 def test_doctor_runs_in_its_own_environment_with_no_packages():
     source = SCRIPT.read_text(encoding="utf-8")
     assert source.startswith("#!/usr/bin/env -S uv run --script\n")
