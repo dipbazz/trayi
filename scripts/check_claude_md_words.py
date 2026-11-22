@@ -3,7 +3,8 @@
 A pre-commit hook (.pre-commit-config.yaml). Claude Code reads both files at every session start
 (CLAUDE.md pulls in AGENTS.md with an @AGENTS.md line), so detail belongs in docs/ or a skill
 (docs/decisions.md, "Checks before each commit with pre-commit"). The script always reads both
-files from the current directory, whichever one a commit touches; a missing file counts 0.
+files from the current directory, whichever one a commit touches; a missing AGENTS.md counts 0,
+but a missing CLAUDE.md fails, since then the script was run from the wrong folder.
 """
 
 import sys
@@ -34,7 +35,11 @@ def problem(claude_text, agents_text=""):
 
 
 def main():
-    message = problem(*read_both(Path.cwd()))
+    root = Path.cwd()
+    if not (root / "CLAUDE.md").exists():
+        print(f"No CLAUDE.md in {root}: run this from the repository's root.", file=sys.stderr)
+        return 1
+    message = problem(*read_both(root))
     if message:
         print(message, file=sys.stderr)
         return 1

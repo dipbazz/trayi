@@ -58,3 +58,12 @@ def test_the_script_accepts_600_words_across_both_files(tmp_path):
 def test_a_missing_agents_md_counts_0(tmp_path):
     assert run_check(tmp_path, 600).returncode == 0
     assert run_check(tmp_path, 601).returncode == 1
+
+
+def test_the_script_refuses_a_folder_without_claude_md(tmp_path):
+    # Run from the wrong folder, both files would count 0 and the check would pass unseen.
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT)], cwd=tmp_path, capture_output=True, text=True
+    )
+    assert result.returncode == 1
+    assert "CLAUDE.md" in result.stderr
