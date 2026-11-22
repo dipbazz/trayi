@@ -25,6 +25,8 @@ in `AGENTS.md` when every session needs it.
   ([Commits](index.md#commits)).
 - Post a review's comment when it's asked to do the review, and re-run a pull request's
   `Reviews` check after a person has removed a `needs:` label.
+- Put an earlier review's `needs:` label back when a fix brings new risk for it
+  ([Reviews](reviews.md)): that only ever adds a review.
 
 ## What it asks before
 
