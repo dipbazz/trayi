@@ -11,7 +11,9 @@ in `AGENTS.md` when every session needs it.
 
 1. **Run doctor:** `uv run --script scripts/doctor.py` (install [uv](https://docs.astral.sh/uv/)
    first). Fix each ❌ before other work; it says how ([Getting started](../getting-started/index.md)).
-2. **Read `docs/project-context.md`**, the map of which page answers which question.
+2. **Read `docs/project-context.md`**, the map of which page answers which question. Open the
+   page you need rather than re-scanning the repo, and when catching up, re-read only what
+   changed since its "Last verified against".
 3. **Fetch before comparing.** Before reading code to compare it with `main`, or reviewing a pull
    request, fetch Trayi's `main` and compare against it: `git fetch upstream` then
    `upstream/main` on a fork, `origin` on a clone of Trayi itself. A local `main` can be weeks
