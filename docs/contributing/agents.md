@@ -87,5 +87,5 @@ Without write access to Trayi, work from a fork: see
 ## Someone else's branch
 
 Before starting an agent on another person's branch, such as a pull request from a fork, read
-the diff of the files that run code on your machine:
+its whole diff, since its tests, hooks and scripts can all run on your machine:
 [Security](security.md#read-a-branchs-tooling-before-running-it).
