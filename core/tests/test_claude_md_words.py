@@ -1,4 +1,7 @@
-"""The pre-commit word limit on CLAUDE.md (scripts/check_claude_md_words.py)."""
+"""The pre-commit word limit on CLAUDE.md and AGENTS.md together.
+
+The check is scripts/check_claude_md_words.py.
+"""
 
 import importlib.util
 import subprocess
@@ -11,35 +14,56 @@ check_claude_md_words = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(check_claude_md_words)
 
 
-def test_accepts_the_limit():
-    assert check_claude_md_words.problem(" ".join(["word"] * 600)) is None
+def words(n):
+    return " ".join(["word"] * n)
 
 
-def test_refuses_one_word_over():
-    message = check_claude_md_words.problem(" ".join(["word"] * 601))
+def test_accepts_the_limit_across_both_files():
+    assert check_claude_md_words.problem(words(300), words(300)) is None
+
+
+def test_refuses_one_word_over_across_both_files():
+    message = check_claude_md_words.problem(words(300), words(301))
     assert "601" in message
     assert "600" in message
+    assert "CLAUDE.md" in message
+    assert "AGENTS.md" in message
 
 
-def test_the_repository_claude_md_is_within_the_limit():
-    text = (SCRIPT.parents[1] / "CLAUDE.md").read_text(encoding="utf-8")
-    assert check_claude_md_words.problem(text) is None
+def test_the_repository_files_are_within_the_limit():
+    root = SCRIPT.parents[1]
+    assert check_claude_md_words.problem(*check_claude_md_words.read_both(root)) is None
 
 
-def run_check(cwd, words):
-    (cwd / "CLAUDE.md").write_text(" ".join(["word"] * words), encoding="utf-8")
-    return subprocess.run(
-        [sys.executable, str(SCRIPT), "CLAUDE.md"], cwd=cwd, capture_output=True, text=True
-    )
+def run_check(cwd, claude, agents=None):
+    (cwd / "CLAUDE.md").write_text(words(claude), encoding="utf-8")
+    if agents is not None:
+        (cwd / "AGENTS.md").write_text(words(agents), encoding="utf-8")
+    # The hook passes no filenames (pass_filenames: false): the script reads both itself.
+    return subprocess.run([sys.executable, str(SCRIPT)], cwd=cwd, capture_output=True, text=True)
 
 
-def test_the_script_refuses_a_long_file(tmp_path):
-    result = run_check(tmp_path, 601)
+def test_the_script_refuses_601_words_across_both_files(tmp_path):
+    result = run_check(tmp_path, 150, 451)
     assert result.returncode == 1
     assert "601" in result.stderr
 
 
-def test_the_script_accepts_a_short_file(tmp_path):
-    result = run_check(tmp_path, 600)
+def test_the_script_accepts_600_words_across_both_files(tmp_path):
+    result = run_check(tmp_path, 150, 450)
     assert result.returncode == 0
     assert result.stderr == ""
+
+
+def test_a_missing_agents_md_counts_0(tmp_path):
+    assert run_check(tmp_path, 600).returncode == 0
+    assert run_check(tmp_path, 601).returncode == 1
+
+
+def test_the_script_refuses_a_folder_without_claude_md(tmp_path):
+    # Run from the wrong folder, both files would count 0 and the check would pass unseen.
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT)], cwd=tmp_path, capture_output=True, text=True
+    )
+    assert result.returncode == 1
+    assert "CLAUDE.md" in result.stderr

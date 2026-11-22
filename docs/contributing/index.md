@@ -13,6 +13,7 @@ extending
 demo-content
 releases
 writing-docs
+agents
 ```
 
 ## Principles
@@ -101,6 +102,24 @@ bundle it into a fix.
    `needs: security review` when it needs them. Each comes off when its review is done
    ([Reviews](reviews.md)).
 10. **The maintainer merges** once CI is green and no `needs:` label is left.
+
+An AI agent follows the same steps: [Working with an AI agent](agents.md).
+
+## Working from a fork
+
+Without write access to Trayi, fork it on GitHub, clone your fork and add Trayi as `upstream`:
+
+```sh
+git clone https://github.com/<your-account>/trayi.git
+cd trayi
+git remote add upstream https://github.com/dipbazz/trayi.git
+```
+
+`origin` is your fork, whose `main` can be months old; `upstream` is Trayi, which doctor compares
+against. Bring your `main` up to date with `git pull --ff-only upstream main`: a bare
+`git pull --ff-only` pulls your fork's own `main`. Make the branch with
+`git switch -c feat/142-share-gift` rather than `gh issue develop`, which makes it in Trayi
+itself; push it to `origin` and open the pull request against Trayi's `main`.
 
 ## Commits
 

@@ -51,6 +51,23 @@ upgrade in `uv.lock` alone would pass every test and never reach the sites. Afte
 `uv export --no-dev --no-hashes --no-emit-project -o requirements.txt` and commit the two files
 together.
 
+## Read a branch's tooling before running it
+
+Before starting an AI agent, pre-commit or the tests on another person's branch, such as a pull
+request from a fork, read its whole diff:
+
+```sh
+git diff upstream/main...HEAD
+```
+
+(`origin/main` on a clone of Trayi itself.) A shorter list of paths isn't enough, because all of
+it can run on your machine without asking. The tests import every Python file in the project,
+with each `conftest.py` and `charity/settings/`; the docs build runs `docs/conf.py`. Claude Code's
+hooks in `.claude/settings.json` run the branch's own `.claude/hooks/*.py`, pre-commit runs its
+`scripts/` on every commit, and `uv sync` installs what its `uv.lock` pins. `AGENTS.md`,
+`CLAUDE.md` and `.claude/` also tell an agent what to do.
+[Working with an AI agent](agents.md#someone-elses-branch) links here.
+
 ## Server secrets stay out of git and the image
 
 Server secrets live in `deploy/aws/.env`, which is gitignored and dockerignored.

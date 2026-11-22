@@ -31,6 +31,10 @@ Thumbs.db
 *.local.md
 charity/settings/local.py
 
+# An AI agent's personal overrides (docs/contributing/agents.md)
+.claude/settings.local.json
+AGENTS.override.md
+
 # Local tool state (gstack: reports, /retro snapshots, /diagram output)
 .gstack/
 /.context/
