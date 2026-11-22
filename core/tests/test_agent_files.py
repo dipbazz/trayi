@@ -22,11 +22,13 @@ def test_claude_md_reads_agents_md():
     ],
 )
 def test_override_file_is_ignored(path):
-    # An empty core.excludesFile: a personal global ignore can't hide a missing line here.
+    # -v names the file whose rule matched, so a personal ignore (the global excludes file or
+    # .git/info/exclude) can't hide a missing line here.
     result = subprocess.run(
-        ["git", "-c", "core.excludesFile=", "check-ignore", "--no-index", path],
+        ["git", "check-ignore", "--verbose", "--no-index", path],
         cwd=ROOT,
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 0, f"{path} isn't in .gitignore"
+    source = result.stdout.split(":", 1)[0]
+    assert result.returncode == 0 and source == ".gitignore", f"{path} isn't in .gitignore"
