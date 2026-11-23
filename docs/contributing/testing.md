@@ -40,7 +40,7 @@ Some tests guard the whole project rather than one feature:
 | `core/tests/test_branch_name.py` | The pre-commit check accepts `<type>/<issue-number>-<slug>`, `main`, release and patch branches, and refuses any other name |
 | `core/tests/test_claude_md_words.py` | The pre-commit check refuses `CLAUDE.md` and `AGENTS.md` over 600 words together (a missing `AGENTS.md` counts 0, a missing `CLAUDE.md` fails), and the repository's own are within it |
 | `core/tests/test_agent_files.py` | `CLAUDE.md` has the `@AGENTS.md` line; `.gitignore` (not a personal global ignore) keeps the agents' override files out of git; every docs file and heading the `workflow` skill points to exists |
-| `core/tests/test_claude_hooks.py` | The Claude Code hooks block a whole-suite run and report a failing stylesheet, and nothing else |
+| `core/tests/test_claude_hooks.py` | The Claude Code hooks block a whole-suite run, report a failing stylesheet and remind once a session how a label review ends, and nothing else; the reminder's review commands match the "Run with" column in [Reviews](reviews.md) |
 | `nepal_payments/tests/test_independence.py` | The payment package imports only the standard library and itself, so it can be published unchanged |
 | `nepal_payments/tests/test_contract.py` | Every payment provider found meets the contract: it needs its keys, sends the payer only to `https`, never says *paid* for an answer it can't read, and keeps its test mode off the live system |
 | `charity/tests/test_translations.py` | No visible template text is unmarked for translation; no Nepali entry is empty or fuzzy; the `.mo` matches the `.po` |

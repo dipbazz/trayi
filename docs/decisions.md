@@ -710,8 +710,14 @@ in `.claude/hooks/`:
 - After a change to a stylesheet in `charity/static/css/`, `check_stylesheet.py` runs
   `core/tests/test_stylesheet.py` in the background and reports a failure to Claude. If the test
   can't run at all, it tells the person instead.
+- When a review is asked for, or Claude starts a review skill, `review_workflow.py` reminds it,
+  once a session, that the review ends with one comment where its label is and the label left
+  for a person ([Reviews](contributing/reviews.md#when-a-review-is-done)). A finding report alone
+  had nearly ended one. Its review commands are those in the "Run with" column of
+  [Reviews](contributing/reviews.md#which-reviews-an-issue-or-pull-request-needs), which a test
+  checks.
 
-`core/tests/test_claude_hooks.py` tests both scripts.
+`core/tests/test_claude_hooks.py` tests the scripts.
 
 A rule that can be checked goes in CI, pre-commit or a hook; prose in `CLAUDE.md` is for
 judgement calls. A rule CI already checks (the changelog entry, the docs build) gets no hook.
@@ -719,9 +725,9 @@ judgement calls. A rule CI already checks (the changelog entry, the docs build) 
 **Consequences**
 
 - The hooks bind only Claude Code. A person can still run the whole suite.
-- Each shell command that mentions pytest, and each stylesheet edit, starts `uv run python`
-  (about a tenth of a second). A stylesheet edit also runs its test, about eight seconds, in the
-  background.
+- Each prompt, each skill Claude starts, each shell command that mentions pytest and each
+  stylesheet edit starts `uv run python` (about a tenth of a second). A stylesheet edit also runs
+  its test, about eight seconds, in the background.
 - The hooks need `uv`, as everything else in the project does.
 
 ## The code is licensed under the AGPL

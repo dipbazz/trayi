@@ -11,6 +11,25 @@
             "command": "uv run --no-sync python \"$CLAUDE_PROJECT_DIR/.claude/hooks/pytest_scope.py\""
           }
         ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --no-sync python \"$CLAUDE_PROJECT_DIR/.claude/hooks/review_workflow.py\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --no-sync python \"$CLAUDE_PROJECT_DIR/.claude/hooks/review_workflow.py\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
