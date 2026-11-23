@@ -31,6 +31,7 @@ pytest_scope = load("pytest_scope")
 check_stylesheet = load("check_stylesheet")
 review_workflow = load("review_workflow")
 start_doctor = load("start_doctor")
+check_python = load("check_python")
 
 
 def run_hook(hook, tool_input, monkeypatch):
@@ -400,3 +401,90 @@ def test_the_agent_is_told_to_install_uv_when_the_hook_cant_start(tmp_path):
 
     assert result.returncode == 0
     assert "install uv" in result.stdout
+
+
+@pytest.fixture
+def repo(tmp_path, monkeypatch):
+    """A git repository standing in for the clone, with an ignored folder."""
+    root = (tmp_path / "repo").resolve()
+    root.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    (root / ".gitignore").write_text("ignored/\n")
+    monkeypatch.setattr(check_python, "ROOT", root)
+    # Outside a uv project, `uv run --no-sync ruff` finds ruff in the active environment.
+    monkeypatch.setenv("VIRTUAL_ENV", sys.prefix)
+    return root
+
+
+def edit_python(path, source, monkeypatch):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(source)
+    return run_hook(check_python, {"file_path": str(path)}, monkeypatch)
+
+
+@pytest.mark.parametrize("name", ["notes.txt", "ignored/scratch.py", "../outside.py"])
+def test_ruff_runs_only_on_a_python_file_git_sees(name, repo, monkeypatch, capsys):
+    # A ruff that ran would report a finding (exit 2): ruff lints an ignored file named to it.
+    finding = [sys.executable, "-c", "import sys; print('E999', file=sys.stderr); sys.exit(1)"]
+    monkeypatch.setattr(check_python, "CHECK", finding)
+
+    assert edit_python(repo / name, "import os\n", monkeypatch) == 0
+    assert capsys.readouterr().err == ""
+
+
+def test_a_badly_formatted_file_is_formatted_without_telling_claude(repo, monkeypatch, capsys):
+    path = repo / "app.py"
+
+    assert edit_python(path, "name = 'Trayi'\n", monkeypatch) == 0
+    assert path.read_text() == 'name = "Trayi"\n'
+    assert capsys.readouterr().err == ""
+
+
+def test_a_lint_finding_is_reported_to_claude_and_nothing_is_removed(repo, monkeypatch, capsys):
+    path = repo / "app.py"
+
+    # No `--fix`: it would delete an import added one edit before the code that uses it.
+    assert edit_python(path, "import os\n", monkeypatch) == 2
+    assert "F401" in capsys.readouterr().err
+    assert path.read_text() == "import os\n"
+
+
+NO_RUFF = "import sys; print('Failed to spawn: ruff', file=sys.stderr); sys.exit(2)"
+
+
+@pytest.mark.parametrize(
+    "ruff",
+    [
+        [sys.executable, "-c", NO_RUFF],  # uv's exit before `uv sync` has installed ruff
+        ["no-such-uv-anywhere"],  # uv itself missing
+    ],
+)
+def test_a_ruff_that_cant_run_is_shown_to_the_person_only(ruff, repo, monkeypatch, capsys):
+    monkeypatch.setattr(check_python, "FORMAT", ruff)
+    monkeypatch.setattr(check_python, "CHECK", ruff)
+
+    exit_code = edit_python(repo / "app.py", "x = 1\n", monkeypatch)
+
+    err = capsys.readouterr().err
+    assert exit_code == 1  # shown to the person, without waking Claude to "fix" the file
+    assert "Couldn't run ruff" in err
+    assert "found problems" not in err
+
+
+def test_the_ruff_hook_runs_ruff_as_pre_commit_does():
+    config = (ROOT / ".pre-commit-config.yaml").read_text("utf-8")
+    check, format_check = re.findall(r"entry: (uv run --no-sync ruff .+)", config)
+
+    assert check_python.CHECK == check.split()
+    # It formats the file rather than failing on it.
+    assert check_python.FORMAT == [arg for arg in format_check.split() if arg != "--check"]
+
+
+def test_the_ruff_hook_runs_after_each_edit_of_a_python_file():
+    settings = json.loads((ROOT / ".claude" / "settings.json").read_text("utf-8"))
+    hooks = [hook for entry in settings["hooks"]["PostToolUse"] for hook in entry["hooks"]]
+
+    ruff_hooks = [hook for hook in hooks if "check_python.py" in hook["command"]]
+
+    assert {hook["if"] for hook in ruff_hooks} == {"Edit(*.py)", "Write(*.py)"}
+    assert not any(hook.get("async") or hook.get("asyncRewake") for hook in ruff_hooks)

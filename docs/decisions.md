@@ -714,6 +714,11 @@ in `.claude/hooks/`:
 - Before a shell command, `pytest_scope.py` blocks a pytest run that names no path, node id or
   `-k` filter, unless it's `--lf` with failures recorded or only lists tests
   ([Testing](contributing/testing.md#running-the-tests)).
+- After a change to a `.py` file that git doesn't ignore, `check_python.py` runs ruff with
+  pre-commit's command and flags: `ruff format` fixes the file's layout in place, then
+  `ruff check` reports what it finds to Claude. It never runs `ruff check --fix`, which would
+  delete an import added one edit before the code that uses it. If ruff can't run (before
+  `uv sync`), it tells the person instead. pre-commit and CI stay check-only.
 - After a change to a stylesheet in `charity/static/css/`, `check_stylesheet.py` runs
   `core/tests/test_stylesheet.py` in the background and reports a failure to Claude. If the test
   can't run at all, it tells the person instead.
@@ -733,8 +738,10 @@ judgement calls. A rule CI already checks (the changelog entry, the docs build) 
 
 - The hooks bind only Claude Code. A person can still run the whole suite.
 - Each prompt, each skill Claude starts, each shell command that mentions pytest and each
-  stylesheet edit starts `uv run python` (about a tenth of a second). A stylesheet edit also runs
-  its test, about eight seconds, in the background.
+  stylesheet or Python edit starts `uv run python` (about a tenth of a second). A stylesheet edit
+  also runs its test, about eight seconds, in the background; a Python edit waits for ruff, about
+  a fifth of a second.
+- A Python file can change on disk after Claude's edit, when ruff formats it.
 - A new session waits for doctor, about five seconds. The hook's timeout is 90 seconds, for uv's
   first download of Python on a new machine: past it, Claude Code drops the output and shows the
   person a hook error.
