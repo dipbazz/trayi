@@ -2,8 +2,10 @@
 
 A PostToolUse hook on Edit and Write of a `.py` file (.claude/settings.json). It runs ruff with
 pre-commit's command and flags: `ruff format`, which fixes the layout in place, then `ruff check`,
-whose findings go back to Claude (exit 2). It never runs `ruff check --fix`, which would delete an
-import added one edit before the code that uses it. pre-commit and CI stay check-only.
+whose findings go back to Claude (exit 2). An import and its first use often come in separate
+edits, so each half alone looks wrong: `ruff check` skips F401 (unused import) and F821
+(undefined name) here, and pre-commit still fails what's left at commit. It never runs
+`ruff check --fix`, which would delete such an import. pre-commit and CI stay check-only.
 
 Only a file inside the clone that git doesn't ignore is checked, the files pre-commit sees: ruff
 lints any file it's given by path, `local/` and scratch files too. When ruff can't run (not
@@ -16,9 +18,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-# .pre-commit-config.yaml's ruff entries, formatting rather than `--check`; a test keeps them equal.
+# .pre-commit-config.yaml's ruff entries, formatting rather than `--check`, and less an import and
+# its use; a test keeps them equal.
 FORMAT = "uv run --no-sync ruff format --force-exclude".split()
-CHECK = "uv run --no-sync ruff check --force-exclude".split()
+CHECK = "uv run --no-sync ruff check --force-exclude --ignore F401,F821".split()
 
 
 def checked_path(file_path):

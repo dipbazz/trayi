@@ -716,9 +716,11 @@ in `.claude/hooks/`:
   ([Testing](contributing/testing.md#running-the-tests)).
 - After a change to a `.py` file that git doesn't ignore, `check_python.py` runs ruff with
   pre-commit's command and flags: `ruff format` fixes the file's layout in place, then
-  `ruff check` reports what it finds to Claude. It never runs `ruff check --fix`, which would
-  delete an import added one edit before the code that uses it. If ruff can't run (before
-  `uv sync`), it tells the person instead. pre-commit and CI stay check-only.
+  `ruff check` reports what it finds to Claude. An import and its first use often come in separate
+  edits, and each half alone looks wrong, so it skips F401 (unused import) and F821 (undefined
+  name); pre-commit still fails what's left at commit. It never runs `ruff check --fix`, which
+  would delete such an import. If ruff can't run (before `uv sync`), it tells the person instead.
+  pre-commit and CI stay check-only.
 - After a change to a stylesheet in `charity/static/css/`, `check_stylesheet.py` runs
   `core/tests/test_stylesheet.py` in the background and reports a failure to Claude. If the test
   can't run at all, it tells the person instead.

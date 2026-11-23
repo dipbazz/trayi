@@ -442,11 +442,28 @@ def test_a_badly_formatted_file_is_formatted_without_telling_claude(repo, monkey
 
 def test_a_lint_finding_is_reported_to_claude_and_nothing_is_removed(repo, monkeypatch, capsys):
     path = repo / "app.py"
+    source = "def total():\n    unused = 1\n    return 2\n"
 
-    # No `--fix`: it would delete an import added one edit before the code that uses it.
-    assert edit_python(path, "import os\n", monkeypatch) == 2
-    assert "F401" in capsys.readouterr().err
-    assert path.read_text() == "import os\n"
+    # No `--fix`: it would delete the variable, or an import, for Claude.
+    assert edit_python(path, source, monkeypatch) == 2
+    assert "F841" in capsys.readouterr().err
+    assert path.read_text() == source
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "import os\n",  # the import first, its use in the next edit (F401)
+        "print(os.sep)\n",  # the use first, its import in the next edit (F821)
+    ],
+)
+def test_half_of_an_import_and_its_use_isnt_reported(source, repo, monkeypatch, capsys):
+    """Each half of a two-edit change looks wrong alone; pre-commit still fails what's left."""
+    path = repo / "app.py"
+
+    assert edit_python(path, source, monkeypatch) == 0
+    assert capsys.readouterr().err == ""
+    assert path.read_text() == source
 
 
 NO_RUFF = "import sys; print('Failed to spawn: ruff', file=sys.stderr); sys.exit(2)"
@@ -475,7 +492,8 @@ def test_the_ruff_hook_runs_ruff_as_pre_commit_does():
     config = (ROOT / ".pre-commit-config.yaml").read_text("utf-8")
     check, format_check = re.findall(r"entry: (uv run --no-sync ruff .+)", config)
 
-    assert check_python.CHECK == check.split()
+    # Less an import and its use, which can come in separate edits.
+    assert check_python.CHECK == [*check.split(), "--ignore", "F401,F821"]
     # It formats the file rather than failing on it.
     assert check_python.FORMAT == [arg for arg in format_check.split() if arg != "--check"]
 
