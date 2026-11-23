@@ -704,6 +704,13 @@ were missed. Both rules can be checked by a program.
 `.claude/settings.json` holds hooks that every contributor's Claude Code runs, with their scripts
 in `.claude/hooks/`:
 
+- When a session starts (not on resume or `/clear`), `start_doctor.py` runs
+  `scripts/doctor.py --check` and passes its lines to the agent, with a header saying it already
+  ran, so the agent starts knowing what to fix ([Getting started](getting-started/index.md)).
+  doctor's output goes to a temporary file, not a pipe, and doctor is stopped after 40 seconds,
+  keeping the lines it printed; the hook always exits 0, since Claude Code passes its output on
+  only then. When uv can't start it, the command prints how to install uv instead. doctor itself
+  knows nothing about Claude Code.
 - Before a shell command, `pytest_scope.py` blocks a pytest run that names no path, node id or
   `-k` filter, unless it's `--lf` with failures recorded or only lists tests
   ([Testing](contributing/testing.md#running-the-tests)).
@@ -728,6 +735,9 @@ judgement calls. A rule CI already checks (the changelog entry, the docs build) 
 - Each prompt, each skill Claude starts, each shell command that mentions pytest and each
   stylesheet edit starts `uv run python` (about a tenth of a second). A stylesheet edit also runs
   its test, about eight seconds, in the background.
+- A new session waits for doctor, about five seconds. The hook's timeout is 90 seconds, for uv's
+  first download of Python on a new machine: past it, Claude Code drops the output and shows the
+  person a hook error.
 - The hooks need `uv`, as everything else in the project does.
 
 ## The code is licensed under the AGPL

@@ -3,9 +3,15 @@
 import importlib.util
 import io
 import json
+import os
 import re
+import shutil
+import signal
 import subprocess
 import sys
+import textwrap
+import time
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -24,6 +30,7 @@ def load(name):
 pytest_scope = load("pytest_scope")
 check_stylesheet = load("check_stylesheet")
 review_workflow = load("review_workflow")
+start_doctor = load("start_doctor")
 
 
 def run_hook(hook, tool_input, monkeypatch):
@@ -251,3 +258,145 @@ def test_the_review_commands_match_the_reviews_page():
     # Claude Code's own command, which people type for a security review.
     expected = (run_with_commands() - {"office-hours"}) | {"security-review"}
     assert review_workflow.REVIEW_SKILLS == expected
+
+
+@pytest.fixture
+def fake_doctor(tmp_path, monkeypatch):
+    """Point start_doctor.py at a stand-in doctor, a script whose body the test writes."""
+
+    def make(body, deadline=start_doctor.DEADLINE):
+        script = tmp_path / "doctor.py"
+        # Like doctor, print UTF-8 whatever the console's code page.
+        script.write_text('import sys\nsys.stdout.reconfigure(encoding="utf-8")\n' + body, "utf-8")
+        monkeypatch.setattr(start_doctor, "DOCTOR", [sys.executable, str(script), "--check"])
+        monkeypatch.setattr(start_doctor, "DEADLINE", deadline)
+
+    return make
+
+
+def start_up(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"source": "startup"})))
+    assert start_doctor.main() == 0  # Claude Code passes the output on only after exit 0
+    return capsys.readouterr().out
+
+
+@pytest.mark.parametrize("exit_code", [0, 1, 2])
+def test_doctors_lines_reach_the_agent_whatever_it_exits_with(
+    exit_code, fake_doctor, monkeypatch, capsys
+):
+    fake_doctor(f"print('✓ uv 0.9.5')\nprint('❌ no git user.email')\nsys.exit({exit_code})")
+
+    out = start_up(monkeypatch, capsys)
+
+    assert "✓ uv 0.9.5" in out
+    assert "❌ no git user.email" in out
+
+
+def test_the_header_says_doctor_already_ran(fake_doctor, monkeypatch, capsys):
+    fake_doctor('print("✓ uv 0.9.5")')
+
+    header = start_up(monkeypatch, capsys).split("✓ uv 0.9.5")[0]
+
+    assert "already ran `uv run --script scripts/doctor.py --check`" in header
+    assert "without `--check`" in header
+
+
+def test_a_crash_in_doctor_reaches_the_agent(fake_doctor, monkeypatch, capsys):
+    fake_doctor('print("✓ uv 0.9.5", flush=True)\nraise RuntimeError("doctor broke")')
+
+    out = start_up(monkeypatch, capsys)
+
+    assert "✓ uv 0.9.5" in out
+    assert "RuntimeError: doctor broke" in out
+
+
+def test_a_doctor_that_cant_start_still_exits_0(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(start_doctor, "DOCTOR", [str(tmp_path / "missing"), "--check"])
+
+    assert "couldn't run doctor" in start_up(monkeypatch, capsys)
+
+
+def test_a_hung_doctor_is_stopped_and_its_lines_so_far_kept(fake_doctor, monkeypatch, capsys):
+    fake_doctor('import time\nprint("✓ uv 0.9.5", flush=True)\ntime.sleep(60)', deadline=1)
+
+    out = start_up(monkeypatch, capsys)
+
+    assert "✓ uv 0.9.5" in out
+    assert "doctor didn't finish in 1 s" in out
+
+
+def test_a_grandchild_holding_doctors_output_open_doesnt_hang_the_hook(
+    fake_doctor, monkeypatch, capsys
+):
+    """Like git's ssh or https helper outliving a stopped fetch: a pipe's read would wait for it."""
+    fake_doctor(
+        textwrap.dedent(
+            """\
+            import subprocess, time
+            child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+            print(f"grandchild {child.pid}", flush=True)
+            time.sleep(60)
+            """
+        ),
+        deadline=1,
+    )
+
+    started = time.monotonic()
+    out = start_up(monkeypatch, capsys)
+    elapsed = time.monotonic() - started
+    if pid := re.search(r"grandchild (\d+)", out):
+        os.kill(int(pid[1]), signal.SIGTERM)
+
+    assert pid, out
+    assert elapsed < 15
+    assert "doctor didn't finish in 1 s" in out
+
+
+def script_block(path):
+    """The inline `# /// script` metadata (PEP 723) at the top of a script."""
+    lines = path.read_text("utf-8").splitlines()
+    start = lines.index("# /// script") + 1
+    end = lines.index("# ///", start)
+    toml = "\n".join(line.removeprefix("#").removeprefix(" ") for line in lines[start:end])
+    return tomllib.loads(toml)
+
+
+def test_the_start_up_hook_installs_no_package_and_runs_the_repos_doctor():
+    # A branch can't make every contributor's start-up install a package by editing the header.
+    assert script_block(HOOKS / "start_doctor.py")["dependencies"] == []
+    assert start_doctor.DOCTOR[1:] == [str(ROOT / "scripts" / "doctor.py"), "--check"]
+
+
+def start_up_hook():
+    settings = json.loads((ROOT / ".claude" / "settings.json").read_text("utf-8"))
+    (entry,) = settings["hooks"]["SessionStart"]
+    (hook,) = entry["hooks"]
+    return entry["matcher"], hook
+
+
+def test_doctor_runs_when_a_session_starts_not_on_resume_or_clear():
+    matcher, hook = start_up_hook()
+
+    assert matcher == "startup"
+    assert "start_doctor.py" in hook["command"]
+    # Room for uv's first download of Python; Claude Code drops all output after the timeout.
+    assert hook["timeout"] == 90
+    assert hook["timeout"] > start_doctor.DEADLINE
+
+
+BASH = shutil.which("bash")
+
+
+@pytest.mark.skipif(BASH is None, reason="Claude Code runs hook commands with bash")
+def test_the_agent_is_told_to_install_uv_when_the_hook_cant_start(tmp_path):
+    env = {"PATH": str(tmp_path), "CLAUDE_PROJECT_DIR": str(ROOT)}  # an empty folder: no uv
+    if "SYSTEMROOT" in os.environ:
+        env["SYSTEMROOT"] = os.environ["SYSTEMROOT"]  # Git Bash needs it on Windows
+
+    result = subprocess.run(
+        [BASH, "-c", start_up_hook()[1]["command"]], env=env, capture_output=True, text=True,
+        timeout=30,
+    )  # fmt: skip
+
+    assert result.returncode == 0
+    assert "install uv" in result.stdout
