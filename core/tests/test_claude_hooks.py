@@ -440,6 +440,13 @@ def test_a_badly_formatted_file_is_formatted_without_telling_claude(repo, monkey
     assert capsys.readouterr().err == ""
 
 
+def test_a_file_named_like_an_option_reaches_ruff_as_a_file(repo, monkeypatch, capsys):
+    path = repo / "-n.py"
+
+    assert edit_python(path, "name = 'Trayi'\n", monkeypatch) == 0
+    assert path.read_text() == 'name = "Trayi"\n'
+
+
 def test_a_lint_finding_is_reported_to_claude_and_nothing_is_removed(repo, monkeypatch, capsys):
     path = repo / "app.py"
     source = "def total():\n    unused = 1\n    return 2\n"

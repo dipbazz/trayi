@@ -45,7 +45,8 @@ def ruff(command, path):
     """ruff's exit code and output; exit 2, as ruff's own error, when it couldn't be started."""
     try:
         result = subprocess.run(
-            [*command, str(path)], cwd=ROOT, stdin=subprocess.DEVNULL, capture_output=True,
+            # The full path: a file named like an option (`-n.py`) must reach ruff as a file.
+            [*command, str(ROOT / path)], cwd=ROOT, stdin=subprocess.DEVNULL, capture_output=True,
             text=True, encoding="utf-8", errors="replace",
         )  # fmt: skip
     except OSError as error:
