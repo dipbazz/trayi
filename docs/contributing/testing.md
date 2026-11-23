@@ -20,9 +20,16 @@ uv run python manage.py makemigrations --check --dry-run
 
 pytest uses `charity.settings.test` (set in `pyproject.toml`).
 
-Claude Code can't run the whole suite: a hook blocks a run that names no path, node id or `-k`
-filter, such as a bare `uv run pytest`, `--cov` or `-m "not browser"`, and `--lf` when nothing
-failed last time ([Decisions](../decisions.md#claude-code-hooks-for-rules-a-machine-can-check)).
+Claude Code runs some checks itself, through hooks
+([Decisions](../decisions.md#claude-code-hooks-for-rules-a-machine-can-check)):
+
+- It can't run the whole suite: a hook blocks a run that names no path, node id or `-k` filter,
+  such as a bare `uv run pytest`, `--cov` or `-m "not browser"`, and `--lf` when nothing failed
+  last time.
+- After it edits a Python file, `ruff format` fixes the file's layout and `ruff check` reports
+  what it finds, except an unused import or an undefined name, which pre-commit still catches.
+- After it edits a stylesheet, `core/tests/test_stylesheet.py` runs in the background.
+- When a session starts, it runs `scripts/doctor.py --check`.
 
 ## Where tests live
 
