@@ -221,6 +221,8 @@ def review_hook(monkeypatch, capsys, prompt=None, skill=None, session_id="test-s
         "run qa on #323",
         "#325 needs: design review, start it",
         "#327 needs: qa",
+        "#354 needs: investigation",
+        "start the investigation of #354",
         f"/code-review high 323, {NEPALI}",
     ],
 )
@@ -243,6 +245,7 @@ def test_each_review_command_reminds(command, markers, monkeypatch, capsys):
         "I am reviewing the PR 323 and thought of a new feature",
         "I tried QA with a slow connection and sent 3 forms",
         "the qa report found 2,000 characters",
+        "the investigation found the cause",
     ],
 )
 def test_a_mention_of_a_review_doesnt_remind(prompt, markers, monkeypatch, capsys):

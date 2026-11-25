@@ -33,16 +33,17 @@ REVIEW_SKILLS = frozenset(
     }
 )
 # A request to run one, not a mention: a review command; a verb like "run" or "start" up to
-# three words before "<kind> review"; "<kind> review" or "QA" right before a number; "QA
-# review"; or a `needs:` label. "...not be missed by the design review" (8 Nov) is a mention. A
-# request these miss is still caught when Claude starts the review skill (PreToolUse).
+# three words before "<kind> review" or "investigation"; "<kind> review" or "QA" right before a
+# number; "QA review"; or a `needs:` label. "...not be missed by the design review" (8 Nov) is a
+# mention. A request these miss is still caught when Claude starts the review skill (PreToolUse).
 KIND = r"(?:code|security|design|eng|product|qa)[- ]review"
 COMMANDS = "|".join(re.escape(skill) for skill in sorted(REVIEW_SKILLS))
 REVIEW_WORDS = re.compile(
     rf"/(?:{COMMANDS})\b"
-    rf"|\b(?:run|do|start|begin|finish|continue|time for|let'?s)\b(?:\s+\S+){{0,3}}?\s+{KIND}\b"
+    rf"|\b(?:run|do|start|begin|finish|continue|time for|let'?s)\b(?:\s+\S+){{0,3}}?"
+    rf"\s+(?:{KIND}|investigation)\b"
     rf"|\b{KIND}\s+(?:on\s+|of\s+|for\s+)?#?\d+"
-    rf"|needs:\s*(?:{KIND}|qa)\b"
+    rf"|needs:\s*(?:{KIND}|qa|investigation)\b"
     r"|\bqa[- ]review\b"
     r"|\bqa\s+(?:on\s+|of\s+|for\s+)?#?\d+|\b(?:run|do|start)\s+(?:the\s+)?qa\b",
     re.IGNORECASE,
