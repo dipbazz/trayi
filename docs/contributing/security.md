@@ -65,7 +65,8 @@ it can run on your machine without asking. The tests import every Python file in
 with each `conftest.py` and `charity/settings/`; the docs build runs `docs/conf.py`. Claude Code's
 hooks in `.claude/settings.json` run the branch's own `.claude/hooks/*.py`: the start-up hook
 runs its `start_doctor.py` and `scripts/doctor.py` as soon as a session starts, before you type
-anything, and the ruff hook runs after every Python edit. A `claude -p` or Agent SDK run trusts
+anything (doctor fetches `main` and loads the branch's Django settings to check migrations), and
+the ruff hook runs after every Python edit. A `claude -p` or Agent SDK run trusts
 the folder without asking, so those scripts run with no prompt at all. pre-commit runs its
 `scripts/` on every commit, and `uv sync` installs what its `uv.lock` pins. `AGENTS.md`,
 `CLAUDE.md` and `.claude/` also tell an agent what to do.
