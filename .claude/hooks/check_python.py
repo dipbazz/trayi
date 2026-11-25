@@ -56,7 +56,8 @@ def ruff(command, path):
 
 def main():
     try:
-        file_path = json.load(sys.stdin).get("tool_input", {}).get("file_path", "")
+        # The bytes, as UTF-8: Python on Windows reads text stdin in the ANSI code page.
+        file_path = json.load(sys.stdin.buffer).get("tool_input", {}).get("file_path", "")
     except ValueError:
         return 0
     path = checked_path(file_path)

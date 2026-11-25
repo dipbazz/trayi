@@ -737,7 +737,8 @@ it) and what uv exits with for its own errors. A script refuses or reports as JS
 each command ends `|| exit 1`, so a hook that can't start is shown to the person and blocks
 nothing. The stylesheet check is the exception, since a background hook wakes Claude only on
 exit 2: it exits 3 for a failing test, and its command turns 3 into 2 and any other failure
-into 1.
+into 1. Each script reads Claude Code's input as UTF-8 bytes: Python on Windows reads text from
+stdin in the ANSI code page, which can't decode Nepali at all.
 
 `core/tests/test_claude_hooks.py` tests the scripts.
 

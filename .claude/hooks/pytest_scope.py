@@ -117,7 +117,8 @@ def commands(line):
 
 
 def main():
-    line = json.load(sys.stdin).get("tool_input", {}).get("command", "")
+    # The bytes, as UTF-8: Python on Windows reads text stdin in the ANSI code page.
+    line = json.load(sys.stdin.buffer).get("tool_input", {}).get("command", "")
     try:
         runs = [pytest_arguments(command) for command in commands(line)]
     except ValueError:  # unbalanced quotes: leave it to the shell

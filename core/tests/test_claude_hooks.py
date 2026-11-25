@@ -34,9 +34,21 @@ start_doctor = load("start_doctor")
 check_python = load("check_python")
 
 
+def claude_code_stdin(hook_input):
+    """Claude Code's UTF-8 JSON as Python reads stdin on Windows: in the ANSI code page."""
+    if not isinstance(hook_input, bytes):
+        hook_input = json.dumps(hook_input, ensure_ascii=False).encode("utf-8")
+    return io.TextIOWrapper(io.BytesIO(hook_input), "cp1252")
+
+
 def run_hook(hook, tool_input, monkeypatch):
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"tool_input": tool_input})))
+    monkeypatch.setattr(sys, "stdin", claude_code_stdin({"tool_input": tool_input}))
     return hook.main()
+
+
+# Nepali's virama (U+094D) is E0 A5 8D in UTF-8; cp1252 has no 0x8D, so reading it as cp1252
+# raises rather than garbling.
+NEPALI = "नमस्ते"
 
 
 @pytest.fixture
@@ -113,6 +125,10 @@ def test_last_failed_is_allowed_when_tests_failed_last_time(tmp_path, monkeypatc
     assert not denied("uv run pytest --lf", monkeypatch, capsys)
 
 
+def test_a_command_with_nepali_in_it_is_still_checked(no_failures_recorded, monkeypatch, capsys):
+    assert denied(f"echo {NEPALI}; uv run pytest", monkeypatch, capsys)
+
+
 def fake_test_run(monkeypatch, **result):
     calls = []
 
@@ -150,6 +166,14 @@ def test_a_failing_stylesheet_is_reported_to_claude(monkeypatch, capsys):
     assert "FAILED max-width" in capsys.readouterr().err
 
 
+def test_a_stylesheet_in_a_clone_under_a_non_ascii_folder_is_checked(tmp_path, monkeypatch):
+    css = tmp_path / "Dīp" / "css"
+    monkeypatch.setattr(check_stylesheet, "CSS", css)
+    fake_test_run(monkeypatch, returncode=1, stdout="FAILED max-width")
+
+    assert run_hook(check_stylesheet, {"file_path": str(css / "charity.css")}, monkeypatch) == 3
+
+
 def test_a_test_that_cannot_run_is_not_reported_as_a_failing_stylesheet(monkeypatch, capsys):
     fake_test_run(monkeypatch, returncode=2, stderr="error: Failed to spawn: `pytest`")
 
@@ -176,7 +200,7 @@ def review_hook(monkeypatch, capsys, prompt=None, skill=None, session_id="test-s
     else:
         hook = {"hook_event_name": "UserPromptSubmit", "prompt": prompt}
     hook["session_id"] = session_id
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(hook)))
+    monkeypatch.setattr(sys, "stdin", claude_code_stdin(hook))
     assert review_workflow.main() == 0  # a reminder never blocks the prompt or the skill
     return capsys.readouterr().out
 
@@ -197,6 +221,7 @@ def review_hook(monkeypatch, capsys, prompt=None, skill=None, session_id="test-s
         "run qa on #323",
         "#325 needs: design review, start it",
         "#327 needs: qa",
+        f"/code-review high 323, {NEPALI}",
     ],
 )
 def test_a_request_to_run_a_review_reminds(prompt, markers, monkeypatch, capsys):
@@ -265,7 +290,7 @@ def test_a_session_id_cant_put_the_marker_outside_its_folder(tmp_path, monkeypat
 
 
 def test_input_that_isnt_json_is_ignored(markers, monkeypatch, capsys):
-    monkeypatch.setattr(sys, "stdin", io.StringIO("not json"))
+    monkeypatch.setattr(sys, "stdin", claude_code_stdin(b"not json"))
     assert review_workflow.main() == 0
     assert capsys.readouterr().out == ""
 
@@ -493,17 +518,21 @@ def test_the_stylesheet_hook_wakes_claude_only_for_a_failing_test(script_exit, h
     assert run_command(command, tmp_path).returncode == hook_exit
 
 
-@pytest.fixture
-def repo(tmp_path, monkeypatch):
-    """A git repository standing in for the clone, with an ignored folder."""
-    root = (tmp_path / "repo").resolve()
-    root.mkdir()
+def make_repo(root, monkeypatch):
+    """A git repository at `root` standing in for the clone, with an ignored folder."""
+    root = root.resolve()
+    root.mkdir(parents=True)
     subprocess.run(["git", "init", "-q"], cwd=root, check=True)
     (root / ".gitignore").write_text("ignored/\n")
     monkeypatch.setattr(check_python, "ROOT", root)
     # Outside a uv project, `uv run --no-sync ruff` finds ruff in the active environment.
     monkeypatch.setenv("VIRTUAL_ENV", sys.prefix)
     return root
+
+
+@pytest.fixture
+def repo(tmp_path, monkeypatch):
+    return make_repo(tmp_path / "repo", monkeypatch)
 
 
 def edit_python(path, source, monkeypatch):
@@ -528,6 +557,14 @@ def test_a_badly_formatted_file_is_formatted_without_telling_claude(repo, monkey
     assert edit_python(path, "name = 'Trayi'\n", monkeypatch) == 0
     assert path.read_text() == 'name = "Trayi"\n'
     assert capsys.readouterr() == ("", "")
+
+
+def test_a_file_in_a_clone_under_a_non_ascii_folder_is_checked(tmp_path, monkeypatch, capsys):
+    repo = make_repo(tmp_path / "Dīp" / "repo", monkeypatch)
+    path = repo / "app.py"
+
+    assert edit_python(path, "name = 'Trayi'\n", monkeypatch) == 0
+    assert path.read_text() == 'name = "Trayi"\n'
 
 
 def test_a_file_named_like_an_option_reaches_ruff_as_a_file(repo, monkeypatch, capsys):

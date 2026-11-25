@@ -80,7 +80,8 @@ def first_time(session_id):
 
 def main():
     try:
-        hook = json.load(sys.stdin)
+        # The bytes, as UTF-8: Python on Windows reads text stdin in the ANSI code page.
+        hook = json.load(sys.stdin.buffer)
     except ValueError:
         return 0
     if not asks_for_a_review(hook) or not first_time(hook.get("session_id", "none")):

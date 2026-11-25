@@ -22,7 +22,8 @@ TEST = "uv run --no-sync pytest core/tests/test_stylesheet.py -q -p no:cacheprov
 
 
 def main():
-    tool_input = json.load(sys.stdin).get("tool_input", {})
+    # The bytes, as UTF-8: Python on Windows reads text stdin in the ANSI code page.
+    tool_input = json.load(sys.stdin.buffer).get("tool_input", {})
     path = Path(tool_input.get("file_path", ""))
     # The test checks only the stylesheets directly in the folder.
     if path.suffix != ".css" or path.resolve().parent != CSS:
