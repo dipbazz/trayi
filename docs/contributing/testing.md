@@ -20,9 +20,16 @@ uv run python manage.py makemigrations --check --dry-run
 
 pytest uses `charity.settings.test` (set in `pyproject.toml`).
 
-Claude Code can't run the whole suite: a hook blocks a run that names no path, node id or `-k`
-filter, such as a bare `uv run pytest`, `--cov` or `-m "not browser"`, and `--lf` when nothing
-failed last time ([Decisions](../decisions.md#claude-code-hooks-for-rules-a-machine-can-check)).
+Claude Code runs some checks itself, through hooks
+([Decisions](../decisions.md#claude-code-hooks-for-rules-a-machine-can-check)):
+
+- It can't run the whole suite: a hook blocks a run that names no path, node id or `-k` filter,
+  such as a bare `uv run pytest`, `--cov` or `-m "not browser"`, and `--lf` when nothing failed
+  last time.
+- After it edits a Python file, `ruff format` fixes the file's layout and `ruff check` reports
+  what it finds, except an unused import or an undefined name, which pre-commit still catches.
+- After it edits a stylesheet, `core/tests/test_stylesheet.py` runs in the background.
+- When a session starts, it runs `scripts/doctor.py --check`.
 
 ## Where tests live
 
@@ -39,8 +46,8 @@ Some tests guard the whole project rather than one feature:
 | `core/tests/test_stylesheet.py` | In every stylesheet, width queries are `min-width` in `rem`, and every colour outside `:root` is a `var(--…)` token that `charity.css`'s `:root` defines |
 | `core/tests/test_branch_name.py` | The pre-commit check accepts `<type>/<issue-number>-<slug>`, `main`, release and patch branches, and refuses any other name |
 | `core/tests/test_claude_md_words.py` | The pre-commit check refuses `CLAUDE.md` and `AGENTS.md` over 600 words together (a missing `AGENTS.md` counts 0, a missing `CLAUDE.md` fails), and the repository's own are within it |
-| `core/tests/test_agent_files.py` | `CLAUDE.md` has the `@AGENTS.md` line, and `.gitignore` (not a personal global ignore) keeps the agents' override files out of git |
-| `core/tests/test_claude_hooks.py` | The Claude Code hooks block a whole-suite run and report a failing stylesheet, and nothing else |
+| `core/tests/test_agent_files.py` | `CLAUDE.md` has the `@AGENTS.md` line; `.gitignore` (not a personal global ignore) keeps the agents' override files out of git; every docs file and heading the `workflow` skill points to exists |
+| `core/tests/test_claude_hooks.py` | The Claude Code hooks block a whole-suite run, report a failing stylesheet and remind once a session how a label review ends, and nothing else; a hook whose script can't start blocks nothing; on Windows, a hook reads a Nepali prompt or a clone under a non-ASCII folder; the reminder's review commands match the "Run with" column in [Reviews](reviews.md); the ruff hook formats a Python file git sees, reports ruff's findings without removing anything, except half of an import and its use, runs ruff as pre-commit does and never blames the file when ruff can't run; the start-up hook runs only when a session starts and passes doctor's lines on whatever doctor does (fails, crashes, hangs or can't start), within its timeout and with no package installed |
 | `nepal_payments/tests/test_independence.py` | The payment package imports only the standard library and itself, so it can be published unchanged |
 | `nepal_payments/tests/test_contract.py` | Every payment provider found meets the contract: it needs its keys, sends the payer only to `https`, never says *paid* for an answer it can't read, and keeps its test mode off the live system |
 | `charity/tests/test_translations.py` | No visible template text is unmarked for translation; no Nepali entry is empty or fuzzy; the `.mo` matches the `.po` |

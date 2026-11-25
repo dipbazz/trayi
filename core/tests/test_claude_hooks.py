@@ -3,13 +3,21 @@
 import importlib.util
 import io
 import json
+import os
+import re
+import shutil
+import signal
 import subprocess
 import sys
+import textwrap
+import time
+import tomllib
 from pathlib import Path
 
 import pytest
 
-HOOKS = Path(__file__).resolve().parents[2] / ".claude" / "hooks"
+ROOT = Path(__file__).resolve().parents[2]
+HOOKS = ROOT / ".claude" / "hooks"
 
 
 def load(name):
@@ -21,16 +29,42 @@ def load(name):
 
 pytest_scope = load("pytest_scope")
 check_stylesheet = load("check_stylesheet")
+review_workflow = load("review_workflow")
+start_doctor = load("start_doctor")
+check_python = load("check_python")
+
+
+def claude_code_stdin(hook_input):
+    """Claude Code's UTF-8 JSON as Python reads stdin on Windows: in the ANSI code page."""
+    if not isinstance(hook_input, bytes):
+        hook_input = json.dumps(hook_input, ensure_ascii=False).encode("utf-8")
+    return io.TextIOWrapper(io.BytesIO(hook_input), "cp1252")
 
 
 def run_hook(hook, tool_input, monkeypatch):
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"tool_input": tool_input})))
+    monkeypatch.setattr(sys, "stdin", claude_code_stdin({"tool_input": tool_input}))
     return hook.main()
+
+
+# Nepali's virama (U+094D) is E0 A5 8D in UTF-8; cp1252 has no 0x8D, so reading it as cp1252
+# raises rather than garbling.
+NEPALI = "नमस्ते"
 
 
 @pytest.fixture
 def no_failures_recorded(tmp_path, monkeypatch):
     monkeypatch.setattr(pytest_scope, "LAST_FAILED", tmp_path / "lastfailed", raising=False)
+
+
+def denied(command, monkeypatch, capsys):
+    """True when pytest_scope.py refuses the command, as JSON on exit 0 (never exit 2)."""
+    assert run_hook(pytest_scope, {"command": command}, monkeypatch) == 0
+    if not (out := capsys.readouterr().out):
+        return False
+    decision = json.loads(out)["hookSpecificOutput"]
+    assert decision["hookEventName"] == "PreToolUse"
+    assert "CI runs it on every push" in decision["permissionDecisionReason"]
+    return decision["permissionDecision"] == "deny"
 
 
 @pytest.mark.parametrize(
@@ -56,8 +90,8 @@ def no_failures_recorded(tmp_path, monkeypatch):
         "uv run pytest --lf",
     ],
 )
-def test_a_whole_suite_run_is_blocked(command, no_failures_recorded, monkeypatch):
-    assert run_hook(pytest_scope, {"command": command}, monkeypatch) == 2
+def test_a_whole_suite_run_is_blocked(command, no_failures_recorded, monkeypatch, capsys):
+    assert denied(command, monkeypatch, capsys)
 
 
 @pytest.mark.parametrize(
@@ -77,16 +111,22 @@ def test_a_whole_suite_run_is_blocked(command, no_failures_recorded, monkeypatch
         "uv run ruff check .",
     ],
 )
-def test_a_narrowed_or_harmless_command_is_allowed(command, no_failures_recorded, monkeypatch):
-    assert run_hook(pytest_scope, {"command": command}, monkeypatch) == 0
+def test_a_narrowed_or_harmless_command_is_allowed(
+    command, no_failures_recorded, monkeypatch, capsys
+):
+    assert not denied(command, monkeypatch, capsys)
 
 
-def test_last_failed_is_allowed_when_tests_failed_last_time(tmp_path, monkeypatch):
+def test_last_failed_is_allowed_when_tests_failed_last_time(tmp_path, monkeypatch, capsys):
     last_failed = tmp_path / "lastfailed"
     last_failed.write_text(json.dumps({"core/tests/test_mail.py::test_send": True}))
     monkeypatch.setattr(pytest_scope, "LAST_FAILED", last_failed)
 
-    assert run_hook(pytest_scope, {"command": "uv run pytest --lf"}, monkeypatch) == 0
+    assert not denied("uv run pytest --lf", monkeypatch, capsys)
+
+
+def test_a_command_with_nepali_in_it_is_still_checked(no_failures_recorded, monkeypatch, capsys):
+    assert denied(f"echo {NEPALI}; uv run pytest", monkeypatch, capsys)
 
 
 def fake_test_run(monkeypatch, **result):
@@ -122,8 +162,16 @@ def test_a_failing_stylesheet_is_reported_to_claude(monkeypatch, capsys):
         check_stylesheet, {"file_path": str(check_stylesheet.CSS / "charity.css")}, monkeypatch
     )
 
-    assert exit_code == 2
+    assert exit_code == 3  # its command makes it 2, the only exit asyncRewake wakes Claude on
     assert "FAILED max-width" in capsys.readouterr().err
+
+
+def test_a_stylesheet_in_a_clone_under_a_non_ascii_folder_is_checked(tmp_path, monkeypatch):
+    css = tmp_path / "Dīp" / "css"
+    monkeypatch.setattr(check_stylesheet, "CSS", css)
+    fake_test_run(monkeypatch, returncode=1, stdout="FAILED max-width")
+
+    assert run_hook(check_stylesheet, {"file_path": str(css / "charity.css")}, monkeypatch) == 3
 
 
 def test_a_test_that_cannot_run_is_not_reported_as_a_failing_stylesheet(monkeypatch, capsys):
@@ -137,3 +185,471 @@ def test_a_test_that_cannot_run_is_not_reported_as_a_failing_stylesheet(monkeypa
     assert exit_code == 1  # shown to the person, without waking Claude
     assert "Failed to spawn" in err
     assert "fails after this change" not in err
+
+
+@pytest.fixture
+def markers(tmp_path, monkeypatch):
+    """Each test starts with no once-a-session markers."""
+    monkeypatch.setattr(review_workflow, "MARKERS", tmp_path)
+    return tmp_path
+
+
+def review_hook(monkeypatch, capsys, prompt=None, skill=None, session_id="test-session"):
+    if skill is not None:
+        hook = {"hook_event_name": "PreToolUse", "tool_input": {"skill": skill}}
+    else:
+        hook = {"hook_event_name": "UserPromptSubmit", "prompt": prompt}
+    hook["session_id"] = session_id
+    monkeypatch.setattr(sys, "stdin", claude_code_stdin(hook))
+    assert review_workflow.main() == 0  # a reminder never blocks the prompt or the skill
+    return capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "/code-review high 323",
+        "/qa-only",
+        "/plan-design-review",
+        "run code review on 323",
+        "can you code review 323?",
+        "do the design review for #325",
+        "start the eng review",
+        "let's finish the security review",
+        "time for the product review of #325",
+        "QA 323",
+        "run qa on #323",
+        "QA for #323",
+        "please run `/qa-only` now",
+        "#325 needs: design review, start it",
+        "#327 needs: qa",
+        "#354 needs: investigation",
+        "start the investigation of #354",
+        f"/code-review high 323, {NEPALI}",
+    ],
+)
+def test_a_request_to_run_a_review_reminds(prompt, markers, monkeypatch, capsys):
+    assert "label review" in review_hook(monkeypatch, capsys, prompt=prompt)
+
+
+@pytest.mark.parametrize("command", sorted(review_workflow.REVIEW_SKILLS))
+def test_each_review_command_reminds(command, markers, monkeypatch, capsys):
+    assert "label review" in review_hook(monkeypatch, capsys, prompt=f"/{command} 323")
+
+
+# Regression: "...so this long message body part may not be missed by the design review" (8 Nov)
+# asked for a comment, not a review, and was told "This is a label review".
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "post a small comment so this long message may not be missed by the design review",
+        "the product review decided to hold scope",
+        "I am reviewing the PR 323 and thought of a new feature",
+        "I tried QA with a slow connection and sent 3 forms",
+        "the qa report found 2,000 characters",
+        "the investigation found the cause",
+        # A false match uses up the once-a-session reminder before the real request comes.
+        ".claude/skills/code-review/SKILL.md",
+        "D:/Project/pentest/cso/notes.md",
+        "Did you run it? The code review comment says no",
+        "the code review of 323 found 3 bugs",
+        "check QA for 6 widths",
+    ],
+)
+def test_a_mention_of_a_review_doesnt_remind(prompt, markers, monkeypatch, capsys):
+    assert review_hook(monkeypatch, capsys, prompt=prompt) == ""
+
+
+@pytest.mark.parametrize("skill", ["code-review", "qa-only", "gstack:plan-eng-review"])
+def test_starting_a_review_skill_reminds_whatever_the_prompt_said(
+    skill, markers, monkeypatch, capsys
+):
+    """The safety net when a prompt's words aren't caught: Claude starting the skill itself."""
+    output = json.loads(review_hook(monkeypatch, capsys, skill=skill))["hookSpecificOutput"]
+    assert output["hookEventName"] == "PreToolUse"
+    assert "label review" in output["additionalContext"]
+
+
+def test_another_skill_doesnt_remind(markers, monkeypatch, capsys):
+    assert review_hook(monkeypatch, capsys, skill="workflow") == ""
+
+
+def test_the_reminder_shows_once_a_session(markers, monkeypatch, capsys):
+    review_hook(monkeypatch, capsys, prompt="/code-review high 323")
+    assert review_hook(monkeypatch, capsys, skill="code-review") == ""
+    assert "label review" in review_hook(
+        monkeypatch, capsys, prompt="/code-review high 323", session_id="another-session"
+    )
+
+
+def test_the_reminder_shows_when_its_marker_cant_be_written(tmp_path, monkeypatch, capsys):
+    # Better twice in a session than not at all.
+    monkeypatch.setattr(review_workflow, "MARKERS", tmp_path / "missing")
+    assert "label review" in review_hook(monkeypatch, capsys, prompt="/code-review high 323")
+
+
+def test_a_session_id_cant_put_the_marker_outside_its_folder(tmp_path, monkeypatch, capsys):
+    # The marker is named from the hook's session_id; "/../../escaped" would climb out of it.
+    folder = tmp_path / "markers"
+    (folder / "review-workflow-").mkdir(parents=True)  # lets the climb resolve on POSIX too
+    monkeypatch.setattr(review_workflow, "MARKERS", folder)
+    output = review_hook(
+        monkeypatch, capsys, prompt="/code-review high 323", session_id="/../../escaped"
+    )
+    assert "label review" in output
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["markers"]
+
+
+def test_input_that_isnt_json_is_ignored(markers, monkeypatch, capsys):
+    monkeypatch.setattr(sys, "stdin", claude_code_stdin(b"not json"))
+    assert review_workflow.main() == 0
+    assert capsys.readouterr().out == ""
+
+
+def run_with_commands():
+    """The commands in the "Run with" column of reviews.md's table of `needs:` labels."""
+    commands = set()
+    for line in (ROOT / "docs" / "contributing" / "reviews.md").read_text("utf-8").splitlines():
+        if line.startswith("| `needs:"):
+            commands |= set(re.findall(r"`/([a-z][a-z-]*)", line.rsplit("|", 2)[-2]))
+    return commands
+
+
+def test_the_review_commands_match_the_reviews_page():
+    # /office-hours shapes a raw idea before any label asks for a review. /security-review is
+    # Claude Code's own command, which people type for a security review.
+    expected = (run_with_commands() - {"office-hours"}) | {"security-review"}
+    assert review_workflow.REVIEW_SKILLS == expected
+
+
+@pytest.fixture
+def fake_doctor(tmp_path, monkeypatch):
+    """Point start_doctor.py at a stand-in doctor, a script whose body the test writes."""
+
+    def make(body, deadline=start_doctor.DEADLINE):
+        script = tmp_path / "doctor.py"
+        # Like doctor, print UTF-8 whatever the console's code page.
+        script.write_text('import sys\nsys.stdout.reconfigure(encoding="utf-8")\n' + body, "utf-8")
+        monkeypatch.setattr(start_doctor, "DOCTOR", [sys.executable, str(script), "--check"])
+        monkeypatch.setattr(start_doctor, "DEADLINE", deadline)
+
+    return make
+
+
+def start_up(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"source": "startup"})))
+    assert start_doctor.main() == 0  # Claude Code passes the output on only after exit 0
+    return capsys.readouterr().out
+
+
+@pytest.mark.parametrize("exit_code", [0, 1, 2])
+def test_doctors_lines_reach_the_agent_whatever_it_exits_with(
+    exit_code, fake_doctor, monkeypatch, capsys
+):
+    fake_doctor(f"print('✓ uv 0.9.5')\nprint('❌ no git user.email')\nsys.exit({exit_code})")
+
+    out = start_up(monkeypatch, capsys)
+
+    assert "✓ uv 0.9.5" in out
+    assert "❌ no git user.email" in out
+
+
+def test_the_header_says_doctor_already_ran(fake_doctor, monkeypatch, capsys):
+    fake_doctor('print("✓ uv 0.9.5")')
+
+    header = start_up(monkeypatch, capsys).split("✓ uv 0.9.5")[0]
+
+    assert "already ran `uv run --script scripts/doctor.py --check`" in header
+    assert "without `--check`" in header
+
+
+def test_a_crash_in_doctor_reaches_the_agent(fake_doctor, monkeypatch, capsys):
+    fake_doctor('print("✓ uv 0.9.5", flush=True)\nraise RuntimeError("doctor broke")')
+
+    out = start_up(monkeypatch, capsys)
+
+    assert "✓ uv 0.9.5" in out
+    assert "RuntimeError: doctor broke" in out
+
+
+def test_a_doctor_that_cant_start_still_exits_0(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(start_doctor, "DOCTOR", [str(tmp_path / "missing"), "--check"])
+
+    assert "couldn't run doctor" in start_up(monkeypatch, capsys)
+
+
+def test_a_hung_doctor_is_stopped_and_its_lines_so_far_kept(fake_doctor, monkeypatch, capsys):
+    fake_doctor('import time\nprint("✓ uv 0.9.5", flush=True)\ntime.sleep(60)', deadline=1)
+
+    out = start_up(monkeypatch, capsys)
+
+    assert "✓ uv 0.9.5" in out
+    assert "doctor didn't finish in 1 s" in out
+
+
+def test_a_grandchild_holding_doctors_output_open_doesnt_hang_the_hook(
+    fake_doctor, monkeypatch, capsys
+):
+    """Like git's ssh or https helper outliving a stopped fetch: a pipe's read would wait for it."""
+    fake_doctor(
+        textwrap.dedent(
+            """\
+            import subprocess, time
+            child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+            print(f"grandchild {child.pid}", flush=True)
+            time.sleep(60)
+            """
+        ),
+        deadline=1,
+    )
+
+    started = time.monotonic()
+    out = start_up(monkeypatch, capsys)
+    elapsed = time.monotonic() - started
+    if pid := re.search(r"grandchild (\d+)", out):
+        os.kill(int(pid[1]), signal.SIGTERM)
+
+    assert pid, out
+    assert elapsed < 15
+    assert "doctor didn't finish in 1 s" in out
+
+
+def script_block(path):
+    """The inline `# /// script` metadata (PEP 723) at the top of a script."""
+    lines = path.read_text("utf-8").splitlines()
+    start = lines.index("# /// script") + 1
+    end = lines.index("# ///", start)
+    toml = "\n".join(line.removeprefix("#").removeprefix(" ") for line in lines[start:end])
+    return tomllib.loads(toml)
+
+
+def test_the_start_up_hook_installs_no_package_and_runs_the_repos_doctor():
+    # A branch can't make every contributor's start-up install a package by editing the header.
+    assert script_block(HOOKS / "start_doctor.py")["dependencies"] == []
+    assert start_doctor.DOCTOR[1:] == [str(ROOT / "scripts" / "doctor.py"), "--check"]
+
+
+def start_up_hook():
+    settings = json.loads((ROOT / ".claude" / "settings.json").read_text("utf-8"))
+    (entry,) = settings["hooks"]["SessionStart"]
+    (hook,) = entry["hooks"]
+    return entry["matcher"], hook
+
+
+def test_doctor_runs_when_a_session_starts_not_on_resume_or_clear():
+    matcher, hook = start_up_hook()
+
+    assert matcher == "startup"
+    assert "start_doctor.py" in hook["command"]
+    # Room for uv's first download of Python; Claude Code drops all output after the timeout.
+    assert hook["timeout"] == 90
+    assert hook["timeout"] > start_doctor.DEADLINE
+
+
+def git_bash():
+    """The bash Claude Code runs hook commands with: on Windows, Git Bash, as Claude Code finds it.
+
+    Not the first bash on PATH: from PowerShell or an IDE that's System32's bash.exe, WSL's.
+    """
+    if os.name != "nt":
+        return shutil.which("bash")
+    if configured := os.environ.get("CLAUDE_CODE_GIT_BASH_PATH"):
+        return configured
+    git = shutil.which("git")  # <Git>\cmd\git.exe or <Git>\mingw64\bin\git.exe
+    for folder in Path(git).resolve().parents if git else []:
+        if (bash := folder / "bin" / "bash.exe").is_file():
+            return str(bash)
+    return None
+
+
+BASH = git_bash()
+
+
+@pytest.mark.skipif(os.name != "nt" or BASH is None, reason="WSL's bash is only on Windows")
+def test_hook_commands_run_with_git_bash_not_wsls():
+    # Claude Code runs hooks with Git Bash; System32's bash.exe starts WSL, without our env.
+    assert "system32" not in str(BASH).lower()
+
+
+@pytest.mark.skipif(BASH is None, reason="Claude Code runs hook commands with bash")
+def test_the_agent_is_told_to_install_uv_when_the_hook_cant_start(tmp_path):
+    env = {"PATH": str(tmp_path), "CLAUDE_PROJECT_DIR": str(ROOT)}  # an empty folder: no uv
+    if "SYSTEMROOT" in os.environ:
+        env["SYSTEMROOT"] = os.environ["SYSTEMROOT"]  # Git Bash needs it on Windows
+
+    result = subprocess.run(
+        [BASH, "-c", start_up_hook()[1]["command"]], env=env, capture_output=True, text=True,
+        timeout=30,
+    )  # fmt: skip
+
+    assert result.returncode == 0
+    assert "install uv" in result.stdout
+
+
+def hook_commands():
+    """Each hook command in .claude/settings.json but the start-up one, tested above."""
+    settings = json.loads((ROOT / ".claude" / "settings.json").read_text("utf-8"))
+    return [
+        pytest.param(hook["command"], id=f"{event}:{hook.get('if') or entry.get('matcher', '*')}")
+        for event, entries in settings["hooks"].items()
+        if event != "SessionStart"
+        for entry in entries
+        for hook in entry["hooks"]
+    ]
+
+
+def run_command(command, project):
+    env = {**os.environ, "CLAUDE_PROJECT_DIR": str(project)}
+    return subprocess.run(
+        [BASH, "-c", command], input="{}", env=env, cwd=project, capture_output=True, text=True,
+        timeout=60,
+    )  # fmt: skip
+
+
+@pytest.mark.skipif(BASH is None, reason="Claude Code runs hook commands with bash")
+@pytest.mark.parametrize("command", hook_commands())
+def test_a_hook_whose_script_cant_start_never_blocks(command, tmp_path):
+    """Exit 2 blocks the prompt or tool; Python exits 2 for a missing script, as after a switch
+    to a branch without it mid-session, and uv exits 2 for its own errors."""
+    result = run_command(command, tmp_path)  # tmp_path has no .claude/hooks/
+
+    assert result.returncode == 1, result.stderr  # shown to the person, nothing blocked
+
+
+@pytest.mark.skipif(BASH is None, reason="Claude Code runs hook commands with bash")
+@pytest.mark.parametrize("script_exit, hook_exit", [(0, 0), (3, 2), (1, 1), (2, 1)])
+def test_the_stylesheet_hook_wakes_claude_only_for_a_failing_test(script_exit, hook_exit, tmp_path):
+    (command,) = {
+        command.values[0] for command in hook_commands() if "check_stylesheet" in command.values[0]
+    }
+    script = tmp_path / ".claude" / "hooks" / "check_stylesheet.py"
+    script.parent.mkdir(parents=True)
+    script.write_text(f"import sys\nsys.exit({script_exit})\n")
+
+    assert run_command(command, tmp_path).returncode == hook_exit
+
+
+def make_repo(root, monkeypatch):
+    """A git repository at `root` standing in for the clone, with an ignored folder."""
+    root = root.resolve()
+    root.mkdir(parents=True)
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    (root / ".gitignore").write_text("ignored/\n")
+    monkeypatch.setattr(check_python, "ROOT", root)
+    # Outside a uv project, `uv run --no-sync ruff` finds ruff in the active environment.
+    monkeypatch.setenv("VIRTUAL_ENV", sys.prefix)
+    return root
+
+
+@pytest.fixture
+def repo(tmp_path, monkeypatch):
+    return make_repo(tmp_path / "repo", monkeypatch)
+
+
+def edit_python(path, source, monkeypatch):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(source)
+    return run_hook(check_python, {"file_path": str(path)}, monkeypatch)
+
+
+@pytest.mark.parametrize("name", ["notes.txt", "ignored/scratch.py", "../outside.py"])
+def test_ruff_runs_only_on_a_python_file_git_sees(name, repo, monkeypatch, capsys):
+    # A ruff that ran would report a finding: ruff lints an ignored file named to it.
+    finding = [sys.executable, "-c", "import sys; print('E999', file=sys.stderr); sys.exit(1)"]
+    monkeypatch.setattr(check_python, "CHECK", finding)
+
+    assert edit_python(repo / name, "import os\n", monkeypatch) == 0
+    assert capsys.readouterr() == ("", "")
+
+
+def test_a_badly_formatted_file_is_formatted_without_telling_claude(repo, monkeypatch, capsys):
+    path = repo / "app.py"
+
+    assert edit_python(path, "name = 'Trayi'\n", monkeypatch) == 0
+    assert path.read_text() == 'name = "Trayi"\n'
+    assert capsys.readouterr() == ("", "")
+
+
+def test_a_file_in_a_clone_under_a_non_ascii_folder_is_checked(tmp_path, monkeypatch, capsys):
+    repo = make_repo(tmp_path / "Dīp" / "repo", monkeypatch)
+    path = repo / "app.py"
+
+    assert edit_python(path, "name = 'Trayi'\n", monkeypatch) == 0
+    assert path.read_text() == 'name = "Trayi"\n'
+
+
+def test_a_file_named_like_an_option_reaches_ruff_as_a_file(repo, monkeypatch, capsys):
+    path = repo / "-n.py"
+
+    assert edit_python(path, "name = 'Trayi'\n", monkeypatch) == 0
+    assert path.read_text() == 'name = "Trayi"\n'
+
+
+def test_a_lint_finding_is_reported_to_claude_and_nothing_is_removed(repo, monkeypatch, capsys):
+    path = repo / "app.py"
+    source = "def total():\n    unused = 1\n    return 2\n"
+
+    # No `--fix`: it would delete the variable, or an import, for Claude.
+    assert edit_python(path, source, monkeypatch) == 0  # as JSON: exit 2 also means "can't start"
+    verdict = json.loads(capsys.readouterr().out)
+    assert verdict["decision"] == "block"
+    assert "F841" in verdict["reason"]
+    assert path.read_text() == source
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "import os\n",  # the import first, its use in the next edit (F401)
+        "print(os.sep)\n",  # the use first, its import in the next edit (F821)
+    ],
+)
+def test_half_of_an_import_and_its_use_isnt_reported(source, repo, monkeypatch, capsys):
+    """Each half of a two-edit change looks wrong alone; pre-commit still fails what's left."""
+    path = repo / "app.py"
+
+    assert edit_python(path, source, monkeypatch) == 0
+    assert capsys.readouterr() == ("", "")
+    assert path.read_text() == source
+
+
+NO_RUFF = "import sys; print('Failed to spawn: ruff', file=sys.stderr); sys.exit(2)"
+
+
+@pytest.mark.parametrize(
+    "ruff",
+    [
+        [sys.executable, "-c", NO_RUFF],  # uv's exit before `uv sync` has installed ruff
+        ["no-such-uv-anywhere"],  # uv itself missing
+    ],
+)
+def test_a_ruff_that_cant_run_is_shown_to_the_person_only(ruff, repo, monkeypatch, capsys):
+    monkeypatch.setattr(check_python, "FORMAT", ruff)
+    monkeypatch.setattr(check_python, "CHECK", ruff)
+
+    exit_code = edit_python(repo / "app.py", "x = 1\n", monkeypatch)
+
+    out, err = capsys.readouterr()
+    assert exit_code == 1  # shown to the person, without waking Claude to "fix" the file
+    assert "Couldn't run ruff" in err
+    assert out == ""
+
+
+def test_the_ruff_hook_runs_ruff_as_pre_commit_does():
+    config = (ROOT / ".pre-commit-config.yaml").read_text("utf-8")
+    check, format_check = re.findall(r"entry: (uv run --no-sync ruff .+)", config)
+
+    # Less an import and its use, which can come in separate edits.
+    assert check_python.CHECK == [*check.split(), "--ignore", "F401,F821"]
+    # It formats the file rather than failing on it.
+    assert check_python.FORMAT == [arg for arg in format_check.split() if arg != "--check"]
+
+
+def test_the_ruff_hook_runs_after_each_edit_of_a_python_file():
+    settings = json.loads((ROOT / ".claude" / "settings.json").read_text("utf-8"))
+    hooks = [hook for entry in settings["hooks"]["PostToolUse"] for hook in entry["hooks"]]
+
+    ruff_hooks = [hook for hook in hooks if "check_python.py" in hook["command"]]
+
+    assert {hook["if"] for hook in ruff_hooks} == {"Edit(*.py)", "Write(*.py)"}
+    assert not any(hook.get("async") or hook.get("asyncRewake") for hook in ruff_hooks)

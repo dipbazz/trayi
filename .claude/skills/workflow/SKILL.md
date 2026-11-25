@@ -5,86 +5,65 @@ description: How this project runs its reviews with gstack and Claude Code, labe
 
 # Workflow: reviews and their labels
 
-`docs/contributing/reviews.md` is the source for **which** review an issue or pull request needs,
-the command that runs it, the order, and when a label comes off. Read it first. This skill adds
-only what's particular to running them here with Claude Code.
+`docs/contributing/reviews.md` is the source for which review an issue or pull request needs, the
+command that runs it, the order, and when a label comes off; `docs/contributing/index.md`, "The
+workflow", is the source for every step from issue to merge. Read them first. This skill adds
+only what's particular to running them with Claude Code and gstack.
 
 ## Find what's waiting
 
-Never scan every issue to answer "what needs a review?". Ask for the label, with the commands
-under "Find what's waiting" in `reviews.md`, and list titles only.
+Never scan every issue to answer "what needs a review?": run the label commands in
+`docs/contributing/reviews.md`, "Find what's waiting", and list titles only.
 
 ## Filing an issue
 
-Use the issue forms. Choose its tier (`reviews.md`, "Tiers") and label it `tier: light` or
-`tier: high risk` (none for standard). Split work bigger than one day's pull request into
-sub-issues now (API calls in the board memory). Then add a label for each review the tier and
-`reviews.md` call for (`gh issue edit <n> --add-label "needs: design review"`), and say in one
-line each which labels you added and why.
+File, tier and label it as `docs/contributing/releases.md`, "Issues", and
+`docs/contributing/reviews.md`, "Tiers: how much review a change gets", say. Then tell the user
+in one line each which labels you added and why.
 
 ## Starting an issue
 
-`gh issue view <n> --json labels`. If any `needs:` label is on it, run that review before
-branching, with the command `reviews.md` names. If the skill isn't installed, stop and tell the
-user to install gstack (`reviews.md#tools`); never skip the review.
+Run `gh issue view <n> --json labels` first. A `needs:` label's review comes before the branch
+(`docs/contributing/reviews.md`, "Which reviews an issue or pull request needs"). If the gstack
+skill it names isn't installed, stop and tell the user to install gstack
+(`docs/contributing/reviews.md`, "Tools"); never skip the review. Then branch as
+`docs/contributing/index.md`, "The workflow", step 2 says.
 
-Then branch with `gh issue develop <n> --name <type>/<n>-<slug> --base main --checkout`, always
-with `--name` (the branch rule is in `docs/contributing/index.md`, step 2).
-
-| Review | Particular to this project |
+| Review | Particular to gstack here |
 |---|---|
-| product | Hold-scope or reduction mode, never expansion. |
 | design | The design system is the tokens in `charity.css`, the `mobile-first` skill and `docs/site/standard.md`; there's no DESIGN.md. Skip AI image mockups. |
 | eng | Its test plan feeds `/qa-only` later. |
-| investigation | It writes the fix and the test together: commit them as one bug per commit, having seen the test fail without the fix. |
+| investigation | `/investigate` writes the fix and the test together: see the test fail without the fix, then commit them, one bug per commit. |
 
 For every gstack review: decline its copy into `docs/designs/` and its TODOS.md entries (deferred
 work becomes a GitHub issue), and keep the full report in `~/.gstack`.
 
 ## Finishing a review
 
-1. On a pull request, `gh pr checks <n> --watch` first: fix a red check or name it and why in
-   the comment; `reviews` red for this review's own label alone is expected (`reviews.md`, "When
-   a review is done").
-2. Post the result as one comment where the label is: the issue for an issue's review, the pull
-   request for a pull request's, in the format in `reviews.md` ("When a review is done").
-3. Never remove the label: ask the user to, from that same place, once they've read the comment
-   (`reviews.md`, "When a review is done"). After they have, if an open pull request closes the
-   issue, re-run its `Reviews` check (`gh run rerun` on its latest `Reviews` run), since removing
-   an issue's label doesn't.
-4. Suggest `/clear` before the next review or building: one review per session, and the comment
-   carries the decisions.
+Follow `docs/contributing/reviews.md`, "When a review is done": green CI first, one comment where
+the label is, and the label left for a person. Then:
+
+1. Ask the user to remove the label, from the place you commented. Once they've removed an
+   issue's label, re-run the `Reviews` check of any open pull request that closes it:
+   `gh run rerun` on its latest `Reviews` run.
+2. Suggest `/clear` before the next review or the build: the comment carries the decisions.
 
 ## Opening a pull request
 
-Straight after opening it, check each of these (`docs/contributing/index.md`, step 7); CI checks
-only the first:
-
-- [ ] A `changelog.d/<slug>.<group>.md` file, or the `no changelog` label.
-- [ ] A milestone: the `Milestone` workflow copies the closing issue's; set it by hand if not.
-- [ ] Its issue's board card moved to *In review* by itself (`releases.md`, "The project board").
-- [ ] Each docs page the change describes is updated.
-
-Then whatever `CLAUDE.local.md` lists for this maintainer's own files, if there is one.
-
-The `Reviews` workflow adds `needs: code review`, `needs: security review` for a high-risk
-issue, and `needs: qa` for templates, CSS or JavaScript unless every closed issue is light. Then, in the order
-`reviews.md` gives:
+Straight after opening it, check what `docs/contributing/index.md`, "The workflow", step 7 lists,
+then anything your own `CLAUDE.local.md` adds.
 
 Before running a review asked for by name, check `gh pr view <n> --json labels` and the existing
-review comments. If its label is gone, or an earlier review it depends on is still owed, say so
-and ask before running it.
+review comments. If its label is gone, or an earlier review it depends on is still owed
+(`docs/contributing/reviews.md`, "Which reviews an issue or pull request needs"), say so and ask
+before running it.
 
-1. **Security:** fix open findings test-first, comment the result on the pull request, then ask
-   the user to remove the label.
-2. **Code review:** Claude Code's `/code-review` (`medium` for `tier: light`), not gstack's `/review`. Fix findings test-first,
-   not with `--fix`, comment the result on the pull request, then ask the user to remove the label.
-3. **QA:** `/qa-only`, never `/qa` or `/design-review`, which commit their own fixes, several per
-   commit. Fix each bug it reports test-first, one per commit, putting back any earlier label
-   whose ground the fix changes. **The user removes `needs: qa`** after the pull request's "Check before merging".
+- **Code review:** Claude Code's `/code-review`, not gstack's `/review`. Fix its findings
+  yourself, test-first, never with `--fix`.
+- **QA:** `/qa-only`, never `/qa` or `/design-review`: those commit their own fixes, several per
+  commit.
 
 ## When a milestone's last issue closes
 
-Suggest cutting the release (`docs/contributing/releases.md`), including the release reviews
-under "At each release" in `reviews.md`. With `/canary` on the live site, decline its rollback
-option: deploys go by tag.
+Suggest cutting the release (`docs/contributing/releases.md`, "Cutting a release"). With
+`/canary` on the live site, decline its rollback option: deploys go by tag.

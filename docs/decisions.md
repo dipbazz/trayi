@@ -704,14 +704,43 @@ were missed. Both rules can be checked by a program.
 `.claude/settings.json` holds hooks that every contributor's Claude Code runs, with their scripts
 in `.claude/hooks/`:
 
+- When a session starts (not on resume or `/clear`), `start_doctor.py` runs
+  `scripts/doctor.py --check` and passes its lines to the agent, with a header saying it already
+  ran, so the agent starts knowing what to fix ([Getting started](getting-started/index.md)).
+  doctor's output goes to a temporary file, not a pipe, and doctor is stopped after 40 seconds,
+  keeping the lines it printed; the hook always exits 0, since Claude Code passes its output on
+  only then. When uv can't start it, the command prints how to install uv instead. doctor itself
+  knows nothing about Claude Code.
 - Before a shell command, `pytest_scope.py` blocks a pytest run that names no path, node id or
   `-k` filter, unless it's `--lf` with failures recorded or only lists tests
   ([Testing](contributing/testing.md#running-the-tests)).
+- After a change to a `.py` file that git doesn't ignore, `check_python.py` runs ruff with
+  pre-commit's command and flags: `ruff format` fixes the file's layout in place, then
+  `ruff check` reports what it finds to Claude. An import and its first use often come in separate
+  edits, and each half alone looks wrong, so it skips F401 (unused import) and F821 (undefined
+  name); pre-commit still fails what's left at commit. It never runs `ruff check --fix`, which
+  would delete such an import. If ruff can't run (before `uv sync`), it tells the person instead.
+  pre-commit and CI stay check-only.
 - After a change to a stylesheet in `charity/static/css/`, `check_stylesheet.py` runs
   `core/tests/test_stylesheet.py` in the background and reports a failure to Claude. If the test
   can't run at all, it tells the person instead.
+- When a review is asked for, or Claude starts a review skill, `review_workflow.py` reminds it,
+  once a session, that the review ends with one comment where its label is and the label left
+  for a person ([Reviews](contributing/reviews.md#when-a-review-is-done)). A finding report alone
+  had nearly ended one. Its review commands are those in the "Run with" column of
+  [Reviews](contributing/reviews.md#which-reviews-an-issue-or-pull-request-needs), which a test
+  checks.
 
-`core/tests/test_claude_hooks.py` tests both scripts.
+No script exits 2 to block or to report a finding: exit 2 blocks the prompt or tool, and it's
+also what Python exits with when it can't open the script (after a switch to a branch without
+it) and what uv exits with for its own errors. A script refuses or reports as JSON on exit 0, and
+each command ends `|| exit 1`, so a hook that can't start is shown to the person and blocks
+nothing. The stylesheet check is the exception, since a background hook wakes Claude only on
+exit 2: it exits 3 for a failing test, and its command turns 3 into 2 and any other failure
+into 1. Each script reads Claude Code's input as UTF-8 bytes: Python on Windows reads text from
+stdin in the ANSI code page, which can't decode Nepali at all.
+
+`core/tests/test_claude_hooks.py` tests the scripts.
 
 A rule that can be checked goes in CI, pre-commit or a hook; prose in `CLAUDE.md` is for
 judgement calls. A rule CI already checks (the changelog entry, the docs build) gets no hook.
@@ -719,9 +748,14 @@ judgement calls. A rule CI already checks (the changelog entry, the docs build) 
 **Consequences**
 
 - The hooks bind only Claude Code. A person can still run the whole suite.
-- Each shell command that mentions pytest, and each stylesheet edit, starts `uv run python`
-  (about a tenth of a second). A stylesheet edit also runs its test, about eight seconds, in the
-  background.
+- Each prompt, each skill Claude starts, each shell command that mentions pytest and each
+  stylesheet or Python edit starts `uv run python` (about a tenth of a second). A stylesheet edit
+  also runs its test, about eight seconds, in the background; a Python edit waits for ruff, about
+  a fifth of a second.
+- A Python file can change on disk after Claude's edit, when ruff formats it.
+- A new session waits for doctor, about five seconds. The hook's timeout is 90 seconds, for uv's
+  first download of Python on a new machine: past it, Claude Code drops the output and shows the
+  person a hook error.
 - The hooks need `uv`, as everything else in the project does.
 
 ## The code is licensed under the AGPL

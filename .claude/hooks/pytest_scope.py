@@ -32,6 +32,11 @@ LISTING_OPTIONS = {"--version", "-V", "--help", "-h", "--co", "--collect-only", 
 PYTHON = re.compile(r"(python[\d.]*|py)(\.exe)?")
 REDIRECT = re.compile(r"^\d*[<>]+&?$")
 SEPARATOR = re.compile(r"^[;&|()\n]+$")
+REFUSAL = (
+    "Don't run the whole test suite: CI runs it on every push. Run the tests you wrote or changed"
+    " and those for the code you touched: name a path or node id, or use -k, or --lf after a"
+    ' failure (docs/contributing/testing.md, "Running the tests").'
+)
 
 
 def strip_wrappers(words):
@@ -112,19 +117,20 @@ def commands(line):
 
 
 def main():
-    line = json.load(sys.stdin).get("tool_input", {}).get("command", "")
+    # The bytes, as UTF-8: Python on Windows reads text stdin in the ANSI code page.
+    line = json.load(sys.stdin.buffer).get("tool_input", {}).get("command", "")
     try:
         runs = [pytest_arguments(command) for command in commands(line)]
     except ValueError:  # unbalanced quotes: leave it to the shell
         return 0
     if any(arguments is not None and runs_whole_suite(arguments) for arguments in runs):
-        print(
-            "Don't run the whole test suite: CI runs it on every push. Run the tests you wrote "
-            "or changed and those for the code you touched: name a path or node id, or use -k, "
-            'or --lf after a failure (docs/contributing/testing.md, "Running the tests").',
-            file=sys.stderr,
-        )
-        return 2
+        # Refused as JSON on exit 0, never by exit 2, which a hook that can't start exits with.
+        decision = {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": REFUSAL,
+        }
+        print(json.dumps({"hookSpecificOutput": decision}))
     return 0
 
 
