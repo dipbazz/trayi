@@ -36,16 +36,19 @@ REVIEW_SKILLS = frozenset(
 # three words before "<kind> review" or "investigation"; "<kind> review" or "QA" right before a
 # number; "QA review"; or a `needs:` label. "...not be missed by the design review" (8 Nov) is a
 # mention. A request these miss is still caught when Claude starts the review skill (PreToolUse).
+# Mentions that matched once, each using up the once-a-session reminder: a command inside a path
+# (".claude/skills/code-review/"), a verb in the sentence before ("Did you run it? The code
+# review comment..."), a report ("the code review of 323 found...") and "QA for 6 widths".
 KIND = r"(?:code|security|design|eng|product|qa)[- ]review"
 COMMANDS = "|".join(re.escape(skill) for skill in sorted(REVIEW_SKILLS))
 REVIEW_WORDS = re.compile(
-    rf"/(?:{COMMANDS})\b"
-    rf"|\b(?:run|do|start|begin|finish|continue|time for|let'?s)\b(?:\s+\S+){{0,3}}?"
+    rf"(?<![\w/.:-])/(?:{COMMANDS})(?![\w/-])"
+    rf"|\b(?:run|do|start|begin|finish|continue|time for|let'?s)\b(?:\s+[^\s.?!;]+){{0,3}}?"
     rf"\s+(?:{KIND}|investigation)\b"
-    rf"|\b{KIND}\s+(?:on\s+|of\s+|for\s+)?#?\d+"
+    rf"|\b{KIND}\s+(?:on\s+|for\s+)?#?\d+"
     rf"|needs:\s*(?:{KIND}|qa|investigation)\b"
     r"|\bqa[- ]review\b"
-    r"|\bqa\s+(?:on\s+|of\s+|for\s+)?#?\d+|\b(?:run|do|start)\s+(?:the\s+)?qa\b",
+    r"|\bqa\s+(?:on\s+#?\d+|for\s+#\d+|#?\d+)|\b(?:run|do|start)\s+(?:the\s+)?qa\b",
     re.IGNORECASE,
 )
 REMINDER = (

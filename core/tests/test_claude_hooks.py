@@ -219,6 +219,8 @@ def review_hook(monkeypatch, capsys, prompt=None, skill=None, session_id="test-s
         "time for the product review of #325",
         "QA 323",
         "run qa on #323",
+        "QA for #323",
+        "please run `/qa-only` now",
         "#325 needs: design review, start it",
         "#327 needs: qa",
         "#354 needs: investigation",
@@ -246,6 +248,12 @@ def test_each_review_command_reminds(command, markers, monkeypatch, capsys):
         "I tried QA with a slow connection and sent 3 forms",
         "the qa report found 2,000 characters",
         "the investigation found the cause",
+        # A false match uses up the once-a-session reminder before the real request comes.
+        ".claude/skills/code-review/SKILL.md",
+        "D:/Project/pentest/cso/notes.md",
+        "Did you run it? The code review comment says no",
+        "the code review of 323 found 3 bugs",
+        "check QA for 6 widths",
     ],
 )
 def test_a_mention_of_a_review_doesnt_remind(prompt, markers, monkeypatch, capsys):
