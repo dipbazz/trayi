@@ -44,6 +44,17 @@ def no_failures_recorded(tmp_path, monkeypatch):
     monkeypatch.setattr(pytest_scope, "LAST_FAILED", tmp_path / "lastfailed", raising=False)
 
 
+def denied(command, monkeypatch, capsys):
+    """True when pytest_scope.py refuses the command, as JSON on exit 0 (never exit 2)."""
+    assert run_hook(pytest_scope, {"command": command}, monkeypatch) == 0
+    if not (out := capsys.readouterr().out):
+        return False
+    decision = json.loads(out)["hookSpecificOutput"]
+    assert decision["hookEventName"] == "PreToolUse"
+    assert "CI runs it on every push" in decision["permissionDecisionReason"]
+    return decision["permissionDecision"] == "deny"
+
+
 @pytest.mark.parametrize(
     "command",
     [
@@ -67,8 +78,8 @@ def no_failures_recorded(tmp_path, monkeypatch):
         "uv run pytest --lf",
     ],
 )
-def test_a_whole_suite_run_is_blocked(command, no_failures_recorded, monkeypatch):
-    assert run_hook(pytest_scope, {"command": command}, monkeypatch) == 2
+def test_a_whole_suite_run_is_blocked(command, no_failures_recorded, monkeypatch, capsys):
+    assert denied(command, monkeypatch, capsys)
 
 
 @pytest.mark.parametrize(
@@ -88,16 +99,18 @@ def test_a_whole_suite_run_is_blocked(command, no_failures_recorded, monkeypatch
         "uv run ruff check .",
     ],
 )
-def test_a_narrowed_or_harmless_command_is_allowed(command, no_failures_recorded, monkeypatch):
-    assert run_hook(pytest_scope, {"command": command}, monkeypatch) == 0
+def test_a_narrowed_or_harmless_command_is_allowed(
+    command, no_failures_recorded, monkeypatch, capsys
+):
+    assert not denied(command, monkeypatch, capsys)
 
 
-def test_last_failed_is_allowed_when_tests_failed_last_time(tmp_path, monkeypatch):
+def test_last_failed_is_allowed_when_tests_failed_last_time(tmp_path, monkeypatch, capsys):
     last_failed = tmp_path / "lastfailed"
     last_failed.write_text(json.dumps({"core/tests/test_mail.py::test_send": True}))
     monkeypatch.setattr(pytest_scope, "LAST_FAILED", last_failed)
 
-    assert run_hook(pytest_scope, {"command": "uv run pytest --lf"}, monkeypatch) == 0
+    assert not denied("uv run pytest --lf", monkeypatch, capsys)
 
 
 def fake_test_run(monkeypatch, **result):
@@ -133,7 +146,7 @@ def test_a_failing_stylesheet_is_reported_to_claude(monkeypatch, capsys):
         check_stylesheet, {"file_path": str(check_stylesheet.CSS / "charity.css")}, monkeypatch
     )
 
-    assert exit_code == 2
+    assert exit_code == 3  # its command makes it 2, the only exit asyncRewake wakes Claude on
     assert "FAILED max-width" in capsys.readouterr().err
 
 
@@ -437,6 +450,49 @@ def test_the_agent_is_told_to_install_uv_when_the_hook_cant_start(tmp_path):
     assert "install uv" in result.stdout
 
 
+def hook_commands():
+    """Each hook command in .claude/settings.json but the start-up one, tested above."""
+    settings = json.loads((ROOT / ".claude" / "settings.json").read_text("utf-8"))
+    return [
+        pytest.param(hook["command"], id=f"{event}:{hook.get('if') or entry.get('matcher', '*')}")
+        for event, entries in settings["hooks"].items()
+        if event != "SessionStart"
+        for entry in entries
+        for hook in entry["hooks"]
+    ]
+
+
+def run_command(command, project):
+    env = {**os.environ, "CLAUDE_PROJECT_DIR": str(project)}
+    return subprocess.run(
+        [BASH, "-c", command], input="{}", env=env, cwd=project, capture_output=True, text=True,
+        timeout=60,
+    )  # fmt: skip
+
+
+@pytest.mark.skipif(BASH is None, reason="Claude Code runs hook commands with bash")
+@pytest.mark.parametrize("command", hook_commands())
+def test_a_hook_whose_script_cant_start_never_blocks(command, tmp_path):
+    """Exit 2 blocks the prompt or tool; Python exits 2 for a missing script, as after a switch
+    to a branch without it mid-session, and uv exits 2 for its own errors."""
+    result = run_command(command, tmp_path)  # tmp_path has no .claude/hooks/
+
+    assert result.returncode == 1, result.stderr  # shown to the person, nothing blocked
+
+
+@pytest.mark.skipif(BASH is None, reason="Claude Code runs hook commands with bash")
+@pytest.mark.parametrize("script_exit, hook_exit", [(0, 0), (3, 2), (1, 1), (2, 1)])
+def test_the_stylesheet_hook_wakes_claude_only_for_a_failing_test(script_exit, hook_exit, tmp_path):
+    (command,) = {
+        command.values[0] for command in hook_commands() if "check_stylesheet" in command.values[0]
+    }
+    script = tmp_path / ".claude" / "hooks" / "check_stylesheet.py"
+    script.parent.mkdir(parents=True)
+    script.write_text(f"import sys\nsys.exit({script_exit})\n")
+
+    assert run_command(command, tmp_path).returncode == hook_exit
+
+
 @pytest.fixture
 def repo(tmp_path, monkeypatch):
     """A git repository standing in for the clone, with an ignored folder."""
@@ -458,12 +514,12 @@ def edit_python(path, source, monkeypatch):
 
 @pytest.mark.parametrize("name", ["notes.txt", "ignored/scratch.py", "../outside.py"])
 def test_ruff_runs_only_on_a_python_file_git_sees(name, repo, monkeypatch, capsys):
-    # A ruff that ran would report a finding (exit 2): ruff lints an ignored file named to it.
+    # A ruff that ran would report a finding: ruff lints an ignored file named to it.
     finding = [sys.executable, "-c", "import sys; print('E999', file=sys.stderr); sys.exit(1)"]
     monkeypatch.setattr(check_python, "CHECK", finding)
 
     assert edit_python(repo / name, "import os\n", monkeypatch) == 0
-    assert capsys.readouterr().err == ""
+    assert capsys.readouterr() == ("", "")
 
 
 def test_a_badly_formatted_file_is_formatted_without_telling_claude(repo, monkeypatch, capsys):
@@ -471,7 +527,7 @@ def test_a_badly_formatted_file_is_formatted_without_telling_claude(repo, monkey
 
     assert edit_python(path, "name = 'Trayi'\n", monkeypatch) == 0
     assert path.read_text() == 'name = "Trayi"\n'
-    assert capsys.readouterr().err == ""
+    assert capsys.readouterr() == ("", "")
 
 
 def test_a_file_named_like_an_option_reaches_ruff_as_a_file(repo, monkeypatch, capsys):
@@ -486,8 +542,10 @@ def test_a_lint_finding_is_reported_to_claude_and_nothing_is_removed(repo, monke
     source = "def total():\n    unused = 1\n    return 2\n"
 
     # No `--fix`: it would delete the variable, or an import, for Claude.
-    assert edit_python(path, source, monkeypatch) == 2
-    assert "F841" in capsys.readouterr().err
+    assert edit_python(path, source, monkeypatch) == 0  # as JSON: exit 2 also means "can't start"
+    verdict = json.loads(capsys.readouterr().out)
+    assert verdict["decision"] == "block"
+    assert "F841" in verdict["reason"]
     assert path.read_text() == source
 
 
@@ -503,7 +561,7 @@ def test_half_of_an_import_and_its_use_isnt_reported(source, repo, monkeypatch, 
     path = repo / "app.py"
 
     assert edit_python(path, source, monkeypatch) == 0
-    assert capsys.readouterr().err == ""
+    assert capsys.readouterr() == ("", "")
     assert path.read_text() == source
 
 
@@ -523,10 +581,10 @@ def test_a_ruff_that_cant_run_is_shown_to_the_person_only(ruff, repo, monkeypatc
 
     exit_code = edit_python(repo / "app.py", "x = 1\n", monkeypatch)
 
-    err = capsys.readouterr().err
+    out, err = capsys.readouterr()
     assert exit_code == 1  # shown to the person, without waking Claude to "fix" the file
     assert "Couldn't run ruff" in err
-    assert "found problems" not in err
+    assert out == ""
 
 
 def test_the_ruff_hook_runs_ruff_as_pre_commit_does():

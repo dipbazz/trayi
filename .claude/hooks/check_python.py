@@ -2,7 +2,7 @@
 
 A PostToolUse hook on Edit and Write of a `.py` file (.claude/settings.json). It runs ruff with
 pre-commit's command and flags: `ruff format`, which fixes the layout in place, then `ruff check`,
-whose findings go back to Claude (exit 2). An import and its first use often come in separate
+whose findings go back to Claude (as JSON). An import and its first use often come in separate
 edits, so each half alone looks wrong: `ruff check` skips F401 (unused import) and F821
 (undefined name) here, and pre-commit still fails what's left at commit. It never runs
 `ruff check --fix`, which would delete such an import. pre-commit and CI stay check-only.
@@ -66,8 +66,10 @@ def main():
     format_code, format_output = ruff(FORMAT, path)
     check_code, check_output = ruff(CHECK, path)
     if check_code == 1:  # ruff's code for findings
-        print(f"ruff check found problems in {path}; fix them:\n{check_output}", file=sys.stderr)
-        return 2
+        # Sent as JSON on exit 0, never by exit 2, which a hook that can't start exits with.
+        reason = f"ruff check found problems in {path}; fix them:\n{check_output}"
+        print(json.dumps({"decision": "block", "reason": reason}))
+        return 0
     if check_code == 0 and format_code == 0:
         return 0
     # uv or ruff couldn't run: tell the person, without waking Claude to "fix" the file.

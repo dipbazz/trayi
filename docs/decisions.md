@@ -731,6 +731,14 @@ in `.claude/hooks/`:
   [Reviews](contributing/reviews.md#which-reviews-an-issue-or-pull-request-needs), which a test
   checks.
 
+No script exits 2 to block or to report a finding: exit 2 blocks the prompt or tool, and it's
+also what Python exits with when it can't open the script (after a switch to a branch without
+it) and what uv exits with for its own errors. A script refuses or reports as JSON on exit 0, and
+each command ends `|| exit 1`, so a hook that can't start is shown to the person and blocks
+nothing. The stylesheet check is the exception, since a background hook wakes Claude only on
+exit 2: it exits 3 for a failing test, and its command turns 3 into 2 and any other failure
+into 1.
+
 `core/tests/test_claude_hooks.py` tests the scripts.
 
 A rule that can be checked goes in CI, pre-commit or a hook; prose in `CLAUDE.md` is for

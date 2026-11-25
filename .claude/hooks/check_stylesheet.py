@@ -4,6 +4,10 @@ A PostToolUse hook on Edit and Write (.claude/settings.json). After a change to 
 charity/static/css/, it runs core/tests/test_stylesheet.py, which fails on a `max-width` or `px`
 media query and on a colour that isn't a design token (the `mobile-first` skill). A failure is
 fed back to Claude.
+
+It runs in the background (`asyncRewake`), which wakes Claude only on exit 2, and exit 2 is also
+what Python and uv exit with when they can't start this script. So a failure exits 3, and the
+command in settings.json turns 3 into 2 and any other failure into 1.
 """
 
 import json
@@ -28,7 +32,7 @@ def main():
         return 0
     if result.returncode == 1:  # pytest's code for failing tests
         print(f"{TEST[4]} fails after this change:\n{result.stdout[-3000:]}", file=sys.stderr)
-        return 2
+        return 3  # settings.json makes it 2
     # uv or pytest couldn't run it: tell the person, without waking Claude to "fix" the CSS.
     print(f"Couldn't run {TEST[4]}:\n{(result.stderr or result.stdout)[-3000:]}", file=sys.stderr)
     return 1
