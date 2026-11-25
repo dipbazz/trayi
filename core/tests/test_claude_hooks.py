@@ -239,6 +239,18 @@ def test_the_reminder_shows_when_its_marker_cant_be_written(tmp_path, monkeypatc
     assert "label review" in review_hook(monkeypatch, capsys, prompt="/code-review high 323")
 
 
+def test_a_session_id_cant_put_the_marker_outside_its_folder(tmp_path, monkeypatch, capsys):
+    # The marker is named from the hook's session_id; "/../../escaped" would climb out of it.
+    folder = tmp_path / "markers"
+    (folder / "review-workflow-").mkdir(parents=True)  # lets the climb resolve on POSIX too
+    monkeypatch.setattr(review_workflow, "MARKERS", folder)
+    output = review_hook(
+        monkeypatch, capsys, prompt="/code-review high 323", session_id="/../../escaped"
+    )
+    assert "label review" in output
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["markers"]
+
+
 def test_input_that_isnt_json_is_ignored(markers, monkeypatch, capsys):
     monkeypatch.setattr(sys, "stdin", io.StringIO("not json"))
     assert review_workflow.main() == 0

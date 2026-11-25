@@ -66,7 +66,9 @@ def asks_for_a_review(hook):
 
 def first_time(session_id):
     """True the first time a session asks; True too when the marker can't be written."""
-    marker = MARKERS / f"review-workflow-{session_id}"
+    # Claude Code sends a UUID; keeping only its characters stops a "/../" leaving MARKERS.
+    name = re.sub(r"[^A-Za-z0-9-]", "", str(session_id)) or "none"
+    marker = MARKERS / f"review-workflow-{name}"
     if marker.exists():
         return False
     try:
