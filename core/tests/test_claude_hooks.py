@@ -397,7 +397,29 @@ def test_doctor_runs_when_a_session_starts_not_on_resume_or_clear():
     assert hook["timeout"] > start_doctor.DEADLINE
 
 
-BASH = shutil.which("bash")
+def git_bash():
+    """The bash Claude Code runs hook commands with: on Windows, Git Bash, as Claude Code finds it.
+
+    Not the first bash on PATH: from PowerShell or an IDE that's System32's bash.exe, WSL's.
+    """
+    if os.name != "nt":
+        return shutil.which("bash")
+    if configured := os.environ.get("CLAUDE_CODE_GIT_BASH_PATH"):
+        return configured
+    git = shutil.which("git")  # <Git>\cmd\git.exe or <Git>\mingw64\bin\git.exe
+    for folder in Path(git).resolve().parents if git else []:
+        if (bash := folder / "bin" / "bash.exe").is_file():
+            return str(bash)
+    return None
+
+
+BASH = git_bash()
+
+
+@pytest.mark.skipif(os.name != "nt" or BASH is None, reason="WSL's bash is only on Windows")
+def test_hook_commands_run_with_git_bash_not_wsls():
+    # Claude Code runs hooks with Git Bash; System32's bash.exe starts WSL, without our env.
+    assert "system32" not in str(BASH).lower()
 
 
 @pytest.mark.skipif(BASH is None, reason="Claude Code runs hook commands with bash")
