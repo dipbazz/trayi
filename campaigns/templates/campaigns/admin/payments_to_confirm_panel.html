@@ -1,0 +1,43 @@
+{% load i18n wagtailadmin_tags %}
+{% if result.count %}
+    {% blocktrans asvar heading with count=result.count %}Payments to confirm ({{ count }}){% endblocktrans %}
+{% else %}
+    {% trans "Payments to confirm" as heading %}
+{% endif %}
+{% panel id="payments-to-confirm" heading=heading classname="w-panel--dashboard" %}
+    {% comment %}Wagtail's dashboard listing, as in Still to write, draws the line between rows and
+    pads the cell's sides like w-px-6 on the paragraphs. no-padding drops only the cell's top and
+    bottom, so each row is one link filling the row, at least 44px tall (w-py-3 around a line of
+    text), whose own text names the amount and the supporter (#383).{% endcomment %}
+    {% if result.rows %}
+        <table class="listing listing--dashboard">
+            <thead class="w-sr-only">
+                <tr>
+                    <th>{% trans "Payment" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in result.rows %}
+                    <tr>
+                        <td class="title no-padding">
+                            <a class="w-block w-py-3" href="{{ row.url }}">
+                                {% if row.payment %}
+                                    {{ row.amount }} · {{ row.paid_by }} · {{ row.pledge.name }} · {{ row.ago }}
+                                {% else %}
+                                    {{ row.amount }} · {{ row.pledge.name }} · {% trans "Nothing left to confirm" %}
+                                {% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if result.count > result.rows|length %}
+            <p class="w-px-6">
+                <a href="{{ result.see_all_url }}">{% blocktrans with count=result.count %}See all {{ count }}{% endblocktrans %}</a>
+            </p>
+        {% endif %}
+    {% else %}
+        <p class="w-px-6">{% trans "Nothing to confirm. When a supporter says they've paid by QR, their payment shows here." %}</p>
+    {% endif %}
+{% endpanel %}

@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: trayi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-13 12:54+0000\n"
+"POT-Creation-Date: 2026-11-28 14:28+0000\n"
 "PO-Revision-Date: 2026-10-08 00:00+0000\n"
 "Last-Translator: Trayi\n"
 "Language-Team: Nepali\n"
@@ -153,6 +153,26 @@ msgstr "%(name)s ले %(charity)s लाई सहयोग गर्दै �
 #, python-format
 msgid "%(name)s is supporting %(appeal)s"
 msgstr "%(name)s ले %(appeal)s मा सहयोग गर्दै हुनुहुन्छ"
+
+#, python-format
+msgid "Payments to confirm (%(count)s)"
+msgstr "पुष्टि गर्न बाँकी भुक्तानी (%(count)s)"
+
+msgid "Payments to confirm"
+msgstr "पुष्टि गर्न बाँकी भुक्तानी"
+
+msgid "Payment"
+msgstr "भुक्तानी"
+
+msgid "Nothing left to confirm"
+msgstr "पुष्टि गर्न केही बाँकी छैन"
+
+#, python-format
+msgid "See all %(count)s"
+msgstr "सबै %(count)s हेर्नुहोस्"
+
+msgid "Nothing to confirm. When a supporter says they've paid by QR, their payment shows here."
+msgstr "पुष्टि गर्नुपर्ने केही छैन। कुनै सहयोगीले QR बाट भुक्तानी गरेँ भनेपछि, उहाँको भुक्तानी यहाँ देखिन्छ।"
 
 msgid "Filter appeals"
 msgstr "अपिलहरू छान्नुहोस्"
@@ -716,6 +736,21 @@ msgstr "तपाईंको इन्टरनेट जडानबाट भ
 
 msgid "Back to your pledge"
 msgstr "आफ्नो प्रतिबद्धतामा फर्कनुहोस्"
+
+#, python-format
+msgid "%(days)d day ago"
+msgid_plural "%(days)d days ago"
+msgstr[0] "%(days)d दिन अघि"
+msgstr[1] "%(days)d दिन अघि"
+
+#, python-format
+msgid "%(hours)d hour ago"
+msgid_plural "%(hours)d hours ago"
+msgstr[0] "%(hours)d घण्टा अघि"
+msgstr[1] "%(hours)d घण्टा अघि"
+
+msgid "less than an hour ago"
+msgstr "एक घण्टाभन्दा कम समय अघि"
 
 msgid "Page not found"
 msgstr "पृष्ठ फेला परेन"

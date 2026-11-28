@@ -1,15 +1,20 @@
 """Appeals and the pledge form in Nepali (#116): the words around the editors' content."""
 
+import datetime
 import io
 
 import pytest
 from bs4 import BeautifulSoup
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.utils import translation
+from django.urls import reverse
+from django.utils import timezone, translation
 from PIL import Image
+from wagtail.users.models import UserProfile
 
 from campaigns.forms import PledgeForm
-from campaigns.models import Pledge, StepKind
+from campaigns.models import Payment, Pledge, StepKind
+from campaigns.tests.test_qr import make_code
+from campaigns.wagtail_hooks import waited
 from core.models import SiteSettings
 
 pytestmark = pytest.mark.django_db
@@ -557,3 +562,55 @@ class TestOverTheLimitInNepali:
         assert countdown.select_one("[data-countdown-left]").get_text().strip() == "बाँकी समय:"
         done = countdown.select_one("[data-countdown-done]")
         assert done["data-done-text"] == "अब फेरि प्रयास गर्न सक्नुहुन्छ।"
+
+
+class TestPaymentsToConfirmInNepali:
+    """The dashboard's Payments to confirm panel, for a team member whose admin is in Nepali
+    (#383). The pledge's own page stays English for now (#386)."""
+
+    @pytest.fixture
+    def team(self, client, moderator):
+        profile = UserProfile.get_for_user(moderator)
+        profile.preferred_language = "ne"
+        profile.save()
+        client.force_login(moderator)
+        return client
+
+    def test_a_payment_waiting(self, team, donate_page):
+        pledge = Pledge.objects.create(
+            page=donate_page, amount=2500, currency="NPR", name="Sita", email="sita@example.com"
+        )
+        payment = pledge.claim_paid(make_code("eSewa"), "TXN-8841")
+        Payment.objects.filter(pk=payment.pk).update(
+            created_at=timezone.now() - datetime.timedelta(days=2, minutes=5)
+        )
+
+        text = visible_text(team.get(reverse("wagtailadmin_home")))
+
+        assert "पुष्टि गर्न बाँकी भुक्तानी (1)" in text
+        assert "Rs 2,500 · eSewa · Sita · 2 दिन अघि" in text
+        assert "Payments to confirm" not in text and "days ago" not in text
+
+    def test_nothing_waiting(self, team, site):
+        make_code("eSewa")
+
+        text = visible_text(team.get(reverse("wagtailadmin_home")))
+
+        assert "पुष्टि गर्न बाँकी भुक्तानी" in text
+        assert (
+            "पुष्टि गर्नुपर्ने केही छैन। कुनै सहयोगीले QR बाट भुक्तानी गरेँ भनेपछि, उहाँको भुक्तानी यहाँ देखिन्छ।"
+        ) in text
+
+    @pytest.mark.parametrize(
+        ("ago", "said"),
+        [
+            (datetime.timedelta(minutes=20), "एक घण्टाभन्दा कम समय अघि"),
+            (datetime.timedelta(hours=3), "3 घण्टा अघि"),
+            (datetime.timedelta(days=1), "1 दिन अघि"),
+        ],
+    )
+    def test_how_long_ago(self, ago, said):
+        now = timezone.now()
+
+        with translation.override("ne"):
+            assert waited(now - ago, now) == said

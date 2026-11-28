@@ -57,7 +57,7 @@ Some tests guard the whole project rather than one feature:
 | `charity/tests/test_deploy.py` | `.env` stays out of git and the image, and reaches the app; images pinned; tests run on the image's Python; logs capped |
 | `charity/tests/test_production_settings.py` | Production refuses to start half-configured; every app's warnings are logged |
 | `home/tests/test_seed_demo.py` | Every demo page renders |
-| `charity/tests/test_demo_layout_browser.py` | Each kind of demo page at six widths: no sideways scrolling, no tap target under 44px; readable text in every light or dark name bar and footer; the focus ring can be seen on everything Tab reaches; each font style fits; a pledge's page in the admin fits ([QA](#qa)) |
+| `charity/tests/test_demo_layout_browser.py` | Each kind of demo page at six widths: no sideways scrolling, no tap target under 44px; readable text in every light or dark name bar and footer; the focus ring can be seen on everything Tab reaches; each font style fits; a pledge's page in the admin fits, and so does the dashboard with payments to confirm, no word of a row split at 320px ([QA](#qa)) |
 | `charity/tests/test_lighthouse_budgets.py` | Each page's total weight budget is its image budget plus the fixed allowance ([Performance](performance.md)) |
 | `charity/tests/test_changelog.py`, `test_changelog_fragments.py` | The changelog is well-formed, its newest version matches `pyproject.toml`, and `changelog.d/` files are named `<slug>.<group>.md` |
 | `charity/tests/test_docs.py` | The docs sidebar menu isn't hidden |

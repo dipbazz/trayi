@@ -1,0 +1,18 @@
+{% extends "wagtailadmin/generic/base.html" %}
+{% load wagtailadmin_tags %}
+
+{# Asked first, as Stop showing is: the supporter's page changes at once (#383). `next_url` is where the pledge's page was opened from, passed on so the team goes back there. #}
+{% block titletag %}Mark {{ pledge.name }}'s {{ payment.display_amount }} not found{% endblock %}
+
+{% block main_content %}
+    <p>This tells {{ pledge.name }} you couldn't find {{ payment.display_amount }} in your statement. You can still mark it paid if it turns up.</p>
+    <form method="post" action="{% url 'pledges:not_found' pledge.pk payment.pk %}">
+        {% csrf_token %}
+        {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+        <button type="submit" class="button button-longrunning" data-controller="w-progress" data-action="w-progress#activate" data-w-progress-active-value="Sending…">
+            {% icon name="spinner" %}
+            <em data-w-progress-target="label">Mark not found</em>
+        </button>
+        <a href="{{ cancel_url }}" class="button button-secondary">Cancel</a>
+    </form>
+{% endblock %}

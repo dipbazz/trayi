@@ -322,16 +322,55 @@ your payment, say from a tab opened before it started) goes to the online page i
 The choices send a pledge in To confirm to the checking page, and one in Not found to the QR
 page (`STATE_ROUTES`).
 
+**Payments to confirm** is the first panel on the dashboard, for people with **Can confirm
+payments** only (#383): every pledge To confirm, the supporter who said they paid longest ago
+first (they've waited longest, and their screenshot goes first). Each row is one link to the
+pledge, at least 44px tall: "Rs 2,500 · eSewa · Sita Sharma · 2 days ago" (the QR code's name as
+it was then, so a removed code still shows). It lists 10, then "See all 14" opens the Pledges list
+filtered To confirm; the panel reads the pledge's status, as that filter does, so the two agree.
+With nothing waiting it says "Nothing to confirm…" once a QR code is set up, and isn't shown on a
+site with none. A pledge To confirm with no payment left to confirm (a QR payment marked not found
+while an older eSewa or Khalti try still waits, #385) shows "Nothing left to confirm" rather than
+failing the dashboard. It's in Nepali where the admin is; the pledge's own page is English for now
+(#386). It runs at most three queries however many are waiting
+(`campaigns/wagtail_hooks.py`, `payments_to_confirm()`).
+
 **The team confirms from the pledge** (Pledges → open one). Each payment is listed with its steps
 (the supporter said they paid, marked paid by …). Someone with **Can confirm payments**
-(`campaigns.confirm_payment`, given to Moderators; editors still only read pledges) sees two
-actions on a QR payment, and only on one: **Mark as paid** takes the date received, the amount
-received (a text box that accepts "1,00,000", as every admin amount does) and the reference from
-the statement (the supporter's transaction ID to start with), set
-once, as the payment becomes paid. The date can't be after today or before the pledge was sent (a
-Bikram Sambat year such as 2083 is refused), and the amount can't be more than a pledge can be (999,999). A different amount marks the pledge paid and makes the pay page
-say it received that amount. **Not found** fails the payment; it can still be marked paid later
-if it turns up. Each adds a step with who did it. eSewa and Khalti payments can't be marked by
+(`campaigns.confirm_payment`, given to Moderators; editors still only read pledges) sees a QR
+payment To confirm first, above Contact, in **Confirm this payment** (#383): "Sita Sharma says
+they paid Rs 2,500 by eSewa on 26 Nov 2026, 3:40 p.m.", the transaction ID and the screenshot they
+sent, and a line in place of what's missing ("They didn't give a transaction ID.", "They didn't
+send a screenshot, only the transaction ID.", "Their screenshot was deleted after 30 days.", or,
+when the file has gone, "Their screenshot can't be opened"); then "Check your statement first.",
+the Mark as paid form, and "Can't find it in your statement?" with **Not found**. The payment's
+own entry further down says its screenshot is shown above.
+
+**Mark as paid** takes the date received (today to start with), the amount received (the
+payment's, in a text box that accepts "1,00,000", as every admin amount does) and the reference
+from the statement, set once, as the payment becomes paid. The reference starts empty under
+"They said: 7ZK0L3", the supporter's transaction ID, so a copied ID is never taken for one found
+in the statement. The date can't be after today or before the pledge was sent (a Bikram Sambat
+year such as 2083 is refused), and the amount can't be more than a pledge can be (999,999). A
+mistake shows the page again with what was typed and each mistake by its box. A different amount
+marks the pledge paid, makes the pay page say it received that amount, and is said once, as the
+dashboard doesn't list it: "Marked Sita Sharma's Rs 2,000 paid. The pledge was for Rs 2,500, so it
+now says Needs checking." The button says "Saving…" after one tap, so a slow network sends it once.
+
+**Not found** asks first, as Stop showing does, since the supporter's page changes at once: "This
+tells Sita Sharma you couldn't find Rs 2,500 in your statement. You can still mark it paid if it
+turns up.", with **Mark not found** ("Sending…" after one tap) and Cancel. It fails the payment
+and deletes the screenshot; the payment's entry at the end of the page then keeps a Mark as paid
+form, Reference empty, for when it turns up. Each adds a step with who did it.
+
+Opened from the dashboard's panel or the Pledges list filtered To confirm, both actions and
+Cancel go back there ("Marked Sita Sharma's Rs 2,500 paid.", or "… not found."), and the row has
+gone; opened from anywhere else, they stay on the pledge's page. Only an address on this site
+with no host counts (`way_back()` in `campaigns/views.py`). Once someone else has dealt with it,
+either action says what happened instead and goes the same way back: "Ram Thapa already marked
+Sita Sharma's Rs 2,500 paid on 26 Nov 2026, 4:02 p.m." (information), or, as a warning since they
+may have paid twice, that another payment already paid the pledge. The pledge's page opened from
+the dashboard then says the same, with a link back. eSewa and Khalti payments can't be marked by
 hand, and `Payment.ask()` returns nothing for a QR payment, so a scheduled check (#198) never
 touches one.
 

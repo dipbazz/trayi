@@ -46,6 +46,37 @@
         </div>
         {# The answer to "is it paid?", as the list says it, and why. #}
         <p class="pledge-answer">{% status payment_word classname=payment_word_class %} {{ payment_reason }}</p>
+        {# Opened from the dashboard or the filtered list once someone else has dealt with it (#383). #}
+        {% if done %}<p class="pledge-done">{{ done }} <a class="contact-link" href="{{ next_url }}">{{ back_label }}</a></p>{% endif %}
+
+        {# The payment To confirm comes first, with what the supporter sent, so the team can check it against its statement on the first screen (#383). #}
+        {% if confirm %}
+            {% with payment=confirm.payment %}
+                {% panel id="confirm" heading="Confirm this payment" %}
+                    <p>{{ confirm.said }}</p>
+                    <dl>
+                        {% if payment.supporters_reference %}
+                            <dt>Transaction ID</dt>
+                            <dd>{{ payment.supporters_reference }}</dd>
+                        {% endif %}
+                        {% if confirm.screenshot %}
+                            <dt>Screenshot of the receipt</dt>
+                            <dd>
+                                {% url 'pledges:receipt' pledge.pk payment.pk as receipt_url %}
+                                <a href="{{ receipt_url }}"><img src="{{ receipt_url }}" alt="The supporter's screenshot of their receipt" style="display: block; width: min(100%, 20rem); height: auto"></a>
+                                <p>Deleted once you mark the payment paid or not found.</p>
+                            </dd>
+                        {% endif %}
+                    </dl>
+                    {% for line in confirm.missing %}<p>{{ line }}</p>{% endfor %}
+                    <p>Check your statement first.</p>
+                    {% include "campaigns/admin/mark_paid_form.html" %}
+                    <h3>Can't find it in your statement?</h3>
+                    {# A page that asks first (not_found_view), passing on the way back. #}
+                    <p><a class="button button-secondary" href="{{ confirm.not_found_url }}">Not found</a></p>
+                {% endpanel %}
+            {% endwith %}
+        {% endif %}
 
         {% panel id="contact" heading="Contact" %}
             <dl>
@@ -137,7 +168,9 @@
                                     <dt>Screenshot of the receipt</dt>
                                     {# Deleted once the payment is marked paid or not found, or after 30 days. #}
                                     <dd>
-                                        {% if can_confirm %}
+                                        {% if payment == confirm.payment %}
+                                            Shown above, under Confirm this payment.
+                                        {% elif can_confirm %}
                                             {% url 'pledges:receipt' pledge.pk payment.pk as receipt_url %}
                                             <a href="{{ receipt_url }}"><img src="{{ receipt_url }}" alt="The supporter's screenshot of their receipt" style="display: block; width: min(100%, 20rem); height: auto"></a>
                                             <p>Deleted once you mark the payment paid or not found.</p>
@@ -174,33 +207,11 @@
                             </form>
                         {% endif %}
 
-                        {# Only payments the team confirms, and only for people who may: eSewa and Khalti payments are never marked by hand. #}
-                        {% if can_confirm and payment.team_confirms and payment.status != "paid" %}
-                            <form method="post" action="{% url 'pledges:mark_paid' pledge.pk payment.pk %}">
-                                {% csrf_token %}
-                                <h4>Mark as paid</h4>
-                                <p>Check the amount and reference in your wallet or bank statement first.</p>
-                                <p>
-                                    <label for="received-on-{{ payment.pk }}">Date received</label>
-                                    <input type="date" id="received-on-{{ payment.pk }}" name="received_on" value="{{ today|date:'Y-m-d' }}" min="{{ pledge.created_at|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" required>
-                                </p>
-                                <p>
-                                    <label for="amount-{{ payment.pk }}">Amount received</label>
-                                    {# A text box with the number keypad: a number input changes when scrolled over (#97). #}
-                                    <input type="text" inputmode="numeric" id="amount-{{ payment.pk }}" name="amount" value="{{ payment.amount }}" autocomplete="off" required>
-                                </p>
-                                <p>
-                                    <label for="reference-{{ payment.pk }}">Reference from the statement</label>
-                                    <input type="text" id="reference-{{ payment.pk }}" name="reference" maxlength="100" value="{{ payment.supporters_reference }}" required>
-                                </p>
-                                <button type="submit" class="button">Mark as paid</button>
-                            </form>
-                            {% if payment.status == "to-confirm" %}
-                                <form method="post" action="{% url 'pledges:not_found' pledge.pk payment.pk %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="button button-secondary">Not found</button>
-                                </form>
-                            {% endif %}
+                        {# A payment marked not found can still be marked paid if it turns up. Only payments the team confirms get a form, and only for people who may (confirming()): eSewa and Khalti payments are never marked by hand. The one To confirm has its form in the block at the top. #}
+                        {% if payment.mark_paid_form and payment != confirm.payment %}
+                            <h4>Mark as paid</h4>
+                            <p>Check the amount and reference in your wallet or bank statement first.</p>
+                            {% include "campaigns/admin/mark_paid_form.html" %}
                         {% endif %}
                     </details>
                 {% endwith %}
