@@ -174,6 +174,54 @@ def test_a_pledges_page_in_the_admin_fits_and_can_be_tapped_at_every_width(
     assert not problems, "\n".join(problems)
 
 
+# Each word of the Payments to confirm rows that the browser split over two lines.
+BROKEN_WORDS = """
+() => [...document.querySelectorAll("#payments-to-confirm-section tbody a")].flatMap((link) => {
+    // The row's text is one text node: amount · way · name · how long ago.
+    const node = link.firstChild;
+    const broken = [];
+    for (const match of node.textContent.matchAll(/\\S+/g)) {
+        const range = document.createRange();
+        range.setStart(node, match.index);
+        range.setEnd(node, match.index + match[0].length);
+        if (range.getClientRects().length > 1) {
+            broken.push(`"${match[0]}" in "${link.textContent.trim()}"`);
+        }
+    }
+    return broken;
+})
+"""
+
+
+def test_the_dashboard_with_payments_to_confirm_fits_and_can_be_tapped_at_every_width(
+    site_page, client, demo_site, moderator
+):
+    """The team opens the dashboard on a phone to see who says they've paid (#383): each row is
+    one link at least 44px tall, and at 320px a long name wraps between words, never inside one.
+    Eleven waiting, so "See all" shows too."""
+    page = DonatePage.objects.live().first()
+    for n in range(11):
+        Pledge.objects.create(
+            page=page,
+            amount=25000,
+            currency="NPR",
+            name="Bhagirathi Shrestha-Chaudhary" if n == 0 else f"Sita Sharma {n}",
+            email="sita@example.com",
+        ).claim_paid(QRCode.objects.first(), "TXN-8841")
+    client.force_login(moderator)
+
+    problems = layout_problems(
+        site_page,
+        reverse("wagtailadmin_home"),
+        tap_targets="#payments-to-confirm-section tbody a",
+    )
+    site_page.set_viewport_size({"width": 320, "height": 800})
+    site_page.goto(SITE + reverse("wagtailadmin_home"))
+    problems += [f"320px: {word} is split" for word in site_page.evaluate(BROKEN_WORDS)]
+
+    assert not problems, "\n".join(problems)
+
+
 # The fill the eye sees where `layers` (topmost first) overlap: each one's background laid over
 # those below it and the white page, so a see-through fill counts as the colour it shows.
 SEEN_FILL = r"""
