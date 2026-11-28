@@ -1415,6 +1415,7 @@ dev = [
     { name = "pytest-django" },
     { name = "pytest-playwright" },
     { name = "python-dotenv" },
+    { name = "pyyaml" },
     { name = "ruff" },
     { name = "wagtail-factories" },
 ]
@@ -1442,6 +1443,7 @@ dev = [
     { name = "pytest-django", specifier = ">=4.14.0" },
     { name = "pytest-playwright", specifier = ">=0.9.0" },
     { name = "python-dotenv", specifier = ">=1.2.4" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "ruff", specifier = ">=0.16.9" },
     { name = "wagtail-factories", specifier = ">=4.5.0" },
 ]

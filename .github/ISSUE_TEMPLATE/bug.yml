@@ -37,6 +37,13 @@ body:
     validations:
       required: true
   - type: textarea
+    id: principles
+    attributes:
+      label: Principles
+      description: "Answer the [Principles questions](https://github.com/dipbazz/trayi/blob/main/docs/contributing/index.md#principles), a line or two each. Leave blank if you're reporting only: whoever fixes it answers these in the pull request's Principles section."
+    validations:
+      required: false
+  - type: textarea
     id: done-when
     attributes:
       label: Done when
