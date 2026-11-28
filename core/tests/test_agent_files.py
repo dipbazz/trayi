@@ -1,14 +1,24 @@
-"""CLAUDE.md pulls in AGENTS.md, each agent's personal override file stays out of git, and the
-workflow skill's pointers into docs/ lead somewhere."""
+"""CLAUDE.md pulls in AGENTS.md, each agent's personal override file stays out of git, the
+workflow skill's pointers into docs/ and the GitHub templates' links to docs/ lead somewhere,
+and the issue forms and pull request template ask for the Principles answers."""
 
 import re
 import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW_SKILL = ROOT / ".claude" / "skills" / "workflow" / "SKILL.md"
+ISSUE_FORMS = ["bug.yml", "docs.yml", "feature.yml"]
+PR_TEMPLATE = ".github/pull_request_template.md"
+# Absolute, because a relative link in an issue or pull request body resolves against the
+# issue's own URL, not the repository.
+PRINCIPLES_URL = "https://github.com/dipbazz/trayi/blob/main/docs/contributing/index.md#principles"
+DOCS_URL = re.compile(
+    r"https://github\.com/dipbazz/trayi/blob/main/(docs/[^\s#)\"'>]+\.md)(?:#([\w-]+))?"
+)
 # A pointer names a docs file by its repo path, and a section by its exact heading:
 # `docs/contributing/reviews.md`, "When a review is done"
 # or by an anchor: `docs/contributing/reviews.md#when-a-review-is-done`
@@ -105,3 +115,58 @@ def test_workflow_skill_names_docs_by_path():
     named = BACKTICKED_MD.findall(WORKFLOW_SKILL.read_text(encoding="utf-8"))
     bare = sorted({name for name in named if not name.startswith("docs/") and name in docs_names})
     assert not bare, f"name these by their path from the repo root, docs/...: {bare}"
+
+
+def broken_links(text):
+    """The links to docs/ on GitHub in text whose file or #anchor doesn't exist."""
+    broken = []
+    for doc, anchor in DOCS_URL.findall(text):
+        if not (ROOT / doc).is_file():
+            broken.append(doc)
+        elif anchor and anchor not in _anchors(ROOT / doc):
+            broken.append(f"{doc}#{anchor}")
+    return broken
+
+
+def test_github_templates_link_to_docs_that_exist():
+    # The docs build checks only links inside docs/, and GitHub shows the templates only from
+    # main, so a renamed heading would leave every new issue linking to nothing.
+    files = [path for path in (ROOT / ".github").rglob("*") if path.suffix in {".md", ".yml"}]
+    text = "\n".join(path.read_text(encoding="utf-8") for path in files)
+    assert DOCS_URL.search(text), "no link to docs/ in .github/: has the address changed?"
+    broken = broken_links(text)
+    assert not broken, f".github/ links to what doesn't exist: {broken}"
+
+
+@pytest.mark.parametrize(
+    "link",
+    [
+        "https://github.com/dipbazz/trayi/blob/main/docs/contributing/index.md#no-such-section",
+        "https://github.com/dipbazz/trayi/blob/main/docs/contributing/no-such-page.md#principles",
+    ],
+)
+def test_a_broken_docs_link_is_caught(link):
+    assert broken_links(link)
+
+
+@pytest.mark.parametrize(
+    "path", [*(f".github/ISSUE_TEMPLATE/{f}" for f in ISSUE_FORMS), PR_TEMPLATE]
+)
+def test_template_links_the_principles(path):
+    assert PRINCIPLES_URL in (ROOT / path).read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("form", ISSUE_FORMS)
+def test_issue_form_has_a_principles_box(form):
+    # A textarea, so the filed issue keeps a "### Principles" heading with the answers; required
+    # only on Feature, so an editor or visitor can still report a bug or a docs problem.
+    body = yaml.safe_load((ROOT / ".github" / "ISSUE_TEMPLATE" / form).read_text(encoding="utf-8"))[
+        "body"
+    ]
+    ids = [element.get("id") for element in body]
+    assert "principles" in ids, f"{form} has no principles box"
+    box = body[ids.index("principles")]
+    assert box["type"] == "textarea"
+    assert box["attributes"]["label"] == "Principles"
+    assert box.get("validations", {}).get("required", False) is (form == "feature.yml")
+    assert ids.index("what-needs-to-be-done") < ids.index("principles") < ids.index("done-when")

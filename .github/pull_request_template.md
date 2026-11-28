@@ -4,6 +4,13 @@ Closes #
 
 <!-- 2-4 bullets, for the person using the site or the admin. The why goes in the commit messages. -->
 
+## Principles
+
+<!-- The questions: https://github.com/dipbazz/trayi/blob/main/docs/contributing/index.md#principles
+     One line: "In #n" when the issue answers them. Otherwise answer them here, briefly (an older
+     issue, or the build changed them). Delete only for a pull request with no issue, such as
+     Dependabot's. -->
+
 ## Check before merging
 
 <!-- One box per page and width to look at in the browser, and what to look for, so whoever

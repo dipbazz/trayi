@@ -88,8 +88,10 @@ bundle it into a fix.
    once per clone), and CI runs the whole suite on every push.
 7. **Open a pull request** against `main`. It gets the milestone of the issue it closes
    automatically (the `Milestone` workflow), unless you set one yourself. Its description is short
-   and follows the template: what changed, what to check in the browser before merging, and
-   anything the reviewer must act on; the why goes in the commit messages. Pull requests aren't
+   and follows the template: what changed, the [Principles](#principles) answers (or "In #n"
+   when the issue has them), what to check in the browser before merging, and anything the
+   reviewer must act on; the why goes in the commit messages. Writing the body yourself
+   (`gh --body`)? Use the form's (or the template's) headings, Principles included. Pull requests aren't
    stacked on each other. Straight after opening it, check its changelog file (or the
    `no changelog` label), that it has a milestone, that its issue's board card moved to
    *In review* by itself ([how](releases.md#the-project-board)) and the docs pages it describes. On your first pull request, the CLA Assistant bot asks you to sign the

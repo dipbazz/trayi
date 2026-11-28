@@ -8,7 +8,10 @@ and planned as a milestone on the [project board](#the-project-board).
 
 Open issues with the forms in `.github/ISSUE_TEMPLATE/`: bug, feature or docs. Write them from
 the point of view of the person using the site or the admin: what they're trying to do and what
-gets in their way, not the code change.
+gets in their way, not the code change. Each form has a Principles box for the answers to the
+[Principles](index.md#principles) questions: required on a feature, optional on a bug or docs
+report, whose fixer answers them in the pull request instead. Writing the body yourself
+(`gh --body`)? Use the form's (or the template's) headings, Principles included.
 
 Labels:
 
