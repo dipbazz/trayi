@@ -157,6 +157,11 @@ demo, `seed_demo` adds nothing, so the rebuild starts from an empty one.
 keep them, first run `uv run python manage.py backup_site <a folder outside the clone>`
 ([Hosting](../hosting.md#backups) describes it).
 
+If your `.env.local` sets `DJANGO_LANGUAGE_CODE=ne` ([Nepali-first](#see-the-site-nepali-first)),
+put its `#` back before you start, and unset the variable if your shell sets it too, since the
+shell wins over the file: `seed_demo` refuses a Nepali-first site, because the demo is
+English-first. Remove the `#` again once the demo is built.
+
 With `runserver` stopped, delete the database and both upload folders from the project folder.
 All three are gitignored. In Git Bash, macOS or Linux:
 
@@ -182,11 +187,6 @@ uv run python manage.py createsuperuser
 ```
 
 If `seed_demo` says "Demo content already exists", the database wasn't deleted.
-
-If your `.env.local` sets `DJANGO_LANGUAGE_CODE=ne` ([Nepali-first](#see-the-site-nepali-first)),
-put its `#` back before `migrate`, and unset the variable if your shell sets it too, since the
-shell wins over the file: `seed_demo` refuses a Nepali-first site, because the demo is
-English-first. Remove the `#` again afterwards.
 
 **With Docker** ([Run it as the live site runs it](#run-it-as-the-live-site-runs-it)), run
 `docker compose up --build` after a pull, with `docker compose down --volumes` first for a fresh
