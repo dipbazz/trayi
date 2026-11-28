@@ -423,16 +423,26 @@ def test_dependencies_out_of_date_leave_migrations_unchecked(clone, capsys, uv, 
     assert not [call for call in uv.calls() if call[0] == "run"]
 
 
+VENV_IN_USE = (
+    "error: failed to remove file `.venv\\Lib\\x.pyd`: The process cannot access the "
+    "file because it is being used by another process. (os error 32)\n"
+)
+
+
 def test_a_venv_in_use_on_windows_warns(clone, capsys, uv):
-    uv.answer(
-        "sync",
-        code=2,
-        err="error: failed to remove file `.venv\\Lib\\x.pyd`: The process cannot access the "
-        "file because it is being used by another process. (os error 32)\n",
-    )
+    uv.answer("sync", code=2, err=VENV_IN_USE)
     code, out = run(clone, capsys)
     assert code == 0
     assert line(out, "⚠️ .venv is in use by another program")
+
+
+def test_a_venv_in_use_leaves_migrations_unchecked(clone, capsys, uv):
+    # The old packages are still installed, so Django could fail with a second error.
+    uv.answer("sync", code=2, err=VENV_IN_USE)
+    code, out = run(clone, capsys)
+    assert code == 0
+    assert line(out, "⚠️ migrations not checked until the dependencies match uv.lock")
+    assert not [call for call in uv.calls() if call[0] == "run"]
 
 
 # pre-commit hooks

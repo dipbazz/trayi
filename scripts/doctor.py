@@ -236,6 +236,7 @@ def check_dependencies(report):
     if code == 0:
         report.line(OK, "dependencies match uv.lock")
     elif "os error 32" in err:
+        report.dependencies_ok = False
         report.line(
             WARN,
             ".venv is in use by another program (runserver or your editor?): stop it, "
