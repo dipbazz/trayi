@@ -303,7 +303,7 @@ def check_database(report):
         report.line(WARN, "migrations not checked: install uv first")
         return
     if not report.dependencies_ok:
-        # Django would fail on a missing package, a second error with a different fix.
+        # Django would run on missing or outdated packages, a second error with a different fix.
         report.line(WARN, "migrations not checked until the dependencies match uv.lock")
         return
     env = dict(os.environ, DJANGO_SETTINGS_MODULE="charity.settings.dev")
