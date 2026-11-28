@@ -236,6 +236,7 @@ def check_dependencies(report):
     if code == 0:
         report.line(OK, "dependencies match uv.lock")
     elif "os error 32" in err:
+        report.dependencies_ok = False
         report.line(
             WARN,
             ".venv is in use by another program (runserver or your editor?): stop it, "
@@ -302,7 +303,7 @@ def check_database(report):
         report.line(WARN, "migrations not checked: install uv first")
         return
     if not report.dependencies_ok:
-        # Django would fail on a missing package, a second error with a different fix.
+        # Django would run on missing or outdated packages, a second error with a different fix.
         report.line(WARN, "migrations not checked until the dependencies match uv.lock")
         return
     env = dict(os.environ, DJANGO_SETTINGS_MODULE="charity.settings.dev")
