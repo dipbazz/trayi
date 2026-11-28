@@ -138,8 +138,7 @@ is a warning, and the other checks still run. It ends with an exit code tools ca
 
 When other work has merged into `main` since you last worked here, catch up before you start:
 
-1. **Stop `runserver`** if it's running. While it runs, doctor can't sync the dependencies, and on
-   Windows the database can't be deleted.
+1. **Stop `runserver`** if it's running. While it runs, doctor can't sync the dependencies.
 2. **Commit or stash your changes, then `git switch main`,** unless you're carrying on with a
    branch. Doctor gives the pull command only on `main`; on your own branch it says to rebase or
    merge.
@@ -175,8 +174,7 @@ In PowerShell:
 'db.sqlite3','media','receipts' | Where-Object { Test-Path $_ } | Remove-Item -Recurse -Force
 ```
 
-It skips a folder that isn't there, but shows an error if a file is in use: stop `runserver`, then
-run it again.
+It skips a folder that isn't there.
 
 Then build the demo again. The old login went with the database, so create a superuser too:
 
