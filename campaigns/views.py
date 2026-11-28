@@ -344,9 +344,13 @@ class PledgeInspectView(InspectView):
             None,
         )
         if claim:
+            not_found_url = reverse("pledges:not_found", args=[pledge.pk, claim.pk])
             return {
                 "confirm": {
                     "payment": claim,
+                    "not_found_url": (
+                        opened_from(not_found_url, next_url) if next_url else not_found_url
+                    ),
                     "said": ended(
                         f"{pledge.name} says they paid {claim.display_amount()} by "
                         f"{paid_how(claim)} on {when(claim.created_at)}"
@@ -550,9 +554,31 @@ class PledgeViewSet(ModelViewSet):
             self.say_why_not(request, payment, "This payment can't be marked paid.")
         return self.go_back(request, pk)
 
-    @method_decorator(require_POST)
     def not_found_view(self, request, pk, payment_pk):
+        """Not found: asks first, as Stop showing does, since the supporter's page says at once
+        that the payment wasn't found (#383). Marking it fails the payment and deletes the
+        screenshot; Mark as paid can still undo it. Then back where the team came from. Opened
+        once the payment is dealt with, it says why and goes back instead of asking."""
         payment = self.confirmable_payment(request, pk, payment_pk)
+        if request.method != "POST":
+            if payment.status != PaymentStatus.TO_CONFIRM:
+                self.say_why_not(request, payment, "This payment can't be marked not found.")
+                return self.go_back(request, pk)
+            next_url = way_back(request)
+            pledge_url = reverse("pledges:inspect", args=[pk])
+            return TemplateResponse(
+                request,
+                "campaigns/admin/not_found.html",
+                {
+                    "pledge": payment.pledge,
+                    "payment": payment,
+                    "next_url": next_url,
+                    "cancel_url": opened_from(pledge_url, next_url) if next_url else pledge_url,
+                    "page_title": "Mark not found",
+                    "page_subtitle": payment.pledge.name,
+                    "header_icon": "doc-full",
+                },
+            )
         if payment.mark_not_found(request.user):
             messages.success(
                 request, f"Marked {payment.pledge.name}'s {payment.display_amount()} not found."

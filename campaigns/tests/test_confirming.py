@@ -92,6 +92,12 @@ def block(page):
     return page.find(id="confirm-section")
 
 
+def ask_not_found(client, payment, came_from=""):
+    """The page Not found opens, which asks before marking the payment."""
+    query = f"?{urlencode({'next': came_from})}" if came_from else ""
+    return BeautifulSoup(client.get(not_found_url(payment) + query).content, "html.parser")
+
+
 def said(response):
     """The messages a response leaves, as (level, text)."""
     return [(m.level, m.message) for m in get_messages(response.wsgi_request)]
@@ -185,7 +191,7 @@ class TestTheConfirmBlock:
         found = block(open_page(client, claimed.pledge))
 
         assert "Can't find it in your statement?" in text(found)
-        assert found.select_one(f"form[action='{not_found_url(claimed)}'] .button-secondary")
+        assert found.select_one(f"a.button-secondary[href='{not_found_url(claimed)}']")
 
     def test_an_editor_sees_none(self, client, editor, claimed):
         client.force_login(editor)
@@ -223,6 +229,77 @@ def test_the_way_back_is_only_this_site_s_dashboard_or_filtered_list(came_from, 
     assert way_back(request) == (came_from if kept else "")
 
 
+class TestNotFoundAsksFirst:
+    """Not found opens a page that says what it does, as Stop showing's does (#383, D8)."""
+
+    def test_says_what_it_tells_the_supporter(self, client, team, claimed):
+        page = ask_not_found(client, claimed)
+
+        assert (
+            "This tells Sita Sharma you couldn't find Rs 2,500 in your statement. You can still "
+            "mark it paid if it turns up." in text(page)
+        )
+        assert page.select_one(f"form[action='{not_found_url(claimed)}'] button").get_text(
+            strip=True
+        ) == ("Mark not found")
+        assert page.find("a", string="Cancel")["href"] == inspect_url(claimed.pledge)
+
+    def test_asking_changes_nothing(self, client, team, claimed):
+        ask_not_found(client, claimed)
+
+        claimed.refresh_from_db()
+        assert claimed.status == PaymentStatus.TO_CONFIRM
+        assert claimed.receipt  # the screenshot is still there to check
+        assert not claimed.steps.filter(kind=StepKind.NOT_FOUND).exists()
+
+    def test_marking_it_fails_the_payment_and_deletes_the_screenshot(self, client, team, claimed):
+        # Deleted as the privacy notice says (D22); Mark as paid can still undo it.
+        client.post(not_found_url(claimed))
+
+        claimed.refresh_from_db()
+        assert claimed.status == PaymentStatus.FAILED
+        assert not claimed.receipt
+
+    def test_an_editor_can_neither_ask_nor_mark(self, client, editor, claimed):
+        client.force_login(editor)
+
+        # Each refused with Wagtail's "you do not have permission", on the dashboard.
+        for response in (client.get(not_found_url(claimed)), client.post(not_found_url(claimed))):
+            assert (response.status_code, response.url) == (302, DASHBOARD)
+        claimed.refresh_from_db()
+        assert claimed.status == PaymentStatus.TO_CONFIRM
+
+    def test_opened_once_it_s_done_says_why_and_goes_back(self, client, team, claimed, ram):
+        # From a tab left open: it doesn't ask about a payment already dealt with.
+        claimed.mark_paid(ram, timezone.localdate(), 2500, "RBB-77")
+        at = claimed.steps.get(kind=StepKind.MARKED_PAID).at
+
+        response = client.get(f"{not_found_url(claimed)}?{urlencode({'next': DASHBOARD})}")
+
+        assert (response.status_code, response.url) == (302, DASHBOARD)
+        assert said(response) == [
+            (messages.INFO, f"Ram Thapa already marked Sita Sharma's Rs 2,500 paid on {when(at)}")
+        ]
+
+
+@pytest.mark.parametrize(
+    ("page", "button", "busy"),
+    [
+        (lambda client, claimed: open_page(client, claimed.pledge), "Mark as paid", "Saving…"),
+        (ask_not_found, "Mark not found", "Sending…"),
+    ],
+)
+def test_a_tapped_button_says_it_s_busy(client, team, claimed, page, button, busy):
+    # Wagtail's own busy state (D6): greyed out after one tap, so a slow network sends one.
+    label = page(client, claimed).find("em", string=button)
+    tapped = label.find_parent("button")
+
+    assert tapped["data-controller"] == "w-progress"
+    assert tapped["data-action"] == "w-progress#activate"
+    assert tapped["data-w-progress-active-value"] == busy
+    assert label["data-w-progress-target"] == "label"
+
+
 class TestTheWayBack:
     @pytest.mark.parametrize("came_from", [DASHBOARD, to_confirm_list_url()])
     def test_mark_as_paid_goes_back(self, client, team, claimed, came_from):
@@ -250,15 +327,29 @@ class TestTheWayBack:
     @pytest.mark.parametrize("came_from", [DASHBOARD, to_confirm_list_url()])
     def test_the_pledge_page_passes_it_on_to_both_forms(self, client, team, claimed, came_from):
         page = open_page(client, claimed.pledge, came_from)
+        form = page.select_one(f"form[action='{mark_paid_url(claimed)}']")
+        asking = urlencode({"next": came_from})
 
-        for action in (mark_paid_url(claimed), not_found_url(claimed)):
-            form = page.select_one(f"form[action='{action}']")
-            assert form.find("input", attrs={"name": "next"})["value"] == came_from
+        assert form.find("input", attrs={"name": "next"})["value"] == came_from
+        assert block(page).select_one(f"a[href='{not_found_url(claimed)}?{asking}']")
+
+    @pytest.mark.parametrize("came_from", [DASHBOARD, to_confirm_list_url()])
+    def test_the_not_found_page_passes_it_on(self, client, team, claimed, came_from):
+        page = ask_not_found(client, claimed, came_from)
+
+        assert page.find("input", attrs={"name": "next"})["value"] == came_from
+        assert page.find("a", string="Cancel")["href"] == inspect_url(claimed.pledge, came_from)
 
     def test_the_pledge_page_drops_another_site(self, client, team, claimed):
         page = open_page(client, claimed.pledge, "https://evil.example/admin/")
 
         assert not page.find("input", attrs={"name": "next"})
+
+    def test_the_not_found_page_drops_another_site(self, client, team, claimed):
+        page = ask_not_found(client, claimed, "https://evil.example/admin/")
+
+        assert not page.find("input", attrs={"name": "next"})
+        assert page.find("a", string="Cancel")["href"] == inspect_url(claimed.pledge)
 
     def test_the_dashboard_s_rows_carry_it(self, client, team, claimed):
         page = BeautifulSoup(client.get(DASHBOARD).content, "html.parser")

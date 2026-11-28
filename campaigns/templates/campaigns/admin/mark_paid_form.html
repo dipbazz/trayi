@@ -8,5 +8,9 @@
         {% formattedfield form.amount %}
         {% formattedfield form.reference %}
     {% endwith %}
-    <button type="submit" class="button">Mark as paid</button>
+    {# Wagtail's busy state: greyed out after one tap, so a slow network sends it once. #}
+    <button type="submit" class="button button-longrunning" data-controller="w-progress" data-action="w-progress#activate" data-w-progress-active-value="Saving…">
+        {% icon name="spinner" %}
+        <em data-w-progress-target="label">Mark as paid</em>
+    </button>
 </form>

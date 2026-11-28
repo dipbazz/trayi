@@ -72,11 +72,8 @@
                     <p>Check your statement first.</p>
                     {% include "campaigns/admin/mark_paid_form.html" %}
                     <h3>Can't find it in your statement?</h3>
-                    <form method="post" action="{% url 'pledges:not_found' pledge.pk payment.pk %}">
-                        {% csrf_token %}
-                        {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
-                        <button type="submit" class="button button-secondary">Not found</button>
-                    </form>
+                    {# A page that asks first (not_found_view), passing on the way back. #}
+                    <p><a class="button button-secondary" href="{{ confirm.not_found_url }}">Not found</a></p>
                 {% endpanel %}
             {% endwith %}
         {% endif %}
