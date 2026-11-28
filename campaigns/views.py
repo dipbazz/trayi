@@ -1,7 +1,7 @@
 import datetime
 import re
 import uuid
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.cache import add_never_cache_headers
 from django.utils.decorators import method_decorator
 from django.utils.formats import date_format
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from wagtail.admin.ui.tables import Column
 from wagtail.admin.views.generic import DeleteView, EditView, IndexView, InspectView
@@ -25,7 +26,15 @@ from wagtail.snippets.views.snippets import SnippetViewSet
 
 from campaigns import sharing
 from campaigns.forms import MarkPaidForm
-from campaigns.models import ASK_AGAIN_AFTER, Payment, PaymentStatus, Pledge, QRCode
+from campaigns.models import (
+    ASK_AGAIN_AFTER,
+    RECEIPTS_KEPT_FOR,
+    Payment,
+    PaymentStatus,
+    Pledge,
+    QRCode,
+    StepKind,
+)
 from core.exports import VisitorTextExportMixin
 from core.images import UPLOAD_CONTENT_TYPES
 from core.number_fields import number_formfield
@@ -35,6 +44,14 @@ class PledgeIndexView(VisitorTextExportMixin, IndexView):
     def get_base_queryset(self):
         # The export's "Paid with" reads each pledge's payments: fetched together, not one by one.
         return super().get_base_queryset().prefetch_related("payments")
+
+    def get_inspect_url(self, instance):
+        """Filtered To confirm, the list is a place to come back to once a payment is marked
+        (#383), so its pledges' links say so. Built from the list's own address, not this
+        request's: filtering reloads only the results, from another address."""
+        url = super().get_inspect_url(instance)
+        here = f"{reverse('pledges:index')}?{self.request.GET.urlencode()}"
+        return opened_from(url, here) if url and is_way_back(here) else url
 
     def search_queryset(self, queryset):
         """Names, emails and phone numbers as typed, a pledge number with or without its space
@@ -107,6 +124,11 @@ def when(moment):
     return date_format(timezone.localtime(moment), "j M Y, g:i a")
 
 
+def ended(sentence):
+    """`sentence` with its full stop, unless it ends with one already: a time ending "p.m."."""
+    return sentence if sentence.endswith(".") else f"{sentence}."
+
+
 def time_zone_name():
     """The site's time zone, named once on the pledge's page: "Asia/Kathmandu time (UTC+5:45)"."""
     offset = timezone.localtime().utcoffset()
@@ -124,6 +146,106 @@ def to_confirm_list_url():
     """The Pledges list filtered To confirm: the dashboard panel's "See all" (#383). It reads the
     pledge's status, as the panel does, so its count and the list agree."""
     return f"{reverse('pledges:index')}?{urlencode({'payment_status': PaymentStatus.TO_CONFIRM})}"
+
+
+def is_way_back(url):
+    """Whether `url` is one of the two places Mark as paid and Not found go back to (#383): the
+    dashboard, or the Pledges list filtered To confirm (with any page or search of it). Only an
+    address on this site with no host: never another site, and no other admin page."""
+    parts = urlsplit(url)
+    if parts.scheme or parts.netloc:
+        return False
+    if parts.path == reverse("wagtailadmin_home"):
+        return not parts.query
+    shown = parse_qs(parts.query).get("payment_status")
+    return parts.path == reverse("pledges:index") and shown == [PaymentStatus.TO_CONFIRM]
+
+
+def way_back(request):
+    """Where the pledge's page was opened from, sent as `next`, if it's a place to go back to
+    once a payment is marked (is_way_back); "" otherwise, to stay on the pledge's page. Read the
+    same way by the page and by both forms, which pass it on, also after a mistake."""
+    url = request.POST.get("next") or request.GET.get("next") or ""
+    safe = url_has_allowed_host_and_scheme(
+        url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    )
+    return url if safe and is_way_back(url) else ""
+
+
+def opened_from(inspect_url, came_from):
+    """A pledge's page that knows where it was opened from, to go back there."""
+    return f"{inspect_url}?{urlencode({'next': came_from})}"
+
+
+def back_label(came_from):
+    """The link back to where a pledge was opened from (way_back())."""
+    if urlsplit(came_from).path == reverse("wagtailadmin_home"):
+        return "Back to the dashboard"
+    return "Back to payments to confirm"
+
+
+def someone(user, by):
+    """Who did a step, as a sentence starts: "You" for the person reading."""
+    if by is None:
+        return "Someone"
+    if by == user:
+        return "You"
+    return by.get_full_name() or by.get_username()
+
+
+def done_already(user, payment):
+    """Why `payment` can't be marked paid or not found now, as (message level, sentence), or None
+    when it still can (#383). Someone marked it already (information: it's done), or another
+    payment paid its pledge (a warning: the supporter may have paid twice). Reads its steps, and
+    its pledge's payments, as fetched."""
+    pledge = payment.pledge
+
+    def marked(kind, word):
+        step = next((s for s in reversed(payment.steps.all()) if s.kind == kind), None)
+        by = someone(user, step.by if step else None)
+        on = f" on {when(step.at)}" if step else ""
+        return ended(f"{by} already marked {pledge.name}'s {payment.display_amount()} {word}{on}")
+
+    if payment.status == PaymentStatus.PAID:
+        return messages.INFO, marked(StepKind.MARKED_PAID, "paid")
+    other = next(
+        (p for p in pledge.payments.all() if p.status == PaymentStatus.PAID and p != payment), None
+    )
+    if other:
+        return messages.WARNING, (
+            f"{pledge.name}'s pledge is already paid, by {paid_how(other)} on "
+            f"{when(other.updated_at)}, so this payment can't be marked paid too."
+        )
+    if payment.status == PaymentStatus.FAILED:
+        return messages.INFO, marked(StepKind.NOT_FOUND, "not found")
+    return None
+
+
+def has_screenshot(payment):
+    """Whether the supporter's screenshot can be shown: sent, not deleted, and its file there."""
+    return bool(payment.receipt) and payment.receipt.storage.exists(payment.receipt.name)
+
+
+def missing_evidence(payment):
+    """A line for each thing the supporter didn't send, or that's gone, in its place in the
+    "Confirm this payment" block (#383). A deleted screenshot leaves nothing behind, and a claim
+    needs a transaction ID or a screenshot, so with no ID it was deleted; with one, after the 30
+    days it may have been, nothing says whether there was one."""
+    lines = []
+    if not payment.supporters_reference:
+        lines.append("They didn't give a transaction ID.")
+    if payment.receipt:
+        if not has_screenshot(payment):
+            lines.append("Their screenshot can't be opened: the file is missing.")
+    elif not payment.supporters_reference:
+        lines.append("Their screenshot was deleted after 30 days.")
+    elif payment.created_at < timezone.now() - RECEIPTS_KEPT_FOR:
+        lines.append(
+            "There's no screenshot: they didn't send one, or it was deleted after 30 days."
+        )
+    else:
+        lines.append("They didn't send a screenshot, only the transaction ID.")
+    return lines
 
 
 def payment_reason(pledge, payments):
@@ -181,6 +303,12 @@ class PledgeInspectView(InspectView):
         paid = pledge.paid_payment()
         word = pledge.payment_display()
         shown = pledge.page and sharing.gift_view(pledge) != sharing.HIDDEN
+        can_confirm = self.request.user.has_perm(CONFIRM_PERMISSION)
+        next_url = way_back(self.request)
+        context.update(
+            self.confirming(pledge, payments, next_url) if can_confirm else {},
+            next_url=next_url,
+        )
         context.update(
             # Their page for friends (#100), while it's up, for the team to see what it shows.
             gift_url=sharing.gift_url(pledge, self.request) if shown else "",
@@ -194,10 +322,52 @@ class PledgeInspectView(InspectView):
             payment_word_class="w-status--primary" if word.startswith("Paid") else "",
             payment_reason=payment_reason(pledge, payments),
             time_zone=time_zone_name(),
-            can_confirm=self.request.user.has_perm(CONFIRM_PERMISSION),
-            today=timezone.localdate(),
+            can_confirm=can_confirm,
         )
         return context
+
+    def confirming(self, pledge, payments, next_url):
+        """What someone who may confirm payments sees (#383): a Mark as paid form for each payment
+        the team confirms that isn't paid (the one posted with a mistake, if it was, as typed); the
+        "Confirm this payment" block for the payment To confirm; and, opened from the dashboard or
+        the filtered list with nothing left to confirm, what happened instead."""
+        posted = self.kwargs.get("mark_paid_form")
+        for payment in payments:
+            if payment.team_confirms and payment.status != PaymentStatus.PAID:
+                payment.mark_paid_form = (
+                    posted
+                    if posted and posted.payment.pk == payment.pk
+                    else MarkPaidForm(pledge=pledge, payment=payment)
+                )
+        claim = next(
+            (p for p in payments if p.team_confirms and p.status == PaymentStatus.TO_CONFIRM),
+            None,
+        )
+        if claim:
+            return {
+                "confirm": {
+                    "payment": claim,
+                    "said": ended(
+                        f"{pledge.name} says they paid {claim.display_amount()} by "
+                        f"{paid_how(claim)} on {when(claim.created_at)}"
+                    ),
+                    "screenshot": has_screenshot(claim),
+                    "missing": missing_evidence(claim),
+                }
+            }
+        latest = next((p for p in payments if p.team_confirms), None)
+        why = next_url and latest and done_already(self.request.user, latest)
+        return {"done": why[1], "back_label": back_label(next_url)} if why else {}
+
+    def post(self, request, *args, **kwargs):
+        """Only Mark as paid's form with a mistake (mark_paid_view) comes here: the pledge's page
+        again, with what was typed and each mistake by its box (#296), and the way back. Anything
+        else posted to the pledge's page is refused."""
+        if "mark_paid_form" not in self.kwargs:
+            return self.http_method_not_allowed(request, *args, **kwargs)
+        response = self.get(request, *args, **kwargs)
+        response.status_code = 422
+        return response
 
 
 class PledgeHistoryView(HistoryView):
@@ -334,32 +504,62 @@ class PledgeViewSet(ModelViewSet):
             Payment.objects.select_related("pledge"), pk=payment_pk, pledge_id=pk
         )
 
+    @staticmethod
+    def go_back(request, pk):
+        """To the dashboard or the filtered list it was opened from, else the pledge's page."""
+        return redirect(way_back(request) or reverse("pledges:inspect", args=[pk]))
+
+    @staticmethod
+    def say_why_not(request, payment, otherwise):
+        """After a refusal, what happened instead, read afresh (done_already()); `otherwise` if
+        nothing explains it."""
+        payment = (
+            Payment.objects.select_related("pledge")
+            .prefetch_related("steps__by", "pledge__payments")
+            .get(pk=payment.pk)
+        )
+        if why := done_already(request.user, payment):
+            messages.add_message(request, *why)
+        else:
+            messages.error(request, otherwise)
+
     @method_decorator(require_POST)
     def mark_paid_view(self, request, pk, payment_pk):
+        """Mark as paid: the payment and its pledge paid, then back where the team came from,
+        saying whose and how much (#383). The amount received may differ from the pledge's,
+        which then needs checking: said now, as the dashboard doesn't list it."""
         payment = self.confirmable_payment(request, pk, payment_pk)
-        form = MarkPaidForm(request.POST, pledge=payment.pledge)
+        pledge = payment.pledge
+        form = MarkPaidForm(request.POST, pledge=pledge, payment=payment)
         if not form.is_valid():
-            problems = "; ".join(f"{name}: {', '.join(e)}" for name, e in form.errors.items())
-            messages.error(request, f"Not marked paid. {problems}")
-        elif payment.mark_paid(
+            messages.error(request, "Not marked paid: put right what's marked below.")
+            return self.inspect_view(request, pk=pk, mark_paid_form=form)
+        if payment.mark_paid(
             request.user,
             form.cleaned_data["received_on"],
             form.cleaned_data["amount"],
             form.cleaned_data["reference"],
         ):
-            messages.success(request, "Marked paid.")
+            sentence = f"Marked {pledge.name}'s {payment.display_amount()} paid."
+            if (payment.amount, payment.currency) != (pledge.amount, pledge.currency):
+                sentence += (
+                    f" The pledge was for {pledge.display_amount()}, so it now says Needs checking."
+                )
+            messages.success(request, sentence)
         else:
-            messages.error(request, "This payment can't be marked paid: it may already be paid.")
-        return redirect(reverse("pledges:inspect", args=[pk]))
+            self.say_why_not(request, payment, "This payment can't be marked paid.")
+        return self.go_back(request, pk)
 
     @method_decorator(require_POST)
     def not_found_view(self, request, pk, payment_pk):
         payment = self.confirmable_payment(request, pk, payment_pk)
         if payment.mark_not_found(request.user):
-            messages.success(request, "Marked not found.")
+            messages.success(
+                request, f"Marked {payment.pledge.name}'s {payment.display_amount()} not found."
+            )
         else:
-            messages.error(request, "This payment can't be marked not found.")
-        return redirect(reverse("pledges:inspect", args=[pk]))
+            self.say_why_not(request, payment, "This payment can't be marked not found.")
+        return self.go_back(request, pk)
 
     def receipt_view(self, request, pk, payment_pk):
         """The supporter's screenshot of their receipt, for people who may confirm payments

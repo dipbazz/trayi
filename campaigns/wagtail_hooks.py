@@ -15,6 +15,7 @@ from campaigns.views import (
     CONFIRM_PERMISSION,
     PledgeViewSet,
     QRCodeViewSet,
+    opened_from,
     paid_how,
     to_confirm_list_url,
 )
@@ -103,7 +104,10 @@ class ToConfirmRow:
 
     @property
     def url(self):
-        return reverse("pledges:inspect", args=[self.pledge.pk])
+        """Its pledge's page, which goes back to the dashboard once the payment is marked."""
+        return opened_from(
+            reverse("pledges:inspect", args=[self.pledge.pk]), reverse("wagtailadmin_home")
+        )
 
 
 @dataclass

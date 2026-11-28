@@ -198,11 +198,13 @@ class TestPaymentsToConfirmPanel:
         assert rows(dashboard(team)) == ["Rs 2,500 · eSewa · Sita Sharma · 1 day ago"]
 
     def test_each_row_is_one_link_to_its_pledge(self, team, donate_page, code):
+        """Which comes back here once the payment is marked (test_confirming.py)."""
         pledge = said_paid(donate_page, code, "Sita Sharma", days_ago=2)
 
         links = to_confirm_panel(dashboard(team)).find("ul").find_all("a")
 
-        assert [link["href"] for link in links] == [reverse("pledges:inspect", args=[pledge.pk])]
+        inspect = reverse("pledges:inspect", args=[pledge.pk])
+        assert [link["href"] for link in links] == [f"{inspect}?next=%2Fadmin%2F"]
 
     def test_the_heading_counts_them(self, team, donate_page, code):
         said_paid(donate_page, code, "Sita Sharma", days_ago=2)

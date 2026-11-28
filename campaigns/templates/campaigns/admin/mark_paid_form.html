@@ -1,0 +1,12 @@
+{% load wagtailadmin_tags %}
+{% comment %}Mark as paid for one payment the team confirms: in the "Confirm this payment" block, or in a payment's history once it's marked not found (#383). `payment.mark_paid_form` is MarkPaidForm, as posted when it had a mistake; `next_url` is where the pledge's page was opened from, passed on so the team goes back there.{% endcomment %}
+<form method="post" action="{% url 'pledges:mark_paid' pledge.pk payment.pk %}">
+    {% csrf_token %}
+    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+    {% with form=payment.mark_paid_form %}
+        {% formattedfield form.received_on %}
+        {% formattedfield form.amount %}
+        {% formattedfield form.reference %}
+    {% endwith %}
+    <button type="submit" class="button">Mark as paid</button>
+</form>

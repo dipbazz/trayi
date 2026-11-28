@@ -337,15 +337,39 @@ class QRPaidForm(forms.Form):
 
 class MarkPaidForm(forms.Form):
     """What the team enters when it finds a QR payment in its statement. Whole amounts only, as
-    pledges are."""
+    pledges are.
 
-    received_on = forms.DateField(label="Date received")
-    amount = WholeNumberField(label="Amount received", min_value=1, max_value=MAX_AMOUNT)
+    Given the `payment`, it starts with today and the payment's amount, and the Reference box
+    empty: the team types what its statement says, under the transaction ID the supporter gave
+    ("They said: …"), so a copied ID isn't taken for a checked one (#383). Its boxes' ids end in
+    the payment's, as a pledge's page can hold a form for each of its payments."""
+
+    received_on = forms.DateField(
+        label="Date received", widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
+    )
+    # A text box with the number keypad: a number input changes when scrolled over (#97).
+    amount = WholeNumberField(
+        label="Amount received",
+        min_value=1,
+        max_value=MAX_AMOUNT,
+        widget=forms.TextInput(attrs={"inputmode": "numeric", "autocomplete": "off"}),
+    )
     reference = forms.CharField(label="Reference from the statement", max_length=100, strip=True)
 
-    def __init__(self, *args, pledge, **kwargs):
+    def __init__(self, *args, pledge, payment=None, **kwargs):
+        if payment is not None:
+            kwargs.setdefault("auto_id", f"%s-{payment.pk}")
+            kwargs.setdefault(
+                "initial", {"received_on": timezone.localdate(), "amount": payment.amount}
+            )
         super().__init__(*args, **kwargs)
-        self.pledge = pledge
+        self.pledge, self.payment = pledge, payment
+        self.fields["received_on"].widget.attrs.update(
+            min=timezone.localdate(pledge.created_at).isoformat(),
+            max=timezone.localdate().isoformat(),
+        )
+        if payment is not None and payment.supporters_reference:
+            self.fields["reference"].help_text = f"They said: {payment.supporters_reference}"
 
     def clean_received_on(self):
         """Between the day the pledge was sent and today: a year typed from a Nepali statement
