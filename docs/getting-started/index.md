@@ -190,7 +190,8 @@ If `seed_demo` says "Demo content already exists", the database wasn't deleted.
 
 **With Docker** ([Run it as the live site runs it](#run-it-as-the-live-site-runs-it)), run
 `docker compose up --build` after a pull, with `docker compose down --volumes` first for a fresh
-demo.
+demo. That deletes its superuser too: create one again with
+`docker compose exec web python manage.py createsuperuser`.
 
 ## Check that everything passes
 
