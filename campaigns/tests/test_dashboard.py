@@ -157,8 +157,8 @@ def to_confirm_panel(html):
 
 
 def rows(html):
-    panel = to_confirm_panel(html)
-    return [" ".join(item.get_text().split()) for item in panel.find("ul").find_all("li")]
+    listing = to_confirm_panel(html).select_one("table.listing")
+    return [" ".join(row.get_text().split()) for row in listing.select("tbody tr")]
 
 
 @pytest.mark.django_db
@@ -201,10 +201,20 @@ class TestPaymentsToConfirmPanel:
         """Which comes back here once the payment is marked (test_confirming.py)."""
         pledge = said_paid(donate_page, code, "Sita Sharma", days_ago=2)
 
-        links = to_confirm_panel(dashboard(team)).find("ul").find_all("a")
+        links = to_confirm_panel(dashboard(team)).select("tbody a")
 
         inspect = reverse("pledges:inspect", args=[pledge.pk])
         assert [link["href"] for link in links] == [f"{inspect}?next=%2Fadmin%2F"]
+
+    def test_rows_are_lined_like_the_still_to_write_panel_s(self, team, donate_page, code):
+        # Wagtail's dashboard listing draws a line between rows; without one, two rows of
+        # "amount · QR · name · when" read as one (#383).
+        said_paid(donate_page, code, "Sita Sharma", days_ago=2)
+        said_paid(donate_page, code, "Ram Thapa", days_ago=1)
+
+        listing = to_confirm_panel(dashboard(team)).select_one("table.listing.listing--dashboard")
+
+        assert len(listing.select("tbody tr")) == 2
 
     def test_the_heading_counts_them(self, team, donate_page, code):
         said_paid(donate_page, code, "Sita Sharma", days_ago=2)

@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: trayi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-28 13:49+0000\n"
+"POT-Creation-Date: 2026-11-28 14:28+0000\n"
 "PO-Revision-Date: 2026-10-08 00:00+0000\n"
 "Last-Translator: Trayi\n"
 "Language-Team: Nepali\n"
@@ -160,6 +160,9 @@ msgstr "पुष्टि गर्न बाँकी भुक्तानी
 
 msgid "Payments to confirm"
 msgstr "पुष्टि गर्न बाँकी भुक्तानी"
+
+msgid "Payment"
+msgstr "भुक्तानी"
 
 msgid "Nothing left to confirm"
 msgstr "पुष्टि गर्न केही बाँकी छैन"

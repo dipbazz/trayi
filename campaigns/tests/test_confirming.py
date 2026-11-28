@@ -263,7 +263,7 @@ class TestTheWayBack:
     def test_the_dashboard_s_rows_carry_it(self, client, team, claimed):
         page = BeautifulSoup(client.get(DASHBOARD).content, "html.parser")
 
-        link = page.find(id="payments-to-confirm-section").find("ul").find("a")
+        link = page.find(id="payments-to-confirm-section").select_one("tbody a")
         assert link["href"] == inspect_url(claimed.pledge, DASHBOARD)
 
     def test_the_filtered_list_s_rows_carry_it(self, client, team, claimed):
