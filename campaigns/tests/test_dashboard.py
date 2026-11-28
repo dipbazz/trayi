@@ -3,10 +3,21 @@ from decimal import Decimal
 
 import pytest
 from bs4 import BeautifulSoup
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from django.utils import timezone
 
-from campaigns.models import CampaignPage
+from campaigns.models import CampaignPage, Payment, PaymentStatus, Pledge
 from campaigns.tests.factories import CampaignIndexPageFactory, CampaignPageFactory
+from campaigns.tests.test_qr import make_code
+from campaigns.wagtail_hooks import (
+    TO_CONFIRM_ROWS,
+    PaymentsToConfirmPanel,
+    payments_to_confirm,
+    waited,
+)
+from home.wagtail_hooks import StillToWritePanel
 
 TODAY = datetime.date.today()
 
@@ -123,3 +134,181 @@ class TestTranslatedAppealsCountOnce:
 
         assert "2 open appeals" in html
         assert closing_soon(html) == ["बाढी राहत"]
+
+
+def said_paid(donate_page, code, name, days_ago, amount=2500):
+    """A pledge whose supporter said `days_ago` days ago that they paid by scanning `code`."""
+    pledge = Pledge.objects.create(
+        page=donate_page, amount=amount, currency="NPR", name=name, email="sita@example.com"
+    )
+    payment = pledge.claim_paid(code, "TXN-8841")
+    Payment.objects.filter(pk=payment.pk).update(
+        created_at=timezone.now() - datetime.timedelta(days=days_ago, minutes=5)
+    )
+    return pledge
+
+
+def dashboard(client):
+    return client.get(reverse("wagtailadmin_home")).content.decode()
+
+
+def to_confirm_panel(html):
+    return BeautifulSoup(html, "html.parser").find(id="payments-to-confirm-section")
+
+
+def rows(html):
+    panel = to_confirm_panel(html)
+    return [" ".join(item.get_text().split()) for item in panel.find("ul").find_all("li")]
+
+
+@pytest.mark.django_db
+class TestPaymentsToConfirmPanel:
+    """The dashboard's list of supporters who say they've paid by QR (#383)."""
+
+    @pytest.fixture
+    def code(self):
+        return make_code("eSewa")
+
+    @pytest.fixture
+    def team(self, client, moderator):
+        client.force_login(moderator)
+        return client
+
+    def test_lists_the_supporter_who_said_they_paid_longest_ago_first(
+        self, team, donate_page, code
+    ):
+        said_paid(donate_page, code, "Ram Thapa", days_ago=1)
+        said_paid(donate_page, code, "Sita Sharma", days_ago=5)
+        said_paid(donate_page, code, "Gita Rai", days_ago=2)
+
+        assert rows(dashboard(team)) == [
+            "Rs 2,500 · eSewa · Sita Sharma · 5 days ago",
+            "Rs 2,500 · eSewa · Gita Rai · 2 days ago",
+            "Rs 2,500 · eSewa · Ram Thapa · 1 day ago",
+        ]
+
+    def test_lists_only_pledges_to_confirm(self, team, donate_page, code):
+        said_paid(donate_page, code, "Sita Sharma", days_ago=1)
+        Pledge.objects.create(
+            page=donate_page, amount=900, currency="NPR", name="Not paid yet", email="a@example.com"
+        )
+        marked = said_paid(donate_page, code, "Already marked", days_ago=3)
+        marked.payments.get().mark_paid(None, TODAY, 2500, "STMT-1")
+
+        assert rows(dashboard(team)) == ["Rs 2,500 · eSewa · Sita Sharma · 1 day ago"]
+
+    def test_each_row_is_one_link_to_its_pledge(self, team, donate_page, code):
+        pledge = said_paid(donate_page, code, "Sita Sharma", days_ago=2)
+
+        links = to_confirm_panel(dashboard(team)).find("ul").find_all("a")
+
+        assert [link["href"] for link in links] == [reverse("pledges:inspect", args=[pledge.pk])]
+
+    def test_the_heading_counts_them(self, team, donate_page, code):
+        said_paid(donate_page, code, "Sita Sharma", days_ago=2)
+        said_paid(donate_page, code, "Ram Thapa", days_ago=1)
+
+        assert "Payments to confirm (2)" in to_confirm_panel(dashboard(team)).get_text()
+
+    def test_lists_ten_then_links_to_all_of_them(self, team, donate_page, code):
+        for day in range(TO_CONFIRM_ROWS + 1):
+            said_paid(donate_page, code, f"Supporter {day}", days_ago=day + 1)
+
+        html = dashboard(team)
+
+        assert len(rows(html)) == TO_CONFIRM_ROWS
+        see_all = to_confirm_panel(html).find("a", string="See all 11")
+        listed = team.get(see_all["href"]).content.decode()
+        assert all(f"Supporter {day}" in listed for day in range(TO_CONFIRM_ROWS + 1))
+
+    def test_all_of_them_is_the_pledges_list_filtered_to_confirm(self, team, donate_page, code):
+        said_paid(donate_page, code, "Sita Sharma", days_ago=1)
+        Pledge.objects.create(
+            page=donate_page, amount=900, currency="NPR", name="Not paid yet", email="a@example.com"
+        )
+
+        listed = team.get(payments_to_confirm().see_all_url).content.decode()
+
+        assert "Sita Sharma" in listed
+        assert "Not paid yet" not in listed
+
+    def test_ten_or_fewer_need_no_link_to_all(self, team, donate_page, code):
+        said_paid(donate_page, code, "Sita Sharma", days_ago=1)
+
+        assert "See all" not in to_confirm_panel(dashboard(team)).get_text()
+
+    def test_says_nothing_is_waiting_once_a_qr_code_is_set_up(self, team, code):
+        panel = to_confirm_panel(dashboard(team))
+
+        assert "Payments to confirm" in panel.get_text()
+        assert (
+            "Nothing to confirm. When a supporter says they've paid by QR, their payment shows "
+            "here." in " ".join(panel.get_text().split())
+        )
+
+    def test_isn_t_shown_without_a_qr_code_or_anything_waiting(self, team, site):
+        assert to_confirm_panel(dashboard(team)) is None
+
+    def test_a_payment_waiting_is_shown_after_its_qr_code_is_removed(self, team, donate_page, code):
+        said_paid(donate_page, code, "Sita Sharma", days_ago=2)
+        code.delete()
+
+        assert rows(dashboard(team)) == ["Rs 2,500 · eSewa · Sita Sharma · 2 days ago"]
+
+    def test_a_pledge_with_nothing_left_to_confirm_says_so(self, team, donate_page, code):
+        # A QR payment marked not found while an older online try still waits leaves the pledge
+        # To confirm with no payment to confirm (#385): its row says so, the dashboard still works.
+        pledge = said_paid(donate_page, code, "Sita Sharma", days_ago=2)
+        pledge.payments.update(status=PaymentStatus.FAILED)
+        pledge.payments.create(method="esewa", amount=2500, currency="NPR")
+
+        assert rows(dashboard(team)) == ["Rs 2,500 · Sita Sharma · Nothing left to confirm"]
+
+    def test_an_editor_doesn_t_see_it(self, client, editor, donate_page, code):
+        # Editors can't confirm payments, so the panel would ask them for something they can't do.
+        said_paid(donate_page, code, "Sita Sharma", days_ago=2)
+        client.force_login(editor)
+
+        assert to_confirm_panel(dashboard(client)) is None
+
+    def test_comes_first_on_the_dashboard(self, team, donate_page, code):
+        said_paid(donate_page, code, "Sita Sharma", days_ago=2)
+
+        html = dashboard(team)
+
+        assert html.index('id="payments-to-confirm-section"') < html.index(
+            'id="fundraising-section"'
+        )
+        assert PaymentsToConfirmPanel.order < StillToWritePanel.order
+
+    def test_its_queries_don_t_grow_with_the_payments_waiting(self, donate_page, code):
+        def queries():
+            with CaptureQueriesContext(connection) as run:
+                result = payments_to_confirm()
+                [(row.amount, row.paid_by, row.ago, row.url) for row in result.rows]
+            return len(run.captured_queries)
+
+        nothing_waiting = queries()
+        said_paid(donate_page, code, "First", days_ago=1)
+        one = queries()
+        for day in range(29):
+            said_paid(donate_page, code, f"Supporter {day}", days_ago=day + 2)
+
+        assert nothing_waiting == 2  # the count, and whether a QR code is set up
+        assert one == queries() == 3  # the count, the oldest ten, and their payments
+
+
+@pytest.mark.parametrize(
+    ("ago", "said"),
+    [
+        (datetime.timedelta(minutes=20), "less than an hour ago"),
+        (datetime.timedelta(hours=1), "1 hour ago"),
+        (datetime.timedelta(hours=23, minutes=59), "23 hours ago"),
+        (datetime.timedelta(days=1), "1 day ago"),
+        (datetime.timedelta(days=2, hours=23), "2 days ago"),
+    ],
+)
+def test_waited_says_how_long_ago_to_the_hour(ago, said):
+    now = timezone.now()
+
+    assert waited(now - ago, now) == said

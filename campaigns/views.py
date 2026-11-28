@@ -1,6 +1,7 @@
 import datetime
 import re
 import uuid
+from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
@@ -117,6 +118,12 @@ def time_zone_name():
 def paid_how(payment):
     """The provider or QR code a payment was made with."""
     return payment.qr_name or payment.get_method_display()
+
+
+def to_confirm_list_url():
+    """The Pledges list filtered To confirm: the dashboard panel's "See all" (#383). It reads the
+    pledge's status, as the panel does, so its count and the list agree."""
+    return f"{reverse('pledges:index')}?{urlencode({'payment_status': PaymentStatus.TO_CONFIRM})}"
 
 
 def payment_reason(pledge, payments):

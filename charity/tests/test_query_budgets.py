@@ -7,7 +7,8 @@ and say why; if it saves queries, lower the budget.
 
 import pytest
 
-from campaigns.models import Pledge
+from campaigns.models import Pledge, QRCode
+from campaigns.wagtail_hooks import TO_CONFIRM_ROWS, payments_to_confirm
 from home.wagtail_hooks import still_to_write
 
 pytestmark = pytest.mark.django_db
@@ -85,6 +86,26 @@ def test_the_still_to_write_panel_stays_within_its_query_budget(
 
     with django_assert_max_num_queries(42):
         still_to_write(user, demo_site)
+
+
+def test_the_payments_to_confirm_panel_stays_within_its_query_budget(
+    demo_site, django_assert_max_num_queries
+):
+    # The count, the oldest pledges waiting and their payments to confirm (#383), however many
+    # are waiting: more than the panel lists, so "See all" is counted too.
+    code = QRCode.objects.first()
+    for number in range(TO_CONFIRM_ROWS + 2):
+        Pledge.objects.create(
+            page=Pledge.objects.first().page,
+            amount=1000,
+            currency="NPR",
+            name=f"Supporter {number}",
+            email="supporter@example.org",
+        ).claim_paid(code, f"TXN-{number}")
+
+    with django_assert_max_num_queries(3):
+        result = payments_to_confirm()
+        [(row.amount, row.paid_by, row.ago, row.url) for row in result.rows]
 
 
 # The demo's shared gift (#100), whose addresses are random. Both pages spend three more than

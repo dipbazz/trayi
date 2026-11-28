@@ -322,6 +322,19 @@ your payment, say from a tab opened before it started) goes to the online page i
 The choices send a pledge in To confirm to the checking page, and one in Not found to the QR
 page (`STATE_ROUTES`).
 
+**Payments to confirm** is the first panel on the dashboard, for people with **Can confirm
+payments** only (#383): every pledge To confirm, the supporter who said they paid longest ago
+first (they've waited longest, and their screenshot goes first). Each row is one link to the
+pledge, at least 44px tall: "Rs 2,500 · eSewa · Sita Sharma · 2 days ago" (the QR code's name as
+it was then, so a removed code still shows). It lists 10, then "See all 14" opens the Pledges list
+filtered To confirm; the panel reads the pledge's status, as that filter does, so the two agree.
+With nothing waiting it says "Nothing to confirm…" once a QR code is set up, and isn't shown on a
+site with none. A pledge To confirm with no payment left to confirm (a QR payment marked not found
+while an older eSewa or Khalti try still waits, #385) shows "Nothing left to confirm" rather than
+failing the dashboard. It's in Nepali where the admin is; the pledge's own page is English for now
+(#386). It runs at most three queries however many are waiting
+(`campaigns/wagtail_hooks.py`, `payments_to_confirm()`).
+
 **The team confirms from the pledge** (Pledges → open one). Each payment is listed with its steps
 (the supporter said they paid, marked paid by …). Someone with **Can confirm payments**
 (`campaigns.confirm_payment`, given to Moderators; editors still only read pledges) sees two

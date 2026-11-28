@@ -1,0 +1,33 @@
+{% load i18n wagtailadmin_tags %}
+{% if result.count %}
+    {% blocktrans asvar heading with count=result.count %}Payments to confirm ({{ count }}){% endblocktrans %}
+{% else %}
+    {% trans "Payments to confirm" as heading %}
+{% endif %}
+{% panel id="payments-to-confirm" heading=heading classname="w-panel--dashboard" %}
+    {% comment %}Wagtail pads only a dashboard table's cells, so w-px-6 lines everything up with
+    the other panels. Each row is one link, at least 44px tall (w-py-3 around a line of text), whose
+    own text names the amount and the supporter (#383).{% endcomment %}
+    {% if result.rows %}
+        <ul class="w-list-none w-p-0 w-m-0">
+            {% for row in result.rows %}
+                <li>
+                    <a class="w-block w-px-6 w-py-3" href="{{ row.url }}">
+                        {% if row.payment %}
+                            {{ row.amount }} · {{ row.paid_by }} · {{ row.pledge.name }} · {{ row.ago }}
+                        {% else %}
+                            {{ row.amount }} · {{ row.pledge.name }} · {% trans "Nothing left to confirm" %}
+                        {% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+        {% if result.count > result.rows|length %}
+            <p class="w-px-6">
+                <a href="{{ result.see_all_url }}">{% blocktrans with count=result.count %}See all {{ count }}{% endblocktrans %}</a>
+            </p>
+        {% endif %}
+    {% else %}
+        <p class="w-px-6">{% trans "Nothing to confirm. When a supporter says they've paid by QR, their payment shows here." %}</p>
+    {% endif %}
+{% endpanel %}
