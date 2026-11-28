@@ -91,7 +91,7 @@ bundle it into a fix.
    and follows the template: what changed, the [Principles](#principles) answers (or "In #n"
    when the issue has them), what to check in the browser before merging, and anything the
    reviewer must act on; the why goes in the commit messages. Writing the body yourself
-   (`gh --body`)? Use the form's (or the template's) headings, Principles included. Pull requests aren't
+   (`gh pr create --body`)? Use the template's headings, Principles included. Pull requests aren't
    stacked on each other. Straight after opening it, check its changelog file (or the
    `no changelog` label), that it has a milestone, that its issue's board card moved to
    *In review* by itself ([how](releases.md#the-project-board)) and the docs pages it describes. On your first pull request, the CLA Assistant bot asks you to sign the

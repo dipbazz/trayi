@@ -70,8 +70,8 @@ written first and passing for the code it touched ([Testing](testing.md)), the d
 describes updated and building with `-W` ([Writing docs](writing-docs.md)), a changelog file or
 the `no changelog` label, a Principles section ([the questions](index.md#principles), or "In #n"
 when the issue answers them), and a "Check before merging" section with a box per page and
-width, or saying nothing needs checking. Writing the body yourself (`gh --body`)? Use the form's
-(or the template's) headings, Principles included. An agent that can't finish a step says which
+width, or saying nothing needs checking. Writing the body yourself (`gh issue create --body` or
+`gh pr create --body`)? Use the form's (or the template's) headings, Principles included. An agent that can't finish a step says which
 and why in the pull request, rather than leaving it out.
 
 ## Overriding the defaults
