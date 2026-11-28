@@ -321,6 +321,14 @@ class TestAMistakeInTheForm:
         claimed.refresh_from_db()
         assert claimed.status == PaymentStatus.TO_CONFIRM
 
+    def test_the_pledge_s_page_takes_no_post_of_its_own(self, client, team, claimed):
+        """Only Mark as paid shows it again after a mistake; posting to it marks nothing."""
+        response = client.post(inspect_url(claimed.pledge), paid_form())
+
+        assert response.status_code == 405
+        claimed.refresh_from_db()
+        assert claimed.status == PaymentStatus.TO_CONFIRM
+
 
 class TestWhatItSays:
     def test_marked_paid_names_the_supporter_and_the_amount(self, client, team, claimed):
