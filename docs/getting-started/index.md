@@ -143,8 +143,8 @@ When other work has merged into `main` since you last worked here, catch up befo
 2. **Commit or stash your changes, then `git switch main`,** unless you're carrying on with a
    branch. Doctor gives the pull command only on `main`; on your own branch it says to rebase or
    merge.
-3. **Run doctor,** do what each `❌` names (the pull, `uv sync`, `migrate`), and run it again
-   until there are none.
+3. **Run doctor,** do what each `❌` names (the pull, `migrate`, the pre-commit hooks), and run it
+   again until there are none. It syncs the dependencies itself.
 
 Catching up keeps the pages, images and login you made locally.
 
