@@ -16,8 +16,9 @@ PR_TEMPLATE = ".github/pull_request_template.md"
 # Absolute, because a relative link in an issue or pull request body resolves against the
 # issue's own URL, not the repository.
 PRINCIPLES_URL = "https://github.com/dipbazz/trayi/blob/main/docs/contributing/index.md#principles"
+# Any link into docs/ on main: a file (blob/) or a folder (tree/), with or without an #anchor.
 DOCS_URL = re.compile(
-    r"https://github\.com/dipbazz/trayi/blob/main/(docs/[^\s#)\"'>]+\.md)(?:#([\w-]+))?"
+    r"https://github\.com/dipbazz/trayi/(?:blob|tree)/main/(docs(?:/[^\s#)\"'>]*)?)(?:#([\w-]+))?"
 )
 # A pointer names a docs file by its repo path, and a section by its exact heading:
 # `docs/contributing/reviews.md`, "When a review is done"
@@ -118,10 +119,11 @@ def test_workflow_skill_names_docs_by_path():
 
 
 def broken_links(text):
-    """The links to docs/ on GitHub in text whose file or #anchor doesn't exist."""
+    """The links to docs/ on GitHub in text whose file, folder or #anchor doesn't exist."""
     broken = []
     for doc, anchor in DOCS_URL.findall(text):
-        if not (ROOT / doc).is_file():
+        doc = doc.rstrip(".,;:/")  # a link at the end of a sentence
+        if not (ROOT / doc).exists():
             broken.append(doc)
         elif anchor and anchor not in _anchors(ROOT / doc):
             broken.append(f"{doc}#{anchor}")
@@ -131,7 +133,7 @@ def broken_links(text):
 def test_github_templates_link_to_docs_that_exist():
     # The docs build checks only links inside docs/, and GitHub shows the templates only from
     # main, so a renamed heading would leave every new issue linking to nothing.
-    files = [path for path in (ROOT / ".github").rglob("*") if path.suffix in {".md", ".yml"}]
+    files = [p for p in (ROOT / ".github").rglob("*") if p.suffix in {".md", ".yml", ".yaml"}]
     text = "\n".join(path.read_text(encoding="utf-8") for path in files)
     assert DOCS_URL.search(text), "no link to docs/ in .github/: has the address changed?"
     broken = broken_links(text)
@@ -143,6 +145,8 @@ def test_github_templates_link_to_docs_that_exist():
     [
         "https://github.com/dipbazz/trayi/blob/main/docs/contributing/index.md#no-such-section",
         "https://github.com/dipbazz/trayi/blob/main/docs/contributing/no-such-page.md#principles",
+        "https://github.com/dipbazz/trayi/blob/main/docs/contributing/no-such-page",
+        "https://github.com/dipbazz/trayi/tree/main/docs/no-such-folder",
     ],
 )
 def test_a_broken_docs_link_is_caught(link):
