@@ -549,6 +549,58 @@ def test_the_fork_section_gives_doctors_own_commands(clone, capsys):
     assert add in section
 
 
+def coming_back_section():
+    page = (PROJECT / "docs" / "getting-started" / "index.md").read_text(encoding="utf-8")
+    return page.split("\n## Coming back to a clone\n", 1)[1].split("\n## ", 1)[0]
+
+
+def local_data_paths():
+    """The database and upload folders the base settings keep in the clone, relative to it.
+
+    Loaded from the file itself: the test settings swap the storages for temporary folders.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "base_settings", PROJECT / "charity" / "settings" / "base.py"
+    )
+    base = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(base)
+    paths = [base.DATABASES["default"]["NAME"], base.MEDIA_ROOT]
+    paths += [
+        storage["OPTIONS"]["location"]
+        for storage in base.STORAGES.values()
+        if "location" in storage.get("OPTIONS", {})
+    ]
+    return {
+        Path(path).relative_to(base.BASE_DIR).as_posix()
+        for path in paths
+        if Path(path).is_relative_to(base.BASE_DIR)
+    }
+
+
+def code_lines(section, language):
+    blocks = re.findall(rf"^```{language}\n(.*?)^```$", section, re.MULTILINE | re.DOTALL)
+    return "".join(blocks).splitlines()
+
+
+def test_the_rebuild_deletes_every_local_data_path_in_both_shells():
+    section = coming_back_section()
+    removed_in_bash = {
+        word
+        for line in code_lines(section, "bash")
+        if line.startswith("rm ")
+        for word in line.split()[1:]
+        if not word.startswith("-")
+    }
+    removed_in_powershell = {
+        path
+        for line in code_lines(section, "powershell")
+        if "Remove-Item" in line
+        for path in re.findall(r"'([^']+)'", line.split("|", 1)[0])
+    }
+    assert removed_in_bash == local_data_paths()
+    assert removed_in_powershell == local_data_paths()
+
+
 def test_doctor_runs_in_its_own_environment_with_no_packages():
     source = SCRIPT.read_text(encoding="utf-8")
     assert source.startswith("#!/usr/bin/env -S uv run --script\n")

@@ -22,7 +22,7 @@ cd trayi
 uv sync --locked --group docs              # the site's and the docs' dependencies, exactly as uv.lock pins them
 uv run pre-commit install                  # once: checks ruff, the branch name, CLAUDE.md's length and the commit subject on each commit
 uv run python manage.py migrate
-uv run python manage.py seed_demo          # fictional charity content, safe to re-run
+uv run python manage.py seed_demo          # fictional charity content; run again, it adds nothing (see "Coming back to a clone")
 uv run python manage.py createsuperuser
 uv run python manage.py runserver
 ```
@@ -99,8 +99,8 @@ use Chrome, Edge or Firefox.
 
 ## Check your clone
 
-Run doctor once the site runs, and again whenever you come back to work, yourself or before your
-AI agent starts:
+Run doctor once the site runs, and again whenever you
+[come back to work](#coming-back-to-a-clone), yourself or before your AI agent starts:
 
 ```bash
 uv run --script scripts/doctor.py
@@ -133,6 +133,64 @@ is a warning, and the other checks still run. It ends with an exit code tools ca
 | `0` | Nothing to fix (warnings may have printed) |
 | `1` | At least one `❌` |
 | `2` | Doctor couldn't check: git is missing, the script isn't in a git clone, or Python is older than 3.14 |
+
+## Coming back to a clone
+
+When other work has merged into `main` since you last worked here, catch up before you start:
+
+1. **Stop `runserver`** if it's running. While it runs, doctor can't sync the dependencies, and on
+   Windows the database can't be deleted.
+2. **Commit or stash your changes, then `git switch main`,** unless you're carrying on with a
+   branch. Doctor gives the pull command only on `main`; on your own branch it says to rebase or
+   merge.
+3. **Run doctor,** do what each `❌` names (the pull, `uv sync`, `migrate`), and run it again
+   until there are none.
+
+Catching up keeps the pages, images and login you made locally.
+
+### Rebuild the demo
+
+This is optional: only for new demo content or a clean start. On a database that already has the
+demo, `seed_demo` adds nothing, so the rebuild starts from an empty one.
+
+**The rebuild deletes the pages, images and documents you made by hand, and your superuser.** To
+keep them, first run `uv run python manage.py backup_site <a folder outside the clone>`
+([Hosting](../hosting.md#backups) describes it).
+
+With `runserver` stopped, delete the database and both upload folders from the project folder.
+All three are gitignored. In Git Bash, macOS or Linux:
+
+```bash
+rm -rf db.sqlite3 media receipts
+```
+
+In PowerShell:
+
+```powershell
+'db.sqlite3','media','receipts' | Where-Object { Test-Path $_ } | Remove-Item -Recurse -Force
+```
+
+It skips a folder that isn't there, but shows an error if a file is in use: stop `runserver`, then
+run it again.
+
+Then build the demo again. The old login went with the database, so create a superuser too:
+
+```bash
+uv run python manage.py migrate
+uv run python manage.py seed_demo
+uv run python manage.py createsuperuser
+```
+
+If `seed_demo` says "Demo content already exists", the database wasn't deleted.
+
+If your `.env.local` sets `DJANGO_LANGUAGE_CODE=ne` ([Nepali-first](#see-the-site-nepali-first)),
+put its `#` back before `migrate`, and unset the variable if your shell sets it too, since the
+shell wins over the file: `seed_demo` refuses a Nepali-first site, because the demo is
+English-first. Remove the `#` again afterwards.
+
+**With Docker** ([Run it as the live site runs it](#run-it-as-the-live-site-runs-it)), run
+`docker compose up --build` after a pull, with `docker compose down --volumes` first for a fresh
+demo.
 
 ## Check that everything passes
 
